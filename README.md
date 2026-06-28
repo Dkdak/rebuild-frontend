@@ -73,3 +73,21 @@ export default defineConfig([
 ```
 =======
 # rebuild-frontend
+
+
+싱행
+```
+PS C:\rebuild-project\rebuild-frontend> npm run dev
+
+> rebuild-frontend@0.0.0 dev
+> vite
+
+
+  VITE v8.0.16  ready in 422 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+  ➜  press h + enter to show help
+
+```
+
