@@ -1,5 +1,5 @@
 # Node.js 이미지를 사용
-FROM node:20.14.0
+FROM node:22.14.0-alpine
 
 # 작업 디렉토리를 /app으로 설정
 WORKDIR /app
