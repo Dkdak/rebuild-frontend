@@ -13,6 +13,10 @@ RUN npm install
 # 프로젝트의 모든 파일을 작업 디렉토리로 복사
 COPY . .
 
+# 깃허브 액션에서 넘겨준 변수를 도커 빌드 환경 내부로 전달
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+
 # 5. 운영용(Production) 정적 파일 빌드 진행 (dist 폴더 생성)
 RUN npm run build
 
