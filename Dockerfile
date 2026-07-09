@@ -13,14 +13,14 @@ RUN npm install
 # 프로젝트의 모든 파일을 작업 디렉토리로 복사
 COPY . .
 
-# 5. 🚨 [중요] 운영용(Production) 정적 파일 빌드 진행 (dist 폴더 생성)
+# 5. 운영용(Production) 정적 파일 빌드 진행 (dist 폴더 생성)
 RUN npm run build
 
-# 6. 🚨 [중요] 정적 파일을 서빙해 줄 가벼운 패키지(serve) 설치
+# 6. 정적 파일을 서빙해 줄 가벼운 패키지(serve) 설치
 RUN npm install -g serve
 
 # 7. 포트 오픈 (기존 유지)
 EXPOSE 5173
 
-# 8. 🚨 [중요] 개발 서버(dev) 대신, 빌드된 결과물(dist)을 프로덕션 모드로 실행
+# 8. 개발 서버(dev) 대신, 빌드된 결과물(dist)을 프로덕션 모드로 실행
 CMD ["serve", "-s", "dist", "-l", "5173"]

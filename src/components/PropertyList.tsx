@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { findAllProperties, type TestPropertyResponse } from "../api/propertyApi";
 
 function PropertyList() {
-
     const [properties, setProperties] = useState<TestPropertyResponse[]>([]);
 
     useEffect(() => {
@@ -19,27 +18,70 @@ function PropertyList() {
     };
 
     return (
-        <div style={{ padding: "20px" }}>
-            <h2>Property List</h2>
+        <div style={{ padding: "30px", fontFamily: "Arial, sans-serif", maxWidth: "800px", margin: "0 auto" }}>
+            
+            {/* 🌟 1. 대시보드 상단 웰컴 배너 구역 */}
+            <div style={{ 
+                backgroundColor: "#f4f6f9", 
+                borderRadius: "12px", 
+                padding: "24px", 
+                textAlign: "center", 
+                marginBottom: "30px",
+                boxShadow: "0 4px 6px rgba(0,0,0,0.05)"
+            }}>
+                {/* 환영 인사 및 텍스트 */}
+                <h1 style={{ color: "#333", margin: "0 0 10px 0", fontSize: "28px" }}>👋 Hello, Welcome Back!</h1>
+                <p style={{ color: "#666", margin: "0 0 20px 0" }}>인프라 배포가 완료되었습니다. 등록된 자산 현황을 실시간으로 확인하세요.</p>
+                
+                {/* 🖼️ 여기에 원하는 멋진 웰컴 일러스트나 대시보드 이미지 링크를 넣으시면 됩니다 */}
+                <img 
+                    src="https://illustrations.popsy.co/amber/work-from-home.svg" 
+                    alt="Welcome Illustration" 
+                    style={{ width: "100%", maxWidth: "250px", height: "auto", display: "block", margin: "0 auto" }}
+                />
+            </div>
 
-            <table border={1}>
+            {/* 📊 2. 본문 타이틀 및 테이블 구역 */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+                <h2 style={{ margin: 0, color: "#2c3e50" }}>🏢 Property List</h2>
+                <span style={{ fontSize: "14px", color: "#2ecc71", fontWeight: "bold" }}>● 시스템 정상 가동 중</span>
+            </div>
+
+            <table style={{ 
+                width: "100%", 
+                borderCollapse: "separate", 
+                borderSpacing: "0",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                borderRadius: "8px",
+                overflow: "hidden"
+            }}>
                 <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Name</th>
+                    <tr style={{ backgroundColor: "#34495e", color: "#fff" }}>
+                        <th style={{ padding: "12px 15px", textAlign: "left", width: "80px" }}>ID</th>
+                        <th style={{ padding: "12px 15px", textAlign: "left" }}>Asset Name</th>
                     </tr>
                 </thead>
 
                 <tbody>
-                    {properties.map((property) => (
-                        <tr key={property.id}>
-                            <td>{property.id}</td>
-                            <td>{property.name}</td>
+                    {properties.length === 0 ? (
+                        <tr>
+                            <td colSpan={2} style={{ padding: "30px", textAlign: "center", color: "#999" }}>
+                                📭 표시할 데이터가 존재하지 않습니다.
+                            </td>
                         </tr>
-                    ))}
+                    ) : (
+                        properties.map((property, index) => (
+                            <tr key={property.id} style={{ 
+                                backgroundColor: index % 2 === 0 ? "#fff" : "#fdfdfd",
+                                borderBottom: "1px solid #eee"
+                            }}>
+                                <td style={{ padding: "12px 15px", color: "#7f8c8d", fontWeight: "bold" }}>{property.id}</td>
+                                <td style={{ padding: "12px 15px", color: "#334455" }}>{property.name}</td>
+                            </tr>
+                        ))
+                    )}
                 </tbody>
             </table>
-
         </div>
     );
 }
