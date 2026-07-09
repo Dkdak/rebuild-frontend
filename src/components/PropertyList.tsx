@@ -31,9 +31,30 @@ function PropertyList() {
             }}>
                 {/* 환영 인사 및 텍스트 */}
                 <h1 style={{ color: "#333", margin: "0 0 10px 0", fontSize: "28px" }}>👋 Hello, Welcome Back!</h1>
-                <p style={{ color: "#666", margin: "0 0 20px 0" }}>인프라 배포가 완료되었습니다. 등록된 자산 현황을 실시간으로 확인하세요.</p>
+                <p style={{ color: "#666", margin: "0 0 15px 0" }}>인프라 배포가 완료되었습니다. 등록된 자산 현황을 실시간으로 확인하세요.</p>
                 
-                {/* 🖼️ 여기에 원하는 멋진 웰컴 일러스트나 대시보드 이미지 링크를 넣으시면 됩니다 */}
+                {/* 🚂 한글 단어 기차 바로가기 미니 버튼 (추가된 부분) */}
+                <div style={{ marginBottom: "20px" }}>
+                    <a 
+                        href="/game.html" 
+                        style={{
+                            display: "inline-block",
+                            padding: "8px 16px",
+                            backgroundColor: "#ff7043",
+                            color: "white",
+                            textDecoration: "none",
+                            borderRadius: "20px",
+                            fontWeight: "bold",
+                            fontSize: "13px",
+                            boxShadow: "0 3px 0 #d84315",
+                            transition: "all 0.1s"
+                        }}
+                    >
+                        🚂 단어 기차 놀이터 가기
+                    </a>
+                </div>
+                
+                {/* 🖼️ 웰컴 일러스트 */}
                 <img 
                     src="https://illustrations.popsy.co/amber/work-from-home.svg" 
                     alt="Welcome Illustration" 
