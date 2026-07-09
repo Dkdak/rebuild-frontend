@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 interface DatasetItem {
     w: string;
@@ -47,7 +47,6 @@ export default function HangulGame({ onBack }: HangulGameProps) {
     const currentData = !isGameOver ? dataset[currentStage] : null;
     const targetWord = currentData ? currentData.w : "";
 
-    // 한글 음성 안내
     const speakWord = (text: string) => {
         if ("speechSynthesis" in window) {
             window.speechSynthesis.cancel();
@@ -59,10 +58,11 @@ export default function HangulGame({ onBack }: HangulGameProps) {
         }
     };
 
-    // 성공/실패 효과음
     const playBeep = (type: "success" | "fail") => {
         try {
             const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioContextClass) return;
+            
             const audioCtx = new AudioContextClass();
             const oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
@@ -86,7 +86,6 @@ export default function HangulGame({ onBack }: HangulGameProps) {
         }
     };
 
-    // 스테이지 초기화
     useEffect(() => {
         if (isGameOver) {
             speakWord("와, 축하합니다! 모든 단어 기차를 완료했어요!");
@@ -99,7 +98,7 @@ export default function HangulGame({ onBack }: HangulGameProps) {
             setFeedback("글자 카드를 눌러 기차에 태워주세요! 🚂");
             setFeedbackColor("#424242");
 
-            let letters: LetterItem[] = targetWord.split("").map((char, index) => ({
+            const letters: LetterItem[] = targetWord.split("").map((char, index) => ({
                 char,
                 id: index,
                 used: false
@@ -116,9 +115,8 @@ export default function HangulGame({ onBack }: HangulGameProps) {
             const timer = setTimeout(() => speakWord(targetWord), 100);
             return () => clearTimeout(timer);
         }
-    }, [currentStage]);
+    }, [currentStage, targetWord, isGameOver]);
 
-    // 글자 선택
     const selectLetter = (item: LetterItem) => {
         if (isCorrect) return;
         const emptyIndex = placedLetters.indexOf(null);
@@ -133,7 +131,6 @@ export default function HangulGame({ onBack }: HangulGameProps) {
         }
     };
 
-    // 글자 내리기
     const removeLetter = (index: number) => {
         const item = placedLetters[index];
         if (item) {
@@ -149,7 +146,6 @@ export default function HangulGame({ onBack }: HangulGameProps) {
         }
     };
 
-    // 정답 체크
     const checkAnswer = (currentPlaced: (LetterItem | null)[]) => {
         if (currentPlaced.indexOf(null) === -1) {
             const currentWord = currentPlaced.map((item) => item?.char).join("");
@@ -208,13 +204,14 @@ export default function HangulGame({ onBack }: HangulGameProps) {
 
                 {isGameOver ? (
                     <div>
-                        <div style={{ fontSize: "8px", margin: "15px 0", marginTop: "25px" }}>👑</div>
+                        <div style={{ fontSize: "80px", margin: "15px 0", marginTop: "25px" }}>👑</div>
                         <div style={{ fontSize: "18px", fontWeight: "bold", color: "#2e7d32", margin: "15px 0" }}>와~! 50단계 모든 단어 기차를 정복했어요!</div>
                         <button onClick={resetGame} style={{ background: "#2196f3", color: "white", border: "none", borderRadius: "15px", padding: "12px 30px", fontSize: "20px", fontWeight: "bold", cursor: "pointer", boxShadow: "0 5px 0 #0b7dda" }}>처음부터 다시하기 🔄</button>
                     </div>
                 ) : (
                     <>
-                        <div style={{ fontSize: "8px", margin: "15px 0", marginTop: "25px" }}>{currentData?.e}</div>
+                        {/* 💡 이모지 크기를 시원시원하게 80px로 원상복구했습니다 */}
+                        <div style={{ fontSize: "80px", margin: "15px 0", marginTop: "25px" }}>{currentData?.e}</div>
                         
                         <div style={{ background: "repeating-linear-gradient(90deg, #795548, #795548 10px, #bb8f8f 10px, #bb8f8f 20px)", height: "8px", width: "100%", marginTop: "50px", marginBottom: "30px", position: "relative", borderRadius: "4px" }}>
                             <div style={{ display: "flex", justifyContent: "center", gap: "15px", position: "absolute", width: "100%", top: "-45px", left: 0 }}>
