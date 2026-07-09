@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { findAllProperties, type TestPropertyResponse } from "../api/propertyApi";
+import HangulGame from "./HangulGame"; // 👈 방금 만든 게임 컴포넌트 가져오기
 
 function PropertyList() {
     const [properties, setProperties] = useState<TestPropertyResponse[]>([]);
+    const [showGame, setShowGame] = useState<boolean>(false); // 👈 게임 화면 전환 상태 추가
 
     useEffect(() => {
         loadData();
@@ -17,6 +19,11 @@ function PropertyList() {
         }
     };
 
+    // 🚂 만약 게임이 켜진 상태라면 리스트 대신 게임 화면을 통째로 렌더링
+    if (showGame) {
+        return <HangulGame onBack={() => setShowGame(false)} />;
+    }
+
     return (
         <div style={{ padding: "30px", fontFamily: "Arial, sans-serif", maxWidth: "800px", margin: "0 auto" }}>
             
@@ -29,32 +36,30 @@ function PropertyList() {
                 marginBottom: "30px",
                 boxShadow: "0 4px 6px rgba(0,0,0,0.05)"
             }}>
-                {/* 환영 인사 및 텍스트 */}
                 <h1 style={{ color: "#333", margin: "0 0 10px 0", fontSize: "28px" }}>👋 Hello, Welcome Back!</h1>
                 <p style={{ color: "#666", margin: "0 0 15px 0" }}>인프라 배포가 완료되었습니다. 등록된 자산 현황을 실시간으로 확인하세요.</p>
                 
-                {/* 🚂 한글 단어 기차 바로가기 미니 버튼 (추가된 부분) */}
+                {/* 🚂 버튼 클릭 시 안전하게 React 내부 상태를 변경해 게임으로 진입 */}
                 <div style={{ marginBottom: "20px" }}>
-                    <a 
-                        href="/game.html" 
+                    <button 
+                        onClick={() => setShowGame(true)} 
                         style={{
                             display: "inline-block",
                             padding: "8px 16px",
                             backgroundColor: "#ff7043",
                             color: "white",
-                            textDecoration: "none",
+                            border: "none",
                             borderRadius: "20px",
                             fontWeight: "bold",
                             fontSize: "13px",
                             boxShadow: "0 3px 0 #d84315",
-                            transition: "all 0.1s"
+                            cursor: "pointer"
                         }}
                     >
                         🚂 단어 기차 놀이터 가기
-                    </a>
+                    </button>
                 </div>
                 
-                {/* 🖼️ 웰컴 일러스트 */}
                 <img 
                     src="https://illustrations.popsy.co/amber/work-from-home.svg" 
                     alt="Welcome Illustration" 
