@@ -70,7 +70,7 @@ function PropertyList() {
             {/* 📊 2. 본문 타이틀 및 테이블 구역 */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
                 <h2 style={{ margin: 0, color: "#2c3e50" }}>🏢 Property List</h2>
-                <span style={{ fontSize: "14px", color: "#2ecc71", fontWeight: "bold" }}>● 시스템 정상 가동 중</span>
+                <span style={{ fontSize: "14px", color: "#2ecc71", fontWeight: "bold" }}>● 시스템 정상 가동 중-Dev 테스트</span>
             </div>
 
             <table style={{ 
