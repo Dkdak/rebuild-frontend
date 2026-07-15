@@ -211,9 +211,9 @@ export default function HangulGame({ onBack }: HangulGameProps) {
                 ) : (
                     <>
                         {/* 💡 이모지 크기를 시원시원하게 80px로 원상복구했습니다 */}
-                        <div style={{ fontSize: "80px", margin: "15px 0", marginTop: "25px" }}>{currentData?.e}</div>
-                        
-                        <div style={{ background: "repeating-linear-gradient(90deg, #795548, #795548 10px, #bb8f8f 10px, #bb8f8f 20px)", height: "8px", width: "100%", marginTop: "50px", marginBottom: "30px", position: "relative", borderRadius: "4px" }}>
+                        <div style={{ fontSize: "80px", lineHeight: 1, margin: "15px 0", marginTop: "25px" }}>{currentData?.e}</div>
+
+                        <div style={{ background: "repeating-linear-gradient(90deg, #795548, #795548 10px, #bb8f8f 10px, #bb8f8f 20px)", height: "8px", width: "100%", marginTop: "75px", marginBottom: "30px", position: "relative", borderRadius: "4px" }}>
                             <div style={{ display: "flex", justifyContent: "center", gap: "15px", position: "absolute", width: "100%", top: "-45px", left: 0 }}>
                                 {placedLetters.map((item, idx) => (
                                     <div 
