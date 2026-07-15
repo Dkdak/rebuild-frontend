@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface DatasetItem {
     w: string;
@@ -47,6 +47,34 @@ export default function HangulGame({ onBack }: HangulGameProps) {
     const currentData = !isGameOver ? dataset[currentStage] : null;
     const targetWord = currentData ? currentData.w : "";
 
+    const audioCtxRef = useRef<AudioContext | null>(null);
+
+    // 📱 모바일(특히 iOS Safari)은 사용자의 직접 탭(gesture) 없이 실행되는 오디오/음성을 차단한다.
+    // 화면에서 첫 탭이 발생하는 즉시 speechSynthesis와 AudioContext를 "미리 깨워"둬서,
+    // 이후 setTimeout 등으로 간접 호출되는 speakWord/playBeep도 소리가 나오게 한다.
+    useEffect(() => {
+        const unlockAudio = () => {
+            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+            if (AudioContextClass && !audioCtxRef.current) {
+                audioCtxRef.current = new AudioContextClass();
+            }
+            if (audioCtxRef.current?.state === "suspended") {
+                audioCtxRef.current.resume();
+            }
+            if ("speechSynthesis" in window) {
+                const warmUp = new SpeechSynthesisUtterance("");
+                warmUp.volume = 0;
+                window.speechSynthesis.speak(warmUp);
+            }
+        };
+        window.addEventListener("touchstart", unlockAudio, { once: true });
+        window.addEventListener("click", unlockAudio, { once: true });
+        return () => {
+            window.removeEventListener("touchstart", unlockAudio);
+            window.removeEventListener("click", unlockAudio);
+        };
+    }, []);
+
     const speakWord = (text: string) => {
         if ("speechSynthesis" in window) {
             window.speechSynthesis.cancel();
@@ -62,8 +90,14 @@ export default function HangulGame({ onBack }: HangulGameProps) {
         try {
             const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
             if (!AudioContextClass) return;
-            
-            const audioCtx = new AudioContextClass();
+
+            if (!audioCtxRef.current) {
+                audioCtxRef.current = new AudioContextClass();
+            }
+            const audioCtx = audioCtxRef.current;
+            if (audioCtx.state === "suspended") {
+                audioCtx.resume();
+            }
             const oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
             oscillator.connect(gainNode);
