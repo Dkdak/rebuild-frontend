@@ -1,9 +1,12 @@
-import PropertyList from "./components/PropertyList";
+import { AuthProvider } from "./context/AuthContext";
+import MainLayout from "./components/layout/MainLayout";
 
 function App() {
 
     return (
-        <PropertyList />
+        <AuthProvider>
+            <MainLayout />
+        </AuthProvider>
     );
 
 }
