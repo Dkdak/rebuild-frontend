@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { findAllProperties, type TestPropertyResponse } from "../../api/propertyApi";
+import { findAllProperties, type TestPropertyResponse } from "../../features/property/api/propertyApi";
 
 const CenterMap = () => {
     const [properties, setProperties] = useState<TestPropertyResponse[]>([]);

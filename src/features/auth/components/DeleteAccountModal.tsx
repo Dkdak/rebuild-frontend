@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../../context/AuthContext";
 import "./LoginModal.css";
 
-const LoginModal = ({ onClose }: { onClose: () => void }) => {
-    const { login } = useAuth();
-    const [email, setEmail] = useState("");
+interface DeleteAccountModalProps {
+    onClose: () => void;
+}
+
+const DeleteAccountModal = ({ onClose }: DeleteAccountModalProps) => {
+    const { deleteAccount } = useAuth();
     const [password, setPassword] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
     const [loading, setLoading] = useState(false);
@@ -14,10 +17,10 @@ const LoginModal = ({ onClose }: { onClose: () => void }) => {
         setErrorMessage("");
         setLoading(true);
         try {
-            await login(email, password);
+            await deleteAccount(password);
             onClose();
         } catch (error) {
-            setErrorMessage(error instanceof Error ? error.message : "로그인에 실패했습니다.");
+            setErrorMessage(error instanceof Error ? error.message : "탈퇴에 실패했습니다.");
         } finally {
             setLoading(false);
         }
@@ -27,39 +30,35 @@ const LoginModal = ({ onClose }: { onClose: () => void }) => {
         <div className="login-modal-backdrop" onClick={onClose}>
             <div className="login-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="login-modal-header">
-                    <h2>로그인</h2>
+                    <h2>회원 탈퇴</h2>
                     <button className="login-modal-close" onClick={onClose} aria-label="닫기">×</button>
                 </div>
+
                 <form onSubmit={handleSubmit}>
                     {errorMessage && <p className="login-modal-error">{errorMessage}</p>}
-                    <label>
-                        이메일
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="test@test.com"
-                            required
-                        />
-                    </label>
+                    <p className="delete-account-warning">
+                        탈퇴 시 계정 정보가 영구적으로 삭제되며 복구할 수 없습니다. 계속하려면 비밀번호를 입력하세요.
+                    </p>
                     <label>
                         비밀번호
                         <input
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="1234"
                             required
                         />
                     </label>
-                    <button type="submit" className="login-modal-submit" disabled={loading}>
-                        {loading ? "로그인 중..." : "로그인"}
+                    <button
+                        type="submit"
+                        className="login-modal-submit login-modal-submit-danger"
+                        disabled={loading}
+                    >
+                        {loading ? "탈퇴 처리 중..." : "탈퇴하기"}
                     </button>
-                    <p className="login-modal-hint">테스트 계정: test@test.com / 1234 (목업 응답)</p>
                 </form>
             </div>
         </div>
     );
 };
 
-export default LoginModal;
+export default DeleteAccountModal;

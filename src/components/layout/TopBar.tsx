@@ -1,18 +1,31 @@
-import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import LoginModal from "../auth/LoginModal";
+import LoginModal from "../../features/auth/components/LoginModal";
 import MobileNav from "./MobileNav";
 
 interface TopBarProps {
     tabs: string[];
     activeTab: string;
     onTabSelect: (tab: string) => void;
+    mobileNavOpen: boolean;
+    onOpenMobileNav: () => void;
+    onCloseMobileNav: () => void;
+    showLoginModal: boolean;
+    onOpenLoginModal: () => void;
+    onCloseLoginModal: () => void;
 }
 
-const TopBar = ({ tabs, activeTab, onTabSelect }: TopBarProps) => {
-    const { email, logout } = useAuth();
-    const [showLoginModal, setShowLoginModal] = useState(false);
-    const [showMobileNav, setShowMobileNav] = useState(false);
+const TopBar = ({
+    tabs,
+    activeTab,
+    onTabSelect,
+    mobileNavOpen,
+    onOpenMobileNav,
+    onCloseMobileNav,
+    showLoginModal,
+    onOpenLoginModal,
+    onCloseLoginModal,
+}: TopBarProps) => {
+    const { email, logout, isRestoring } = useAuth();
 
     return (
         <header className="top-bar">
@@ -37,40 +50,43 @@ const TopBar = ({ tabs, activeTab, onTabSelect }: TopBarProps) => {
             <button className="top-bar-icon-btn" aria-label="알림" disabled>🔔</button>
 
             <div className="top-bar-auth">
-                {email ? (
+                {isRestoring ? (
+                    <span className="top-bar-auth-skeleton" />
+                ) : email ? (
                     <>
                         <span className="top-bar-user">{email}</span>
                         <button className="top-bar-login-btn" onClick={logout}>로그아웃</button>
                     </>
                 ) : (
-                    <button className="top-bar-login-btn" onClick={() => setShowLoginModal(true)}>로그인</button>
+                    <button className="top-bar-login-btn" onClick={onOpenLoginModal}>로그인</button>
                 )}
             </div>
 
             <button
                 className="top-bar-hamburger"
                 aria-label="메뉴 열기"
-                onClick={() => setShowMobileNav(true)}
+                onClick={onOpenMobileNav}
             >
                 ☰
             </button>
 
-            {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
+            {showLoginModal && <LoginModal onClose={onCloseLoginModal} />}
 
             <MobileNav
-                open={showMobileNav}
-                onClose={() => setShowMobileNav(false)}
+                open={mobileNavOpen}
+                onClose={onCloseMobileNav}
                 tabs={tabs}
                 activeTab={activeTab}
                 onTabSelect={(tab) => {
                     onTabSelect(tab);
-                    setShowMobileNav(false);
+                    onCloseMobileNav();
                 }}
                 email={email}
+                isRestoring={isRestoring}
                 onLogout={logout}
                 onLoginClick={() => {
-                    setShowMobileNav(false);
-                    setShowLoginModal(true);
+                    onCloseMobileNav();
+                    onOpenLoginModal();
                 }}
             />
         </header>

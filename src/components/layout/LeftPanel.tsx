@@ -1,8 +1,11 @@
-const GRADE_COUNTS = [
-    { grade: "A+", count: 18 },
-    { grade: "A", count: 36 },
-    { grade: "B+", count: 42 },
-    { grade: "B", count: 28 },
+// TODO(F-04): 실제 검색 API 응답으로 교체 — 지금은 mock (F-01_LAYOUT.md §2.4 기준 A+~D 6등급 + 등급별 평균 ROI)
+const GRADE_SUMMARY = [
+    { grade: "A+", count: 18, avgRoi: 24 },
+    { grade: "A", count: 36, avgRoi: 19 },
+    { grade: "B+", count: 42, avgRoi: 14 },
+    { grade: "B", count: 28, avgRoi: 11 },
+    { grade: "C", count: 0, avgRoi: 0 },
+    { grade: "D", count: 0, avgRoi: 0 },
 ];
 
 const LeftPanel = () => {
@@ -54,10 +57,16 @@ const LeftPanel = () => {
 
             <div className="left-panel-results">
                 <h4>검색 결과 (목업)</h4>
-                {GRADE_COUNTS.map(({ grade, count }) => (
-                    <div key={grade} className="left-panel-result-row">
+                {GRADE_SUMMARY.map(({ grade, count, avgRoi }) => (
+                    <div
+                        key={grade}
+                        className={`left-panel-result-row ${count === 0 ? "left-panel-result-row-empty" : ""}`}
+                    >
                         <span className={`grade-badge grade-${grade.replace("+", "plus")}`}>{grade}</span>
-                        <span>{count}건</span>
+                        <span className="left-panel-result-count">{count}건</span>
+                        <span className="left-panel-result-roi">
+                            {count > 0 ? `평균 ROI ${avgRoi}%` : "-"}
+                        </span>
                     </div>
                 ))}
             </div>

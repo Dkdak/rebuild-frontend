@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { findAllProperties, type TestPropertyResponse } from "../api/propertyApi";
-import HangulGame from "./HangulGame"; // 👈 방금 만든 게임 컴포넌트 가져오기
+import HangulGame from "../../game/HangulGame"; // 👈 방금 만든 게임 컴포넌트 가져오기
 
 function PropertyList() {
     const [properties, setProperties] = useState<TestPropertyResponse[]>([]);
