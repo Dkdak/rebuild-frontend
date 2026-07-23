@@ -18,10 +18,33 @@
     color: var(--text-h);
 }
 
+.dashboard-account-nickname {
+    margin: 0 0 4px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-h);
+}
+
 .dashboard-account-email {
     margin: 0 0 16px;
-    font-size: 14px;
+    font-size: 13px;
     color: var(--text);
+}
+
+.dashboard-account-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.dashboard-edit-nickname-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
 }
 
 .dashboard-delete-account-btn {
