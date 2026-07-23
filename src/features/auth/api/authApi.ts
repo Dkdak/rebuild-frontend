@@ -10,10 +10,16 @@ const api = axios.create({
 export interface LoginResponse {
     token: string;
     email: string;
+    nickname: string;
 }
 
 export interface CurrentUserResponse {
     email: string;
+    nickname: string;
+}
+
+export interface NicknameResponse {
+    nickname: string;
 }
 
 interface ErrorResponseBody {
@@ -42,12 +48,14 @@ export const loginUser = async (email: string, password: string): Promise<LoginR
 export const signupUser = async (
     email: string,
     password: string,
+    nickname: string,
     agreedToTerms: boolean
 ): Promise<LoginResponse> => {
     try {
         const response = await api.post<LoginResponse>("/api/v1/auth/signup", {
             email,
             password,
+            nickname,
             agreedToTerms,
         });
         return response.data;
@@ -65,6 +73,20 @@ export const fetchCurrentUser = async (token: string): Promise<CurrentUserRespon
         return response.data;
     } catch (error) {
         throw new Error(extractErrorMessage(error, "유효하지 않은 세션입니다."));
+    }
+};
+
+// 닉네임 수정 — 이메일/비밀번호는 이 API로 변경 불가
+export const updateNickname = async (token: string, nickname: string): Promise<NicknameResponse> => {
+    try {
+        const response = await api.patch<NicknameResponse>(
+            "/api/v1/auth/me",
+            { nickname },
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+        return response.data;
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, "닉네임 수정에 실패했습니다."));
     }
 };
 

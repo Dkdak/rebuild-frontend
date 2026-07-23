@@ -10,6 +10,7 @@ const LoginModal = ({ onClose }: { onClose: () => void }) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [passwordConfirm, setPasswordConfirm] = useState("");
+    const [nickname, setNickname] = useState("");
     const [agreedToTerms, setAgreedToTerms] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const [loading, setLoading] = useState(false);
@@ -45,10 +46,14 @@ const LoginModal = ({ onClose }: { onClose: () => void }) => {
             setErrorMessage("비밀번호가 일치하지 않습니다.");
             return;
         }
+        if (nickname.length < 2 || nickname.length > 20) {
+            setErrorMessage("닉네임은 2~20자여야 합니다.");
+            return;
+        }
 
         setLoading(true);
         try {
-            await signup(email, password, agreedToTerms);
+            await signup(email, password, nickname, agreedToTerms);
             onClose();
         } catch (error) {
             setErrorMessage(error instanceof Error ? error.message : "회원가입에 실패했습니다.");
@@ -135,6 +140,17 @@ const LoginModal = ({ onClose }: { onClose: () => void }) => {
                                 type="password"
                                 value={passwordConfirm}
                                 onChange={(e) => setPasswordConfirm(e.target.value)}
+                                required
+                            />
+                        </label>
+                        <label>
+                            닉네임 (2~20자)
+                            <input
+                                type="text"
+                                value={nickname}
+                                onChange={(e) => setNickname(e.target.value)}
+                                minLength={2}
+                                maxLength={20}
                                 required
                             />
                         </label>

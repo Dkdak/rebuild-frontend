@@ -5,12 +5,13 @@ interface MobileNavProps {
     activeTab: string;
     onTabSelect: (tab: string) => void;
     email: string | null;
+    nickname: string | null;
     isRestoring: boolean;
     onLogout: () => void;
     onLoginClick: () => void;
 }
 
-const MobileNav = ({ open, onClose, tabs, activeTab, onTabSelect, email, isRestoring, onLogout, onLoginClick }: MobileNavProps) => {
+const MobileNav = ({ open, onClose, tabs, activeTab, onTabSelect, email, nickname, isRestoring, onLogout, onLoginClick }: MobileNavProps) => {
     if (!open) return null;
 
     return (
@@ -45,7 +46,7 @@ const MobileNav = ({ open, onClose, tabs, activeTab, onTabSelect, email, isResto
                     <span className="top-bar-auth-skeleton" />
                 ) : email ? (
                     <div className="mobile-nav-row mobile-nav-user">
-                        <span>{email}</span>
+                        <span>{nickname}</span>
                         <button className="top-bar-login-btn" onClick={onLogout}>로그아웃</button>
                     </div>
                 ) : (

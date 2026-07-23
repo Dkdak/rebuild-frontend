@@ -25,7 +25,7 @@ const TopBar = ({
     onOpenLoginModal,
     onCloseLoginModal,
 }: TopBarProps) => {
-    const { email, logout, isRestoring } = useAuth();
+    const { email, nickname, logout, isRestoring } = useAuth();
 
     return (
         <header className="top-bar">
@@ -54,7 +54,7 @@ const TopBar = ({
                     <span className="top-bar-auth-skeleton" />
                 ) : email ? (
                     <>
-                        <span className="top-bar-user">{email}</span>
+                        <span className="top-bar-user">{nickname}</span>
                         <button className="top-bar-login-btn" onClick={logout}>로그아웃</button>
                     </>
                 ) : (
@@ -82,6 +82,7 @@ const TopBar = ({
                     onCloseMobileNav();
                 }}
                 email={email}
+                nickname={nickname}
                 isRestoring={isRestoring}
                 onLogout={logout}
                 onLoginClick={() => {
