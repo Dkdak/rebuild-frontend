@@ -2,19 +2,25 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import TopBar from "./TopBar";
 import LeftPanel from "./LeftPanel";
-import CenterMap from "./CenterMap";
+import CenterPanel from "./CenterPanel";
 import RightPanel from "./RightPanel";
 import FilterDrawer from "./FilterDrawer";
 import DetailBottomSheet from "./DetailBottomSheet";
-import HangulGame from "../../features/game/HangulGame";
-import Dashboard from "../../features/board/components/Dashboard";
+import HangulGame from "../../../features/game/HangulGame";
+import Dashboard from "../../../features/board/components/Dashboard";
+import ComingSoon from "./ComingSoon";
+import { SearchProvider } from "../../../features/search/context/SearchContext";
 import "./layout.css";
 
-// "단어 기차 놀이터"는 F-01_LAYOUT.md §2.3에 따라 정식 메뉴에서 제외한다.
-const TABS = ["대시보드", "지도", "리스트", "분석 리포트", "관심목록"];
+// F-01_LAYOUT.md §2.3(2026-07-24 확정): Top 메뉴는 4개(지도/대시보드/분석/리포트)다.
+// "리스트"는 지도 탭 내부(CenterPanel)로, "관심목록"은 대시보드 탭 내부(F-03)로 흡수됐다.
+// "분석"/"리포트"는 §2.3-a에 따라 클릭 가능한 준비중 placeholder(ComingSoon)로 노출한다.
+// "단어 기차 놀이터"는 정식 메뉴에서 제외한다.
+const TABS = ["지도", "대시보드", "분석", "리포트"];
 const DEFAULT_TAB = "지도";
-// F-01_LAYOUT.md §4: 비로그인 상태에서 접근 시 로그인 모달로 유도해야 하는 탭.
-const LOGIN_REQUIRED_TABS = ["대시보드", "관심목록"];
+// F-01_LAYOUT.md §4: 비로그인 상태에서 접근 시 로그인 모달로 유도해야 하는 탭. 분석/리포트는 게이트 없음(§2.3-a).
+const LOGIN_REQUIRED_TABS = ["대시보드"];
+const PLACEHOLDER_TABS = ["분석", "리포트"];
 
 type OverlayType = "filter" | "detail" | "nav" | null;
 
@@ -45,6 +51,7 @@ const MainLayout = () => {
     }
 
     return (
+        <SearchProvider>
         <div className="app-layout">
             <TopBar
                 tabs={TABS}
@@ -59,10 +66,12 @@ const MainLayout = () => {
             />
             {activeTab === "대시보드" ? (
                 <Dashboard />
+            ) : PLACEHOLDER_TABS.includes(activeTab) ? (
+                <ComingSoon />
             ) : (
                 <div className="app-layout-body">
                     <LeftPanel />
-                    <CenterMap />
+                    <CenterPanel />
                     <RightPanel />
 
                     <button
@@ -83,6 +92,7 @@ const MainLayout = () => {
             <FilterDrawer open={activeOverlay === "filter"} onClose={() => setActiveOverlay(null)} />
             <DetailBottomSheet open={activeOverlay === "detail"} onClose={() => setActiveOverlay(null)} />
         </div>
+        </SearchProvider>
     );
 };
 

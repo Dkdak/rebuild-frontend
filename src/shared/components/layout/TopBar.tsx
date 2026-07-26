@@ -1,5 +1,5 @@
 import { useAuth } from "../../context/AuthContext";
-import LoginModal from "../../features/auth/components/LoginModal";
+import LoginModal from "../../../features/auth/components/LoginModal";
 import MobileNav from "./MobileNav";
 
 interface TopBarProps {
@@ -42,10 +42,6 @@ const TopBar = ({
                     </button>
                 ))}
             </nav>
-
-            <div className="top-bar-search">
-                <input type="text" placeholder="주소, 지역으로 검색" disabled />
-            </div>
 
             <button className="top-bar-icon-btn" aria-label="알림" disabled>🔔</button>
 
