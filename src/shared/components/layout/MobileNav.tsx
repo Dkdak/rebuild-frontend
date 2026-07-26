@@ -34,10 +34,6 @@ const MobileNav = ({ open, onClose, tabs, activeTab, onTabSelect, email, nicknam
                     ))}
                 </nav>
 
-                <label className="mobile-nav-search">
-                    <input type="text" placeholder="주소, 지역으로 검색" disabled />
-                </label>
-
                 <button className="mobile-nav-row" disabled>
                     <span>🔔 알림</span>
                 </button>

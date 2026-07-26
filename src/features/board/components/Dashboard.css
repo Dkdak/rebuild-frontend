@@ -19,16 +19,10 @@
 }
 
 .dashboard-account-nickname {
-    margin: 0 0 4px;
+    margin: 0 0 16px;
     font-size: 15px;
     font-weight: 600;
     color: var(--text-h);
-}
-
-.dashboard-account-email {
-    margin: 0 0 16px;
-    font-size: 13px;
-    color: var(--text);
 }
 
 .dashboard-account-actions {

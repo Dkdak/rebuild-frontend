@@ -5,7 +5,7 @@ import {
     loginUser,
     signupUser,
     updateNickname as updateNicknameApi,
-} from "../features/auth/api/authApi";
+} from "../../features/auth/api/authApi";
 
 const TOKEN_STORAGE_KEY = "revalue_token";
 

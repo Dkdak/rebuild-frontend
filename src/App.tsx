@@ -1,5 +1,5 @@
-import { AuthProvider } from "./context/AuthContext";
-import MainLayout from "./components/layout/MainLayout";
+import { AuthProvider } from "./shared/context/AuthContext";
+import MainLayout from "./shared/components/layout/MainLayout";
 
 function App() {
 

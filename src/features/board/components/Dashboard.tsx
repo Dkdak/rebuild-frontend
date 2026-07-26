@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { useAuth } from "../../../context/AuthContext";
+import { useAuth } from "../../../shared/context/AuthContext";
 import DeleteAccountModal from "../../auth/components/DeleteAccountModal";
 import EditNicknameForm from "../../auth/components/EditNicknameForm";
 import "./Dashboard.css";
 
 const Dashboard = () => {
-    const { email, nickname } = useAuth();
+    const { nickname } = useAuth();
     const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
     const [showEditNicknameForm, setShowEditNicknameForm] = useState(false);
 
@@ -14,7 +14,6 @@ const Dashboard = () => {
             <section className="dashboard-account">
                 <h3 className="dashboard-account-title">계정 정보</h3>
                 <p className="dashboard-account-nickname">{nickname}</p>
-                <p className="dashboard-account-email">{email}</p>
 
                 <div className="dashboard-account-actions">
                     <button
