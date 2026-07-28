@@ -5,7 +5,7 @@ interface PopoverProps {
     open: boolean;
     onToggle: () => void;
     onClose: () => void;
-    children: ReactNode;
+    children?: ReactNode;
     disabled?: boolean;
 }
 
