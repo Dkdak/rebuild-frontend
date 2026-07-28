@@ -1,0 +1,230 @@
+/* Popover */
+.popover-root {
+    position: relative;
+}
+
+.popover-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text-h);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.popover-trigger:disabled {
+    color: var(--text);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.popover-trigger-open {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.popover-trigger-caret {
+    font-size: 10px;
+    opacity: 0.6;
+}
+
+.popover-panel {
+    z-index: 60;
+    width: 300px;
+    max-width: calc(100vw - 16px);
+    padding: 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    box-sizing: border-box;
+}
+
+/* RangeSlider */
+.range-slider {
+    position: relative;
+    height: 20px;
+    margin: 10px 2px 6px;
+}
+
+.range-slider-track {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    transform: translateY(-50%);
+}
+
+.range-slider-track-fill {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+}
+
+.range-slider-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 20px;
+    margin: 0;
+    background: transparent;
+    pointer-events: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.range-slider-input::-webkit-slider-runnable-track {
+    background: transparent;
+}
+
+.range-slider-input::-webkit-slider-thumb {
+    pointer-events: auto;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+}
+
+.range-slider-input::-moz-range-track {
+    background: transparent;
+    border: none;
+}
+
+.range-slider-input::-moz-range-thumb {
+    pointer-events: auto;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+}
+
+/* Filter popover shared pieces (가격/면적/사용승인일) */
+.filter-popover-title {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin: 0 0 4px;
+}
+
+.filter-popover-close {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 15px;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.filter-popover-unit-toggle {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.filter-popover-unit-btn {
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg);
+    font-size: 11px;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.filter-popover-unit-btn-active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+
+.filter-popover-current-range {
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 2px 0 4px;
+}
+
+.filter-preset-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 14px;
+}
+
+.filter-preset-btn {
+    padding: 8px 4px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    font-size: 12px;
+    color: var(--text-h);
+    cursor: pointer;
+    text-align: center;
+}
+
+.filter-preset-btn:hover {
+    border-color: var(--accent-border);
+}
+
+.filter-preset-btn-in-range {
+    background: var(--accent-bg);
+    border-color: var(--accent-border);
+    color: var(--accent);
+}
+
+.filter-preset-btn-active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+}
+
+/* §2.1-b: 1번째 클릭(시작점, 아직 미확정) 표시 — 확정(-active)과 구분되는 점선 테두리 */
+.filter-preset-btn-pending {
+    border: 1px dashed var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.filter-popover-reset {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+    margin-top: 14px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.filter-popover-reset:hover {
+    color: var(--accent);
+    border-color: var(--accent-border);
+}

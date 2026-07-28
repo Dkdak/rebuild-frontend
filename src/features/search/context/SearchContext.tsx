@@ -1,19 +1,17 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useRef, useState, type ReactNode } from "react";
 import {
     searchProperties,
-    type AddressCandidate,
     type PropertySearchResponse,
     type SearchFilters,
+    type SearchIndexCandidate,
 } from "../api/searchApi";
 
 const PAGE_SIZE = 5;
 
 export const DEFAULT_FILTERS: SearchFilters = {
-    propertyTypes: [],
+    propertyTypeFilters: [],
     buildYearMin: null,
     buildYearMax: null,
-    areaMin: null,
-    areaMax: null,
     nearSubway: false,
 };
 
@@ -22,105 +20,163 @@ interface MapCenter {
     lng: number;
 }
 
+// 현재 활성 검색 방식 — goToPage에서 "무엇을 다시 조회해야 하는지" 판단 기준.
+type ActiveQuery =
+    | { mode: "filters" }
+    | { mode: "building"; buildingId: string }
+    | { mode: "dong"; bjdongCd: string }
+    | null;
+
 interface SearchContextValue {
     filters: SearchFilters;
     updateFilters: (filters: SearchFilters) => void;
     searchResults: PropertySearchResponse | null;
     mapCenter: MapCenter | null;
-    selectedPropertyId: number | null;
-    selectProperty: (id: number | null) => void;
+    selectedPropertyId: string | null;
+    selectProperty: (id: string | null) => void;
     sortOption: string;
     setSortOption: (sort: string) => void;
     page: number;
+    totalPages: number;
+    hasNextPage: boolean;
     goToPage: (page: number) => void;
     loading: boolean;
     runFilterSearch: () => void;
-    runAddressSearch: (candidate: AddressCandidate) => void;
+    runAddressSearch: (candidate: SearchIndexCandidate) => void;
 }
 
 const SearchContext = createContext<SearchContextValue | undefined>(undefined);
+
+const average = (values: number[]): number => values.reduce((sum, v) => sum + v, 0) / values.length;
+
+// 좌표가 없는 매물(null)은 평균 계산에서 제외한다 — 안 그러면 평균이 엉뚱한 값으로 튄다.
+const computeMapCenter = (items: { lat: number | null; lng: number | null }[]): MapCenter | null => {
+    const coords = items.filter(
+        (item): item is { lat: number; lng: number } => item.lat != null && item.lng != null
+    );
+    if (coords.length === 0) return null;
+    return {
+        lat: average(coords.map((item) => item.lat)),
+        lng: average(coords.map((item) => item.lng)),
+    };
+};
+
+// buildYearMin/Max·propertyTypeFilters를 쿼리 파라미터로 변환 — null/빈 배열은 axios가 생략하도록 undefined로 바꾼다.
+// propertyTypeFilters 미선택 시 "전체"로 간주(§2.4)하므로 빈 배열은 보내지 않는다. expanded는 UI 전용이라 전송하지 않는다(§2.3).
+const toFilterParams = (filters: SearchFilters) => ({
+    buildYearMin: filters.buildYearMin ?? undefined,
+    buildYearMax: filters.buildYearMax ?? undefined,
+    propertyTypeFilters:
+        filters.propertyTypeFilters.length > 0
+            ? filters.propertyTypeFilters.map((f) => ({
+                  type: f.type,
+                  areaMin: f.areaMin ?? undefined,
+                  areaMax: f.areaMax ?? undefined,
+              }))
+            : undefined,
+});
 
 // F-04_SEARCH.md §2.3: filters/searchResults/mapCenter/selectedPropertyId/sortOption/page를
 // LeftPanel·KakaoMap·ResultList·RightPanel이 공유하는 상태.
 export const SearchProvider = ({ children }: { children: ReactNode }) => {
     const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
-    const [appliedFilters, setAppliedFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
-    const [activeQuery, setActiveQuery] = useState<MapCenter | null>(null);
     const [searchResults, setSearchResults] = useState<PropertySearchResponse | null>(null);
     const [mapCenter, setMapCenter] = useState<MapCenter | null>(null);
-    const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null);
-    const [sortOption, setSortOptionState] = useState("grade-desc");
-    const [page, setPage] = useState(0);
+    const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+    const [sortOption, setSortOption] = useState("grade-desc");
+    const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(false);
 
-    const runSearch = async (
-        query: MapCenter | null,
-        filtersSnapshot: SearchFilters,
-        sort: string,
-        pageNum: number
-    ) => {
-        setLoading(true);
-        try {
-            const response = await searchProperties({
-                filters: query ? undefined : filtersSnapshot,
-                lat: query?.lat,
-                lng: query?.lng,
-                sort,
-                page: pageNum,
-                size: PAGE_SIZE,
-            });
-            setSearchResults(response);
-        } finally {
-            setLoading(false);
-        }
-    };
+    // 재조회(페이지 이동)에만 필요한 값 — 화면에 직접 반영되지 않으므로 ref로 관리.
+    const activeQueryRef = useRef<ActiveQuery>(null);
+    const appliedFiltersRef = useRef<SearchFilters>(DEFAULT_FILTERS);
 
-    // 조건 필터 검색 — 주소 검색과 상호 배타적이며, mapCenter는 바꾸지 않는다 (§2.3).
+    // 조건 필터 검색 — 위치 미지정 시 백엔드가 중구로 기본 제한한다(§0-C).
     const runFilterSearch = () => {
-        setActiveQuery(null);
-        setAppliedFilters(filters);
-        setPage(0);
+        activeQueryRef.current = { mode: "filters" };
+        appliedFiltersRef.current = filters;
+        setPage(1);
         setSelectedPropertyId(null);
-        runSearch(null, filters, sortOption, 0);
+        setLoading(true);
+
+        searchProperties({ ...toFilterParams(filters), page: 1, size: PAGE_SIZE })
+            .then(setSearchResults)
+            .finally(() => setLoading(false));
     };
 
-    // 주소 검색 — 필터를 초기화하고, mapCenter를 해당 좌표로 이동시킨다 (§1.2).
-    const runAddressSearch = async (candidate: AddressCandidate) => {
-        setFilters(DEFAULT_FILTERS);
-        setAppliedFilters(DEFAULT_FILTERS);
-        const query = { lat: candidate.lat, lng: candidate.lng };
-        setActiveQuery(query);
-        setMapCenter(query);
-        setPage(0);
-
+    // 주소/지역 검색 — 필터를 초기화하지 않고 위치 조건과 결합해서 같이 적용한다(§2.3, 2026-07-27 계약 변경).
+    const runAddressSearch = async (candidate: SearchIndexCandidate) => {
+        appliedFiltersRef.current = filters;
+        setPage(1);
         setLoading(true);
+
         try {
-            const response = await searchProperties({
-                lat: candidate.lat,
-                lng: candidate.lng,
-                sort: sortOption,
-                page: 0,
-                size: PAGE_SIZE,
-            });
-            setSearchResults(response);
-            const exactMatch = response.items.find((item) => item.address === candidate.address);
-            setSelectedPropertyId(exactMatch ? exactMatch.id : null);
+            if (candidate.type === "BUILDING" && candidate.buildingId) {
+                activeQueryRef.current = { mode: "building", buildingId: candidate.buildingId };
+                const response = await searchProperties({
+                    buildingId: candidate.buildingId,
+                    ...toFilterParams(filters),
+                    page: 1,
+                    size: 1,
+                });
+                setSearchResults(response);
+                setSelectedPropertyId(response.items[0]?.id ?? null);
+
+                if (candidate.lat != null && candidate.lng != null) {
+                    setMapCenter({ lat: candidate.lat, lng: candidate.lng });
+                } else {
+                    setMapCenter(computeMapCenter(response.items));
+                }
+            } else if (candidate.type === "DONG" && candidate.bjdongCd) {
+                activeQueryRef.current = { mode: "dong", bjdongCd: candidate.bjdongCd };
+                const response = await searchProperties({
+                    bjdongCd: candidate.bjdongCd,
+                    ...toFilterParams(filters),
+                    page: 1,
+                    size: PAGE_SIZE,
+                });
+                setSearchResults(response);
+                setSelectedPropertyId(null);
+                // mapCenter는 참고용 상태로 유지하되(§2.3), 실제 화면 범위는 KakaoMap이 마커 기준으로 자동 맞춘다(fit bounds).
+                setMapCenter(computeMapCenter(response.items));
+            }
         } finally {
             setLoading(false);
         }
     };
 
-    const goToPage = (nextPage: number) => {
-        if (nextPage < 0) return;
+    const goToPage = async (nextPage: number) => {
+        if (nextPage < 1) return;
+        const query = activeQueryRef.current;
+        if (!query || query.mode === "building") return; // building 모드는 결과가 항상 1건이라 페이지가 없다.
+
         setPage(nextPage);
-        runSearch(activeQuery, appliedFilters, sortOption, nextPage);
+        setLoading(true);
+        try {
+            if (query.mode === "filters") {
+                const response = await searchProperties({
+                    ...toFilterParams(appliedFiltersRef.current),
+                    page: nextPage,
+                    size: PAGE_SIZE,
+                });
+                setSearchResults(response);
+            } else {
+                const response = await searchProperties({
+                    bjdongCd: query.bjdongCd,
+                    ...toFilterParams(appliedFiltersRef.current),
+                    page: nextPage,
+                    size: PAGE_SIZE,
+                });
+                setSearchResults(response);
+                setMapCenter(computeMapCenter(response.items));
+            }
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const setSortOption = (sort: string) => {
-        setSortOptionState(sort);
-        setPage(0);
-        runSearch(activeQuery, appliedFilters, sort, 0);
-    };
+    const totalPages = searchResults?.totalPages ?? 1;
+    const hasNextPage = searchResults != null && page < totalPages;
 
     return (
         <SearchContext.Provider
@@ -134,6 +190,8 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
                 sortOption,
                 setSortOption,
                 page,
+                totalPages,
+                hasNextPage,
                 goToPage,
                 loading,
                 runFilterSearch,

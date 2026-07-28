@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearch } from "../../../features/search/context/SearchContext";
-import { searchAddress, type AddressCandidate } from "../../../features/search/api/searchApi";
+import { searchAddress, type SearchIndexCandidate } from "../../../features/search/api/searchApi";
+import BuildYearFilter from "../../../features/search/components/filters/BuildYearFilter";
+import PropertyTypeAccordion from "../../../features/search/components/filters/PropertyTypeAccordion";
+import Popover from "../../../shared/components/common/Popover";
+import "../../../shared/components/common/common.css";
 
-// F-04_SEARCH.md §0-B: 1차엔 건축물대장 필드만 동작 — 부동산유형/건축연도/면적/역세권은 활성화, 가격·투자지표는 비활성 유지.
-const PROPERTY_TYPES = ["아파트", "다세대주택", "단독주택", "오피스텔"];
+// F-04_SEARCH.md §2.4: search_index의 pg_trgm 인덱스가 3글자 트라이그램 기반이라 2자 미만은 호출하지 않는다.
+const MIN_KEYWORD_LENGTH = 2;
+const DEBOUNCE_MS = 300;
 
 const DEFAULT_GRADE_SUMMARY = [
     { grade: "A+", count: 0, avgRoi: 0 },
@@ -17,37 +22,45 @@ const DEFAULT_GRADE_SUMMARY = [
 const LeftPanel = () => {
     const { filters, updateFilters, runFilterSearch, runAddressSearch, searchResults } = useSearch();
     const [addressInput, setAddressInput] = useState("");
-    const [addressCandidates, setAddressCandidates] = useState<AddressCandidate[]>([]);
+    const [addressCandidates, setAddressCandidates] = useState<SearchIndexCandidate[]>([]);
+    const [selectedCandidate, setSelectedCandidate] = useState<SearchIndexCandidate | null>(null);
     const [validationError, setValidationError] = useState("");
+    const debounceRef = useRef<number | null>(null);
 
-    const handleAddressInputChange = async (value: string) => {
+    useEffect(() => {
+        return () => {
+            if (debounceRef.current) window.clearTimeout(debounceRef.current);
+        };
+    }, []);
+
+    const handleAddressInputChange = (value: string) => {
         setAddressInput(value);
-        if (!value.trim()) {
+        setSelectedCandidate(null);
+
+        if (debounceRef.current) {
+            window.clearTimeout(debounceRef.current);
+        }
+
+        if (value.trim().length < MIN_KEYWORD_LENGTH) {
             setAddressCandidates([]);
             return;
         }
-        const candidates = await searchAddress(value);
-        setAddressCandidates(candidates);
+
+        debounceRef.current = window.setTimeout(async () => {
+            const candidates = await searchAddress(value);
+            setAddressCandidates(candidates);
+        }, DEBOUNCE_MS);
     };
 
-    const handleSelectAddress = (candidate: AddressCandidate) => {
-        setAddressInput("");
+    // 후보를 고른다고 바로 조회하지 않는다 — 입력값은 유지하고 "검색하기"를 눌러야 실행된다.
+    const handleSelectAddress = (candidate: SearchIndexCandidate) => {
+        setAddressInput(candidate.displayText);
         setAddressCandidates([]);
-        runAddressSearch(candidate);
+        setSelectedCandidate(candidate);
     };
 
-    const togglePropertyType = (type: string) => {
-        const next = filters.propertyTypes.includes(type)
-            ? filters.propertyTypes.filter((t) => t !== type)
-            : [...filters.propertyTypes, type];
-        updateFilters({ ...filters, propertyTypes: next });
-    };
-
-    const updateRangeField = (
-        field: "buildYearMin" | "buildYearMax" | "areaMin" | "areaMax",
-        value: string
-    ) => {
-        updateFilters({ ...filters, [field]: value === "" ? null : Number(value) });
+    const applyBuildYearRange = (buildYearMin: number | null, buildYearMax: number | null) => {
+        updateFilters({ ...filters, buildYearMin, buildYearMax });
     };
 
     const handleSearch = () => {
@@ -61,12 +74,19 @@ const LeftPanel = () => {
             setValidationError("건축 연도 최소값이 최대값보다 클 수 없습니다.");
             return;
         }
-        if (filters.areaMin != null && filters.areaMax != null && filters.areaMin > filters.areaMax) {
-            setValidationError("면적 최소값이 최대값보다 클 수 없습니다.");
+        const invalidAreaType = filters.propertyTypeFilters.find(
+            (f) => f.areaMin != null && f.areaMax != null && f.areaMin > f.areaMax
+        );
+        if (invalidAreaType) {
+            setValidationError(`${invalidAreaType.type} 면적 최소값이 최대값보다 클 수 없습니다.`);
             return;
         }
 
-        runFilterSearch();
+        if (selectedCandidate) {
+            runAddressSearch(selectedCandidate);
+        } else {
+            runFilterSearch();
+        }
     };
 
     const gradeSummary = searchResults?.gradeSummary ?? DEFAULT_GRADE_SUMMARY;
@@ -80,18 +100,35 @@ const LeftPanel = () => {
                     value={addressInput}
                     onChange={(e) => handleAddressInputChange(e.target.value)}
                 />
+                {selectedCandidate && (
+                    <button
+                        type="button"
+                        className="left-panel-address-clear"
+                        onClick={() => {
+                            setAddressInput("");
+                            setSelectedCandidate(null);
+                        }}
+                    >
+                        ✕
+                    </button>
+                )}
                 {addressCandidates.length > 0 && (
                     <ul className="left-panel-address-candidates">
                         {addressCandidates.map((candidate) => (
-                            <li key={candidate.address}>
+                            <li key={`${candidate.type}-${candidate.buildingId ?? candidate.bjdongCd}`}>
                                 <button type="button" onClick={() => handleSelectAddress(candidate)}>
-                                    {candidate.address}
+                                    <span
+                                        className={`left-panel-address-type left-panel-address-type-${candidate.type.toLowerCase()}`}
+                                    >
+                                        {candidate.type === "BUILDING" ? "건물" : "지역"}
+                                    </span>
+                                    {candidate.displayText}
                                 </button>
                             </li>
                         ))}
                     </ul>
                 )}
-                {addressInput.trim() !== "" && addressCandidates.length === 0 && (
+                {!selectedCandidate && addressInput.trim().length >= MIN_KEYWORD_LENGTH && addressCandidates.length === 0 && (
                     <p className="left-panel-address-empty">검색된 주소가 없습니다.</p>
                 )}
             </div>
@@ -100,78 +137,23 @@ const LeftPanel = () => {
 
             <div className="left-panel-field">
                 부동산 유형
-                <div className="left-panel-checkbox-group">
-                    {PROPERTY_TYPES.map((type) => (
-                        <label key={type} className="left-panel-checkbox-item">
-                            <input
-                                type="checkbox"
-                                checked={filters.propertyTypes.includes(type)}
-                                onChange={() => togglePropertyType(type)}
-                            />
-                            {type}
-                        </label>
-                    ))}
-                </div>
+                <PropertyTypeAccordion
+                    propertyTypeFilters={filters.propertyTypeFilters}
+                    onChange={(propertyTypeFilters) => updateFilters({ ...filters, propertyTypeFilters })}
+                />
             </div>
-
-            <label className="left-panel-field">
-                거래 유형
-                <select disabled>
-                    <option>매매</option>
-                </select>
-            </label>
 
             <div className="left-panel-field">
-                건축 연도
-                <div className="left-panel-range">
-                    <input
-                        type="number"
-                        placeholder="최소"
-                        value={filters.buildYearMin ?? ""}
-                        onChange={(e) => updateRangeField("buildYearMin", e.target.value)}
-                    />
-                    <span>~</span>
-                    <input
-                        type="number"
-                        placeholder="최대"
-                        value={filters.buildYearMax ?? ""}
-                        onChange={(e) => updateRangeField("buildYearMax", e.target.value)}
-                    />
-                </div>
+                <Popover label="거래유형 (매매만 지원)" open={false} onToggle={() => {}} onClose={() => {}} disabled />
             </div>
-
-            <label className="left-panel-field">
-                가격
-                <select disabled>
-                    <option>가격 정보 준비 중</option>
-                </select>
-            </label>
 
             <div className="left-panel-field">
-                면적(㎡)
-                <div className="left-panel-range">
-                    <input
-                        type="number"
-                        placeholder="최소"
-                        value={filters.areaMin ?? ""}
-                        onChange={(e) => updateRangeField("areaMin", e.target.value)}
-                    />
-                    <span>~</span>
-                    <input
-                        type="number"
-                        placeholder="최대"
-                        value={filters.areaMax ?? ""}
-                        onChange={(e) => updateRangeField("areaMax", e.target.value)}
-                    />
-                </div>
+                <BuildYearFilter filters={filters} onApply={applyBuildYearRange} />
             </div>
 
-            <label className="left-panel-field">
-                투자 지표
-                <select disabled>
-                    <option>등급 산정 준비 중</option>
-                </select>
-            </label>
+            <div className="left-panel-field">
+                <Popover label="투자지표 (준비 중)" open={false} onToggle={() => {}} onClose={() => {}} disabled />
+            </div>
 
             <label className="left-panel-field left-panel-field-checkbox">
                 <input

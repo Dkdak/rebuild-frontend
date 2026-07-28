@@ -11,7 +11,11 @@ const RightPanel = () => {
                 <div className="right-panel-selected">
                     <h4 className="right-panel-selected-title">{selected.address}</h4>
                     <p className="right-panel-selected-meta">
-                        {selected.propertyType} · {selected.area}㎡ · {selected.buildYear}년
+                        {selected.propertyType ?? "유형 미확인"}
+                        {" · "}
+                        {selected.area != null ? `${selected.area}㎡` : "면적 정보 없음"}
+                        {" · "}
+                        {selected.buildYear != null ? `${selected.buildYear}년` : "준공년도 미확인"}
                     </p>
                 </div>
             ) : (

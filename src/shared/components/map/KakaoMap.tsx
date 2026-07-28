@@ -43,7 +43,7 @@ const loadKakaoMaps = (): Promise<void> => {
 const DEFAULT_CENTER = { lat: 37.5665, lng: 126.978 };
 
 export interface KakaoMapMarker {
-    id: number;
+    id: string;
     lat: number;
     lng: number;
     label?: string;
@@ -57,15 +57,15 @@ export interface KakaoMapCenter {
 interface KakaoMapProps {
     center?: KakaoMapCenter | null;
     markers?: KakaoMapMarker[];
-    selectedId?: number | null;
-    onMarkerClick?: (id: number) => void;
+    selectedId?: string | null;
+    onMarkerClick?: (id: string) => void;
 }
 
 // shared/components/map: 여러 feature가 공유하는 범용 카카오맵 컴포넌트 (HELP5.md §2.4).
 // 특정 도메인 상태(SearchContext 등)에 의존하지 않고, 마커/선택 상태는 props로만 받는다.
 const KakaoMap = ({ center, markers = [], selectedId, onMarkerClick }: KakaoMapProps) => {
     const mapRef = useRef<any>(null);
-    const markersRef = useRef<{ id: number; marker: any }[]>([]);
+    const markersRef = useRef<{ id: string; marker: any }[]>([]);
     const infoWindowRef = useRef<any>(null);
 
     useEffect(() => {
@@ -89,13 +89,14 @@ const KakaoMap = ({ center, markers = [], selectedId, onMarkerClick }: KakaoMapP
         };
     }, []);
 
-    // center prop 변경 시에만 지도 중심을 이동한다.
+    // center prop은 마커가 없을 때만 적용한다 — 마커가 있으면 아래 effect가 범위를 자동으로 맞춘다.
     useEffect(() => {
-        if (!mapRef.current || !center) return;
+        if (!mapRef.current || !center || markers.length > 0) return;
         mapRef.current.setCenter(new window.kakao.maps.LatLng(center.lat, center.lng));
-    }, [center]);
+    }, [center, markers.length]);
 
     // markers 변경 시 기존 마커를 지우고 새 마커로 교체한다.
+    // 마커 개수에 따라 지도 범위를 자동으로 맞춘다(fit bounds) — 결과가 좁은 지역에 몰려 있어도 항상 보이도록.
     useEffect(() => {
         if (!mapRef.current) return;
 
@@ -112,6 +113,15 @@ const KakaoMap = ({ center, markers = [], selectedId, onMarkerClick }: KakaoMapP
 
             markersRef.current.push({ id: item.id, marker });
         });
+
+        if (markers.length === 1) {
+            mapRef.current.setCenter(new window.kakao.maps.LatLng(markers[0].lat, markers[0].lng));
+            mapRef.current.setLevel(3);
+        } else if (markers.length > 1) {
+            const bounds = new window.kakao.maps.LatLngBounds();
+            markers.forEach((item) => bounds.extend(new window.kakao.maps.LatLng(item.lat, item.lng)));
+            mapRef.current.setBounds(bounds);
+        }
     }, [markers, onMarkerClick]);
 
     // selectedId에 해당하는 마커 위에 label을 담은 InfoWindow를 띄운다.
