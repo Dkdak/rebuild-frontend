@@ -142,13 +142,31 @@
 
 .left-panel-address-search input {
     width: 100%;
-    padding: 8px 10px;
+    padding: 8px 28px 8px 10px;
     border: 1px solid var(--border);
     border-radius: 6px;
     font-size: 13px;
     color: var(--text);
     background: var(--code-bg);
     box-sizing: border-box;
+}
+
+.left-panel-address-clear {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: none;
+    color: var(--text);
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+.left-panel-address-clear:hover {
+    opacity: 1;
 }
 
 .left-panel-title {
@@ -229,7 +247,28 @@
     background: var(--code-bg);
 }
 
-.left-panel-address-empty {
+.left-panel-address-type {
+    display: inline-block;
+    min-width: 32px;
+    text-align: center;
+    margin-right: 6px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.left-panel-address-type-building {
+    background: var(--accent);
+}
+
+.left-panel-address-type-dong {
+    background: #64748b;
+}
+
+.left-panel-address-empty,
+.left-panel-field-note {
     margin: 4px 0 0;
     font-size: 12px;
     color: var(--text);
@@ -243,22 +282,53 @@
     margin-top: 6px;
 }
 
-.left-panel-checkbox-item {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 13px;
-    font-weight: normal;
+.property-type-panel {
+    margin-top: 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
 }
 
-.left-panel-range {
+.property-type-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    background: var(--code-bg);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-h);
+    cursor: pointer;
+}
+
+.property-type-panel-body {
+    padding: 12px 10px;
+}
+
+.property-type-panel-field {
+    margin-bottom: 10px;
+}
+
+.property-type-panel-field:last-child {
+    margin-bottom: 0;
+}
+
+.property-type-panel-label {
+    display: block;
+    font-size: 12px;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.left-panel-range-plain {
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-top: 4px;
 }
 
-.left-panel-range input {
+.left-panel-range-plain input {
     width: 0;
     flex: 1;
     padding: 6px 8px;
@@ -266,6 +336,14 @@
     border-radius: 6px;
     font-size: 13px;
     box-sizing: border-box;
+}
+
+.left-panel-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: normal;
 }
 
 .left-panel-validation-error {

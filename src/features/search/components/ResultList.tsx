@@ -1,4 +1,5 @@
 import { useSearch } from "../context/SearchContext";
+import { sortPropertyItems } from "../api/searchApi";
 
 // F-04_SEARCH.md §2.2: 등급/ROI/가격 정렬 옵션. 정확한 값은 1차엔 전부 null이라 실질적 정렬 효과는 F-09 연동 후 나타난다.
 const SORT_OPTIONS = [
@@ -18,13 +19,13 @@ const ResultList = () => {
         sortOption,
         setSortOption,
         page,
+        totalPages,
+        hasNextPage,
         goToPage,
     } = useSearch();
 
-    const items = searchResults?.items ?? [];
-    const size = searchResults?.size ?? 5;
+    const items = sortPropertyItems(searchResults?.items ?? [], sortOption);
     const totalCount = searchResults?.totalCount ?? 0;
-    const hasNextPage = (page + 1) * size < totalCount;
 
     return (
         <div className="center-list-panel">
@@ -66,7 +67,11 @@ const ResultList = () => {
                                 <span className="center-list-item-address">{item.address}</span>
                             </div>
                             <div className="center-list-item-meta">
-                                <span>{item.area}㎡ · {item.buildYear}년</span>
+                                <span>
+                                    {item.area != null ? `${item.area}㎡` : "면적 정보 없음"}
+                                    {" · "}
+                                    {item.buildYear != null ? `${item.buildYear}년` : "준공년도 미확인"}
+                                </span>
                                 <span>{item.grade ?? "등급 산정 중"}</span>
                                 <span>{item.price != null ? `${item.price}만원` : "가격 정보 준비 중"}</span>
                             </div>
@@ -77,8 +82,10 @@ const ResultList = () => {
 
             {searchResults && (
                 <div className="center-list-pagination">
-                    <button disabled={page === 0} onClick={() => goToPage(page - 1)}>이전</button>
-                    <span>{page + 1}페이지</span>
+                    <button disabled={page === 1} onClick={() => goToPage(page - 1)}>이전</button>
+                    <span>
+                        {page} / 전체 {totalPages}페이지{totalCount > 0 ? ` (${totalCount}건)` : ""}
+                    </span>
                     <button disabled={!hasNextPage} onClick={() => goToPage(page + 1)}>다음</button>
                 </div>
             )}
