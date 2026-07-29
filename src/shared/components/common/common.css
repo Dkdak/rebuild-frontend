@@ -173,6 +173,11 @@
     margin-top: 14px;
 }
 
+/* 면적 전용 — ㎡ 모드 라벨("33~66㎡" 등)이 4열에서는 잘려서 3열로 폭을 넓힌다(사용승인일 등 다른 프리셋 그리드는 그대로 4열 유지). */
+.filter-preset-grid-area {
+    grid-template-columns: repeat(3, 1fr);
+}
+
 .filter-preset-btn {
     padding: 8px 4px;
     border: 1px solid var(--border);

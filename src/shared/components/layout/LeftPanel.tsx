@@ -10,17 +10,9 @@ import "../../../shared/components/common/common.css";
 const MIN_KEYWORD_LENGTH = 2;
 const DEBOUNCE_MS = 300;
 
-const DEFAULT_GRADE_SUMMARY = [
-    { grade: "A+", count: 0, avgRoi: 0 },
-    { grade: "A", count: 0, avgRoi: 0 },
-    { grade: "B+", count: 0, avgRoi: 0 },
-    { grade: "B", count: 0, avgRoi: 0 },
-    { grade: "C", count: 0, avgRoi: 0 },
-    { grade: "D", count: 0, avgRoi: 0 },
-];
-
+// F-04_SEARCH.md §2.1-g(2026-08-01): 결과 요약(등급별 건수)은 리스트 헤더로 이동 — LeftPanel은 조건 입력 전용.
 const LeftPanel = () => {
-    const { filters, updateFilters, runFilterSearch, runAddressSearch, searchResults } = useSearch();
+    const { filters, updateFilters, runFilterSearch, runAddressSearch } = useSearch();
     const [addressInput, setAddressInput] = useState("");
     const [addressCandidates, setAddressCandidates] = useState<SearchIndexCandidate[]>([]);
     const [selectedCandidate, setSelectedCandidate] = useState<SearchIndexCandidate | null>(null);
@@ -88,8 +80,6 @@ const LeftPanel = () => {
             runFilterSearch();
         }
     };
-
-    const gradeSummary = searchResults?.gradeSummary ?? DEFAULT_GRADE_SUMMARY;
 
     return (
         <aside className="left-panel">
@@ -167,22 +157,6 @@ const LeftPanel = () => {
             {validationError && <p className="left-panel-validation-error">{validationError}</p>}
 
             <button className="left-panel-search-btn" onClick={handleSearch}>검색하기</button>
-
-            <div className="left-panel-results">
-                <h4>검색 결과{searchResults ? ` (${searchResults.totalCount}건)` : ""}</h4>
-                {gradeSummary.map(({ grade, count, avgRoi }) => (
-                    <div
-                        key={grade}
-                        className={`left-panel-result-row ${count === 0 ? "left-panel-result-row-empty" : ""}`}
-                    >
-                        <span className={`grade-badge grade-${grade.replace("+", "plus")}`}>{grade}</span>
-                        <span className="left-panel-result-count">{count}건</span>
-                        <span className="left-panel-result-roi">
-                            {count > 0 ? `평균 ROI ${avgRoi}%` : "-"}
-                        </span>
-                    </div>
-                ))}
-            </div>
         </aside>
     );
 };

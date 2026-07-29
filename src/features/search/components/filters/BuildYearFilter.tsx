@@ -25,10 +25,12 @@ interface BuildYearFilterProps {
 }
 
 // features/search: 사용승인일(건축연도) 필터 — 경과 연차 슬라이더 + 프리셋 그리드.
-// §2.1-b: 프리셋 클릭은 1번째=시작(미확정)/2번째=끝(확정)을 반복한다 — 클릭 한 번에 즉시 확정되지 않는다.
+// 슬라이더 드래그/트랙클릭은 §2.1-b(1번째=시작 미확정/2번째=끝 확정)를, 프리셋 버튼 클릭은 §2.1-c(원클릭 즉시 확정+합집합 확장)를 따른다 — 서로 다른 규칙.
 const BuildYearFilter = ({ filters, onApply }: BuildYearFilterProps) => {
     const [open, setOpen] = useState(false);
     const [pendingStart, setPendingStart] = useState<number | null>(null);
+    // 프리셋 전용 클릭 주기 — 0/1: 아직 확정 전(다음 클릭이 1번째 또는 2번째), 2: 이미 2클릭으로 확정됨(다음 클릭은 무조건 리셋).
+    const [presetClickCount, setPresetClickCount] = useState(0);
 
     // buildYearMax(최신 상한) ↔ ageMinIndex, buildYearMin(최고령 하한) ↔ ageMaxIndex — 나이와 연도는 역방향.
     const buildYearToMinIndex = (): number => {
@@ -55,16 +57,24 @@ const BuildYearFilter = ({ filters, onApply }: BuildYearFilterProps) => {
         onApply(buildYearMin, buildYearMax);
     };
 
-    // 프리셋 클릭: 미확정 상태가 아니면(홀수 번째) 기존 확정값을 지우고 시작점만 기록,
-    // 미확정 상태면(짝수 번째) 시작점과 이번 클릭 지점으로 범위를 확정한다(§2.1-b).
+    // 프리셋 버튼: 원클릭 즉시 확정(§2.1-c, AreaRangeControl과 동일한 규칙) — 슬라이더의 2-클릭 대기(§2.1-b)와는 별개.
+    // 각 tick은 면적처럼 폭 있는 버킷이 아니라 점(point)이라, 1번째 클릭은 그 점 하나(min=max=그 지점)로 확정한다.
+    // 2번째 클릭(다른 점) → 두 점을 잇는 범위로 확장. 2번째 클릭(같은 점) → 해제. 3번째 이후 → 리셋하고 새로 시작.
     const handlePresetClick = (tickIndex: number) => {
-        if (pendingStart === null) {
-            applyRange(0, LAST_INDEX);
-            setPendingStart(tickIndex);
+        if (presetClickCount !== 1) {
+            applyRange(tickIndex, tickIndex);
+            setPresetClickCount(1);
             return;
         }
-        applyRange(Math.min(pendingStart, tickIndex), Math.max(pendingStart, tickIndex));
-        setPendingStart(null);
+
+        const isSamePoint = confirmedMinIndex === tickIndex && confirmedMaxIndex === tickIndex;
+        if (isSamePoint) {
+            applyRange(0, LAST_INDEX);
+            setPresetClickCount(0);
+            return;
+        }
+        applyRange(Math.min(confirmedMinIndex, tickIndex), Math.max(confirmedMaxIndex, tickIndex));
+        setPresetClickCount(2);
     };
 
     // 슬라이더를 직접 드래그하면 즉시 양쪽을 확정하고 미확정 상태를 취소한다.
@@ -75,6 +85,7 @@ const BuildYearFilter = ({ filters, onApply }: BuildYearFilterProps) => {
 
     const handleReset = () => {
         setPendingStart(null);
+        setPresetClickCount(0);
         applyRange(0, LAST_INDEX);
     };
 
@@ -89,6 +100,10 @@ const BuildYearFilter = ({ filters, onApply }: BuildYearFilterProps) => {
             ? `${AGE_TICKS[pendingStart].label} ~ ?`
             : isFullRange
             ? "전체"
+            : confirmedMinIndex === confirmedMaxIndex
+            ? confirmedMinIndex === LAST_INDEX
+                ? `${AGE_TICKS[confirmedMinIndex].label} 이상`
+                : AGE_TICKS[confirmedMinIndex].label
             : confirmedMaxIndex === LAST_INDEX
             ? `${AGE_TICKS[confirmedMinIndex].label} 이상`
             : confirmedMinIndex === 0
@@ -116,27 +131,13 @@ const BuildYearFilter = ({ filters, onApply }: BuildYearFilterProps) => {
 
             <div className="filter-preset-grid">
                 {AGE_TICKS.map((tick, tickIndex) => {
-                    const isPending = pendingStart === tickIndex;
-                    // isFullRange(아무 것도 선택 안 한 기본 상태)일 땐 아무 버튼도 켜지지 않아야 한다(AreaRangeControl과 동일 규칙).
-                    const active =
-                        !isPending &&
-                        pendingStart === null &&
-                        !isFullRange &&
-                        (tickIndex === confirmedMinIndex || tickIndex === confirmedMaxIndex);
-                    const inRange =
-                        !active &&
-                        !isPending &&
-                        pendingStart === null &&
-                        !isFullRange &&
-                        tickIndex > confirmedMinIndex &&
-                        tickIndex < confirmedMaxIndex;
+                    // 이 지점이 확정된 범위 안에 들어가면 선택된 것으로 표시한다(포인트라 양끝 포함, §2.1-c).
+                    const selected = !isFullRange && tickIndex >= confirmedMinIndex && tickIndex <= confirmedMaxIndex;
                     return (
                         <button
                             key={tick.label}
                             type="button"
-                            className={`filter-preset-btn ${active ? "filter-preset-btn-active" : ""} ${
-                                inRange ? "filter-preset-btn-in-range" : ""
-                            } ${isPending ? "filter-preset-btn-pending" : ""}`}
+                            className={`filter-preset-btn ${selected ? "filter-preset-btn-active" : ""}`}
                             onClick={() => handlePresetClick(tickIndex)}
                         >
                             {/* 마지막 tick은 위쪽이 열려 있다 — 30년 이상(50년·100년 등 더 오래된 건물도 포함)임을 표시(§2.1-b). */}

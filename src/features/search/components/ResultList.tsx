@@ -1,5 +1,23 @@
 import { useSearch } from "../context/SearchContext";
-import { sortPropertyItems } from "../api/searchApi";
+import {
+    formatAreaDisplay,
+    formatBuildYear,
+    formatHouseholdCount,
+    sortGradeSummary,
+    sortPropertyItems,
+} from "../api/searchApi";
+import Pagination from "./Pagination";
+
+const PAGE_SIZE = 5;
+
+const GRADE_CLASS: Record<string, string> = {
+    "A+": "grade-Aplus",
+    A: "grade-A",
+    "B+": "grade-Bplus",
+    B: "grade-B",
+    C: "grade-C",
+    D: "grade-D",
+};
 
 // F-04_SEARCH.md §2.2: 등급/ROI/가격 정렬 옵션. 정확한 값은 1차엔 전부 null이라 실질적 정렬 효과는 F-09 연동 후 나타난다.
 const SORT_OPTIONS = [
@@ -18,21 +36,30 @@ const ResultList = () => {
         loading,
         sortOption,
         setSortOption,
+        gradeFilter,
+        selectGradeFilter,
         page,
-        totalPages,
-        hasNextPage,
-        goToPage,
     } = useSearch();
 
     const items = sortPropertyItems(searchResults?.items ?? [], sortOption);
     const totalCount = searchResults?.totalCount ?? 0;
+    const gradeSummary = sortGradeSummary(searchResults?.gradeSummary ?? []);
+    const rangeStart = totalCount === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+    const rangeEnd = Math.min(page * PAGE_SIZE, totalCount);
 
     return (
         <div className="center-list-panel">
             <div className="center-list-header">
-                <h4 className="center-list-title">
-                    투자 후보 리스트{searchResults ? ` (${totalCount}건)` : ""}
-                </h4>
+                <div className="center-list-header-left">
+                    <h4 className="center-list-title">
+                        투자 후보 리스트{searchResults ? ` (${totalCount}건)` : ""}
+                    </h4>
+                    {searchResults && (
+                        <span className="center-list-range">
+                            {rangeStart}~{rangeEnd} / 전체 {totalCount.toLocaleString()}건 결과
+                        </span>
+                    )}
+                </div>
                 <select
                     className="center-list-sort"
                     value={sortOption}
@@ -46,6 +73,31 @@ const ResultList = () => {
                 </select>
             </div>
 
+            {searchResults && (
+                <div className="center-list-grade-badges">
+                    <button
+                        type="button"
+                        className={`grade-badge-btn ${gradeFilter === null ? "grade-badge-btn-active" : ""}`}
+                        onClick={() => selectGradeFilter(null)}
+                    >
+                        전체
+                    </button>
+                    {gradeSummary.map((item) => (
+                        <button
+                            key={item.grade}
+                            type="button"
+                            className={`grade-badge-btn ${
+                                gradeFilter === item.grade ? "grade-badge-btn-active" : ""
+                            } ${item.count === 0 ? "grade-badge-btn-empty" : ""}`}
+                            onClick={() => selectGradeFilter(item.grade)}
+                        >
+                            <span className={`grade-badge ${GRADE_CLASS[item.grade] ?? ""}`}>{item.grade}</span>
+                            <span className="grade-badge-count">{item.count.toLocaleString()}</span>
+                        </button>
+                    ))}
+                </div>
+            )}
+
             {loading ? (
                 <p className="center-list-empty">검색 중...</p>
             ) : !searchResults ? (
@@ -54,41 +106,39 @@ const ResultList = () => {
                 <p className="center-list-empty">조건에 맞는 매물이 없습니다.</p>
             ) : (
                 <ul className="center-list-items">
-                    {items.map((item) => (
-                        <li
-                            key={item.id}
-                            className={`center-list-item ${
-                                selectedPropertyId === item.id ? "center-list-item-selected" : ""
-                            }`}
-                            onClick={() => selectProperty(item.id)}
-                        >
-                            <div className="center-list-item-main">
-                                <span className="center-list-item-type">{item.propertyType}</span>
-                                <span className="center-list-item-address">{item.address}</span>
-                            </div>
-                            <div className="center-list-item-meta">
-                                <span>
-                                    {item.area != null ? `${item.area}㎡` : "면적 정보 없음"}
-                                    {" · "}
-                                    {item.buildYear != null ? `${item.buildYear}년` : "준공년도 미확인"}
-                                </span>
-                                <span>{item.grade ?? "등급 산정 중"}</span>
-                                <span>{item.price != null ? `${item.price}만원` : "가격 정보 준비 중"}</span>
-                            </div>
-                        </li>
-                    ))}
+                    {items.map((item) => {
+                        const { main: areaMain, aux: areaAux } = formatAreaDisplay(item);
+                        const householdCountText = formatHouseholdCount(item.householdCount);
+                        const auxLine = [areaAux, householdCountText].filter(Boolean).join(" · ");
+                        return (
+                            <li
+                                key={item.id}
+                                className={`center-list-item ${
+                                    selectedPropertyId === item.id ? "center-list-item-selected" : ""
+                                }`}
+                                onClick={() => selectProperty(item.id)}
+                            >
+                                <div className="center-list-item-main">
+                                    <span className="center-list-item-type">{item.propertyType}</span>
+                                    <span className="center-list-item-address">{item.address}</span>
+                                </div>
+                                <div className="center-list-item-meta">
+                                    <span>
+                                        {areaMain}
+                                        {" · "}
+                                        {formatBuildYear(item.buildYear)}
+                                    </span>
+                                    <span>{item.grade ?? "등급 산정 중"}</span>
+                                    <span>{item.price != null ? `${item.price}만원` : "가격 정보 준비 중"}</span>
+                                </div>
+                                {auxLine && <div className="center-list-item-area-aux">{auxLine}</div>}
+                            </li>
+                        );
+                    })}
                 </ul>
             )}
 
-            {searchResults && (
-                <div className="center-list-pagination">
-                    <button disabled={page === 1} onClick={() => goToPage(page - 1)}>이전</button>
-                    <span>
-                        {page} / 전체 {totalPages}페이지{totalCount > 0 ? ` (${totalCount}건)` : ""}
-                    </span>
-                    <button disabled={!hasNextPage} onClick={() => goToPage(page + 1)}>다음</button>
-                </div>
-            )}
+            <Pagination />
         </div>
     );
 };
