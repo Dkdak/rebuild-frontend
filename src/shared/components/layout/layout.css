@@ -352,35 +352,6 @@
     margin: 0 0 8px;
 }
 
-.left-panel-results h4 {
-    margin: 0 0 10px;
-    font-size: 14px;
-}
-
-.left-panel-result-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 6px 0;
-    font-size: 13px;
-}
-
-.left-panel-result-row-empty {
-    opacity: 0.45;
-}
-
-.left-panel-result-count {
-    flex-shrink: 0;
-}
-
-.left-panel-result-roi {
-    flex: 1;
-    text-align: right;
-    color: var(--text);
-    font-size: 12px;
-}
-
 .grade-badge {
     display: inline-block;
     width: 28px;
@@ -453,16 +424,30 @@
 
 .center-list-header {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     justify-content: space-between;
     gap: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.center-list-header-left {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .center-list-title {
     margin: 0;
     font-size: 15px;
     color: var(--text-h);
+}
+
+.center-list-range {
+    font-size: 12px;
+    color: var(--text);
+    opacity: 0.7;
 }
 
 .center-list-sort {
@@ -474,28 +459,141 @@
     color: var(--text);
 }
 
-.center-list-pagination {
+/* F-04_SEARCH.md §2.1-g 리스트 헤더 등급 필터 배지 — 등급 내림차순, 0건도 그대로 클릭 가능 */
+.center-list-grade-badges {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+.grade-badge-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border: none;
+    border-right: 1px solid var(--border);
+    border-radius: 0;
+    background: none;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text);
+}
+
+.grade-badge-btn:first-child {
+    padding-left: 0;
+}
+
+.grade-badge-btn:last-child {
+    border-right: none;
+}
+
+.grade-badge-btn:hover {
+    background: var(--code-bg);
+}
+
+.grade-badge-btn-active {
+    background: var(--code-bg);
+    font-weight: 700;
+}
+
+.grade-badge-btn-empty {
+    opacity: 0.5;
+}
+
+.grade-badge-count {
+    font-size: 12px;
+}
+
+/* F-04_SEARCH.md §2.1-f 페이지네이션 — 이전/다음 + 페이지 번호 목록 + 직접입력 + 결과 범위 텍스트 */
+.pagination-bar {
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 8px 12px;
     margin-top: 12px;
     font-size: 13px;
     color: var(--text);
 }
 
-.center-list-pagination button {
-    padding: 6px 12px;
+.pagination-nav-btn {
+    padding: 6px 10px;
     border: 1px solid var(--border);
     border-radius: 6px;
     background: var(--bg);
     color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.pagination-nav-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pagination-pages {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.pagination-page-btn {
+    min-width: 28px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
     cursor: pointer;
 }
 
-.center-list-pagination button:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+.pagination-page-btn-active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+}
+
+.pagination-ellipsis {
+    padding: 0 4px;
+    color: var(--text);
+    opacity: 0.6;
+}
+
+.pagination-goto {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
+}
+
+.pagination-goto-input {
+    width: 48px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    text-align: center;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+.pagination-goto-btn {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
 }
 
 .center-list-empty {
@@ -556,6 +654,13 @@
     opacity: 0.8;
 }
 
+.center-list-item-area-aux {
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--text);
+    opacity: 0.6;
+}
+
 .right-panel-placeholder {
     height: 100%;
 }
@@ -576,6 +681,13 @@
     margin: 0;
     font-size: 13px;
     color: var(--text);
+}
+
+.right-panel-selected-area-aux {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--text);
+    opacity: 0.6;
 }
 
 .right-panel-empty {

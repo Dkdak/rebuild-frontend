@@ -20,7 +20,7 @@ interface MapCenter {
     lng: number;
 }
 
-// 현재 활성 검색 방식 — goToPage에서 "무엇을 다시 조회해야 하는지" 판단 기준.
+// 현재 활성 검색 방식 — goToPage/selectGradeFilter에서 "무엇을 다시 조회해야 하는지" 판단 기준.
 type ActiveQuery =
     | { mode: "filters" }
     | { mode: "building"; buildingId: string }
@@ -36,6 +36,8 @@ interface SearchContextValue {
     selectProperty: (id: string | null) => void;
     sortOption: string;
     setSortOption: (sort: string) => void;
+    gradeFilter: string | null;
+    selectGradeFilter: (grade: string | null) => void;
     page: number;
     totalPages: number;
     hasNextPage: boolean;
@@ -61,9 +63,10 @@ const computeMapCenter = (items: { lat: number | null; lng: number | null }[]): 
     };
 };
 
-// buildYearMin/Max·propertyTypeFilters를 쿼리 파라미터로 변환 — null/빈 배열은 axios가 생략하도록 undefined로 바꾼다.
+// buildYearMin/Max·propertyTypeFilters·grade를 쿼리 파라미터로 변환 — null/빈 배열은 axios가 생략하도록 undefined로 바꾼다.
 // propertyTypeFilters 미선택 시 "전체"로 간주(§2.4)하므로 빈 배열은 보내지 않는다. expanded는 UI 전용이라 전송하지 않는다(§2.3).
-const toFilterParams = (filters: SearchFilters) => ({
+// grade(§2.1-g)는 filters와 독립적으로 함께 적용(AND) — filters를 초기화하지 않는다.
+const toFilterParams = (filters: SearchFilters, grade: string | null) => ({
     buildYearMin: filters.buildYearMin ?? undefined,
     buildYearMax: filters.buildYearMax ?? undefined,
     propertyTypeFilters:
@@ -74,9 +77,10 @@ const toFilterParams = (filters: SearchFilters) => ({
                   areaMax: f.areaMax ?? undefined,
               }))
             : undefined,
+    grade: grade ?? undefined,
 });
 
-// F-04_SEARCH.md §2.3: filters/searchResults/mapCenter/selectedPropertyId/sortOption/page를
+// F-04_SEARCH.md §2.3: filters/searchResults/mapCenter/selectedPropertyId/sortOption/gradeFilter/page를
 // LeftPanel·KakaoMap·ResultList·RightPanel이 공유하는 상태.
 export const SearchProvider = ({ children }: { children: ReactNode }) => {
     const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
@@ -84,30 +88,34 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
     const [mapCenter, setMapCenter] = useState<MapCenter | null>(null);
     const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
     const [sortOption, setSortOption] = useState("grade-desc");
+    const [gradeFilter, setGradeFilter] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(false);
 
-    // 재조회(페이지 이동)에만 필요한 값 — 화면에 직접 반영되지 않으므로 ref로 관리.
+    // 재조회(페이지 이동·등급 필터)에만 필요한 값 — 화면에 직접 반영되지 않으므로 ref로 관리.
     const activeQueryRef = useRef<ActiveQuery>(null);
     const appliedFiltersRef = useRef<SearchFilters>(DEFAULT_FILTERS);
 
-    // 조건 필터 검색 — 위치 미지정 시 백엔드가 중구로 기본 제한한다(§0-C).
+    // 조건 필터 검색 — 위치 미지정 시 백엔드가 중구로 기본 제한한다(§0-C). LeftPanel 액션이 새 기준 결과라 등급 필터는 "전체"로 리셋된다(§2.3).
     const runFilterSearch = () => {
         activeQueryRef.current = { mode: "filters" };
         appliedFiltersRef.current = filters;
         setPage(1);
         setSelectedPropertyId(null);
+        setGradeFilter(null);
         setLoading(true);
 
-        searchProperties({ ...toFilterParams(filters), page: 1, size: PAGE_SIZE })
+        searchProperties({ ...toFilterParams(filters, null), page: 1, size: PAGE_SIZE })
             .then(setSearchResults)
             .finally(() => setLoading(false));
     };
 
     // 주소/지역 검색 — 필터를 초기화하지 않고 위치 조건과 결합해서 같이 적용한다(§2.3, 2026-07-27 계약 변경).
+    // LeftPanel 액션(후보 선택)도 새 기준 결과이므로 등급 필터는 "전체"로 리셋된다(§2.3, 2026-08-01).
     const runAddressSearch = async (candidate: SearchIndexCandidate) => {
         appliedFiltersRef.current = filters;
         setPage(1);
+        setGradeFilter(null);
         setLoading(true);
 
         try {
@@ -115,7 +123,7 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
                 activeQueryRef.current = { mode: "building", buildingId: candidate.buildingId };
                 const response = await searchProperties({
                     buildingId: candidate.buildingId,
-                    ...toFilterParams(filters),
+                    ...toFilterParams(filters, null),
                     page: 1,
                     size: 1,
                 });
@@ -131,7 +139,7 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
                 activeQueryRef.current = { mode: "dong", bjdongCd: candidate.bjdongCd };
                 const response = await searchProperties({
                     bjdongCd: candidate.bjdongCd,
-                    ...toFilterParams(filters),
+                    ...toFilterParams(filters, null),
                     page: 1,
                     size: PAGE_SIZE,
                 });
@@ -145,17 +153,17 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    const goToPage = async (nextPage: number) => {
-        if (nextPage < 1) return;
+    // 페이지 이동·등급 필터 토글 공용 재조회 — grade는 상태 타이밍 문제를 피하려 인자로 명시적으로 받는다.
+    const refetch = async (nextPage: number, grade: string | null) => {
         const query = activeQueryRef.current;
-        if (!query || query.mode === "building") return; // building 모드는 결과가 항상 1건이라 페이지가 없다.
+        if (!query || query.mode === "building") return; // building 모드는 결과가 항상 1건이라 페이지/등급 필터가 없다.
 
         setPage(nextPage);
         setLoading(true);
         try {
             if (query.mode === "filters") {
                 const response = await searchProperties({
-                    ...toFilterParams(appliedFiltersRef.current),
+                    ...toFilterParams(appliedFiltersRef.current, grade),
                     page: nextPage,
                     size: PAGE_SIZE,
                 });
@@ -163,7 +171,7 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
             } else {
                 const response = await searchProperties({
                     bjdongCd: query.bjdongCd,
-                    ...toFilterParams(appliedFiltersRef.current),
+                    ...toFilterParams(appliedFiltersRef.current, grade),
                     page: nextPage,
                     size: PAGE_SIZE,
                 });
@@ -173,6 +181,18 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const goToPage = (nextPage: number) => {
+        if (nextPage < 1) return;
+        refetch(nextPage, gradeFilter);
+    };
+
+    // 등급 배지 클릭(§2.1-g, 2026-08-01 "전체" 칩 추가) — 클릭한 값을 그대로 선택(토글 아님), "전체"(null) 클릭으로 필터 해제 통일.
+    // 위치·조건(filters)에는 영향 없음 — 지금 결과 위에서만 등급으로 좁히거나 푼다(§2.3).
+    const selectGradeFilter = (grade: string | null) => {
+        setGradeFilter(grade);
+        refetch(1, grade);
     };
 
     const totalPages = searchResults?.totalPages ?? 1;
@@ -189,6 +209,8 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
                 selectProperty: setSelectedPropertyId,
                 sortOption,
                 setSortOption,
+                gradeFilter,
+                selectGradeFilter,
                 page,
                 totalPages,
                 hasNextPage,
