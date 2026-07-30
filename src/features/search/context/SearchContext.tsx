@@ -8,11 +8,26 @@ import {
 
 const PAGE_SIZE = 5;
 
+// 건축연도 기본값 "20년 이상 경과"(§0-C) — 원래 백엔드가 buildYearMin/Max 둘 다 없을 때(null,null) 암묵적으로 적용했으나,
+// 화면엔 "전체"로 보이는데 실제론 필터가 걸려있어 헷갈린다는 문제로 백엔드 쪽 암묵 처리는 제거하고 프론트가 명시적으로 기본값을 갖는다.
+const DEFAULT_BUILD_YEAR_MAX = new Date().getFullYear() - 20;
+
 export const DEFAULT_FILTERS: SearchFilters = {
     propertyTypeFilters: [],
     buildYearMin: null,
-    buildYearMax: null,
+    buildYearMax: DEFAULT_BUILD_YEAR_MAX,
     nearSubway: false,
+};
+
+// 위치 기본값(§0-C, 2026-08-03) — 백엔드가 더 이상 위치 미지정을 중구로 암묵 보정하지 않아, 프론트가 검색창 초기값으로 GU(구) 후보를 직접 갖는다.
+// bjdongCd 필드에 sigunguCd(서울특별시 중구, "11140")를 담아 보낸다 — search_index의 GU 타입 응답과 동일한 형태(§3.1).
+export const DEFAULT_LOCATION_CANDIDATE: SearchIndexCandidate = {
+    type: "GU",
+    buildingId: null,
+    bjdongCd: "11140",
+    displayText: "서울특별시 중구",
+    lat: null,
+    lng: null,
 };
 
 interface MapCenter {
@@ -25,6 +40,7 @@ type ActiveQuery =
     | { mode: "filters" }
     | { mode: "building"; buildingId: string }
     | { mode: "dong"; bjdongCd: string }
+    | { mode: "gu"; sigunguCd: string }
     | null;
 
 interface SearchContextValue {
@@ -147,6 +163,18 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
                 setSelectedPropertyId(null);
                 // mapCenter는 참고용 상태로 유지하되(§2.3), 실제 화면 범위는 KakaoMap이 마커 기준으로 자동 맞춘다(fit bounds).
                 setMapCenter(computeMapCenter(response.items));
+            } else if (candidate.type === "GU" && candidate.bjdongCd) {
+                // GU 후보는 bjdongCd 필드에 sigunguCd를 재사용해서 담아온다(§3.1) — DONG과 조회 흐름은 동일하고 파라미터 이름만 다르다.
+                activeQueryRef.current = { mode: "gu", sigunguCd: candidate.bjdongCd };
+                const response = await searchProperties({
+                    sigunguCd: candidate.bjdongCd,
+                    ...toFilterParams(filters, null),
+                    page: 1,
+                    size: PAGE_SIZE,
+                });
+                setSearchResults(response);
+                setSelectedPropertyId(null);
+                setMapCenter(computeMapCenter(response.items));
             }
         } finally {
             setLoading(false);
@@ -168,9 +196,18 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
                     size: PAGE_SIZE,
                 });
                 setSearchResults(response);
-            } else {
+            } else if (query.mode === "dong") {
                 const response = await searchProperties({
                     bjdongCd: query.bjdongCd,
+                    ...toFilterParams(appliedFiltersRef.current, grade),
+                    page: nextPage,
+                    size: PAGE_SIZE,
+                });
+                setSearchResults(response);
+                setMapCenter(computeMapCenter(response.items));
+            } else {
+                const response = await searchProperties({
+                    sigunguCd: query.sigunguCd,
                     ...toFilterParams(appliedFiltersRef.current, grade),
                     page: nextPage,
                     size: PAGE_SIZE,

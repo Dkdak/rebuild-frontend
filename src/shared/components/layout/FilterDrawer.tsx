@@ -12,7 +12,7 @@ const FilterDrawer = ({ open, onClose }: FilterDrawerProps) => {
         <div className="filter-drawer-backdrop" onClick={onClose}>
             <div className="filter-drawer-panel" onClick={(e) => e.stopPropagation()}>
                 <button className="filter-drawer-close" onClick={onClose} aria-label="닫기">×</button>
-                <LeftPanel />
+                <LeftPanel onSearchSubmit={onClose} />
             </div>
         </div>
     );

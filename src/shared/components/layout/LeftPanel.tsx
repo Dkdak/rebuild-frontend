@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useSearch } from "../../../features/search/context/SearchContext";
+import { DEFAULT_LOCATION_CANDIDATE, useSearch } from "../../../features/search/context/SearchContext";
 import { searchAddress, type SearchIndexCandidate } from "../../../features/search/api/searchApi";
 import BuildYearFilter from "../../../features/search/components/filters/BuildYearFilter";
 import PropertyTypeAccordion from "../../../features/search/components/filters/PropertyTypeAccordion";
@@ -10,12 +10,24 @@ import "../../../shared/components/common/common.css";
 const MIN_KEYWORD_LENGTH = 2;
 const DEBOUNCE_MS = 300;
 
+const CANDIDATE_TYPE_LABEL: Record<string, string> = {
+    BUILDING: "건물",
+    DONG: "동",
+    GU: "구",
+};
+
+interface LeftPanelProps {
+    // 모바일 FilterDrawer에서만 전달 — 검색 실행 시 시트를 닫아 바로 아래 결과가 보이게 한다. 데스크톱(상시 노출)은 전달 안 함.
+    onSearchSubmit?: () => void;
+}
+
 // F-04_SEARCH.md §2.1-g(2026-08-01): 결과 요약(등급별 건수)은 리스트 헤더로 이동 — LeftPanel은 조건 입력 전용.
-const LeftPanel = () => {
+const LeftPanel = ({ onSearchSubmit }: LeftPanelProps = {}) => {
     const { filters, updateFilters, runFilterSearch, runAddressSearch } = useSearch();
-    const [addressInput, setAddressInput] = useState("");
+    // 위치 기본값(§0-C, 2026-08-03) — 백엔드가 더 이상 위치 미지정을 보정하지 않아, 검색창에 기본 위치(중구)를 항상 표시해둔다.
+    const [addressInput, setAddressInput] = useState(DEFAULT_LOCATION_CANDIDATE.displayText);
     const [addressCandidates, setAddressCandidates] = useState<SearchIndexCandidate[]>([]);
-    const [selectedCandidate, setSelectedCandidate] = useState<SearchIndexCandidate | null>(null);
+    const [selectedCandidate, setSelectedCandidate] = useState<SearchIndexCandidate | null>(DEFAULT_LOCATION_CANDIDATE);
     const [validationError, setValidationError] = useState("");
     const debounceRef = useRef<number | null>(null);
 
@@ -58,6 +70,12 @@ const LeftPanel = () => {
     const handleSearch = () => {
         setValidationError("");
 
+        // §2.1-i item 4: 위치·건축연도 둘 다 없으면 400을 받기 전에 프론트가 먼저 막는다(클라이언트 사전 차단 원칙, §2.4와 동일).
+        if (!selectedCandidate && filters.buildYearMin == null && filters.buildYearMax == null) {
+            setValidationError("위치 또는 건축연도 중 하나는 선택해야 합니다.");
+            return;
+        }
+
         if (
             filters.buildYearMin != null &&
             filters.buildYearMax != null &&
@@ -79,6 +97,7 @@ const LeftPanel = () => {
         } else {
             runFilterSearch();
         }
+        onSearchSubmit?.();
     };
 
     return (
@@ -110,7 +129,7 @@ const LeftPanel = () => {
                                     <span
                                         className={`left-panel-address-type left-panel-address-type-${candidate.type.toLowerCase()}`}
                                     >
-                                        {candidate.type === "BUILDING" ? "건물" : "지역"}
+                                        {CANDIDATE_TYPE_LABEL[candidate.type] ?? candidate.type}
                                     </span>
                                     {candidate.displayText}
                                 </button>
