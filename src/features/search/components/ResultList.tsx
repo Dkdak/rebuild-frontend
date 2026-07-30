@@ -83,7 +83,7 @@ const ResultList = () => {
                             className={`grade-badge-btn ${
                                 gradeFilter === item.grade ? "grade-badge-btn-active" : ""
                             } ${item.count === 0 ? "grade-badge-btn-empty" : ""}`}
-                            style={{ "--grade-badge-color": GRADE_COLOR[item.grade] } as React.CSSProperties}
+                            style={{ "--grade-badge-color": GRADE_COLOR[item.grade] } as CSSProperties}
                             onClick={() => selectGradeFilter(item.grade)}
                         >
                             <span className={`grade-badge ${GRADE_CLASS[item.grade] ?? ""}`}>{item.grade}</span>
