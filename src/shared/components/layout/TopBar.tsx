@@ -31,6 +31,19 @@ const TopBar = ({
         <header className="top-bar">
             <div className="top-bar-logo">ReValue</div>
 
+            {/* 로고~메뉴 사이 배너 슬롯 — 지금은 개발 서버 안내, 나중에 다른 배너로 교체될 수 있는 자리(비워두면 그냥 빈 공간). */}
+            <div className="top-bar-banner-slot">
+                <div className="dev-banner">
+                    <div className="dev-banner-message">
+                        <span className="dev-banner-tag">DEV</span>
+                        <span className="dev-banner-text">
+                            <strong>개발 중인 서비스입니다.</strong> 표시되는 정보는 테스트 데이터가 포함될 수 있으며, 실제 투자 판단에 사용하지 마세요.
+                        </span>
+                    </div>
+                    <span className="dev-banner-badge">개발 서버</span>
+                </div>
+            </div>
+
             <nav className="top-bar-tabs">
                 {tabs.map((tab) => (
                     <button

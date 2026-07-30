@@ -23,9 +23,92 @@
     color: var(--text-h);
 }
 
+/* 로고~메뉴 사이 배너 자리 — flex:1로 남는 공간을 전부 차지해 메뉴(.top-bar-tabs)를 오른쪽으로 밀어낸다. 내용 없으면 빈 공간으로만 남는다. */
+.top-bar-banner-slot {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+}
+
+.dev-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 6px 14px;
+    border: 1px solid #f5a3a3;
+    border-radius: 8px;
+    background: #fdeeee;
+    overflow: hidden;
+}
+
+.dev-banner-message {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.dev-banner-tag {
+    flex-shrink: 0;
+    background: #e11d1d;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+.dev-banner-text {
+    font-size: 13px;
+    color: #7a2323;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dev-banner-text strong {
+    color: #b91c1c;
+}
+
+.dev-banner-badge {
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #b91c1c;
+    background: #fff;
+    border: 1px solid #f5a3a3;
+    border-radius: 999px;
+    padding: 3px 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+    .dev-banner {
+        border-color: #7f2b2b;
+        background: #3a1f1f;
+    }
+
+    .dev-banner-text {
+        color: #f3c5c5;
+    }
+
+    .dev-banner-text strong {
+        color: #ff8a8a;
+    }
+
+    .dev-banner-badge {
+        color: #ff8a8a;
+        background: #2a1414;
+        border-color: #7f2b2b;
+    }
+}
+
 .top-bar-tabs {
     display: flex;
     gap: 4px;
+    flex-shrink: 0;
 }
 
 .top-bar-tab {
@@ -267,6 +350,10 @@
     background: #64748b;
 }
 
+.left-panel-address-type-gu {
+    background: #0d9488;
+}
+
 .left-panel-address-empty,
 .left-panel-field-note {
     margin: 4px 0 0;
@@ -377,6 +464,7 @@
     gap: 12px;
     padding: 16px;
     min-width: 0;
+    min-height: 0;
 }
 
 .right-panel {
@@ -419,10 +507,19 @@
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 16px;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* 결과 목록만 내부 스크롤 — 헤더/배지/페이지네이션은 항상 고정 노출(검색 때마다 패널 높이가 출렁이던 문제 수정). */
+.center-list-body {
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
 }
 
 .center-list-header {
+    flex-shrink: 0;
     display: flex;
     align-items: baseline;
     justify-content: space-between;
@@ -444,12 +541,6 @@
     color: var(--text-h);
 }
 
-.center-list-range {
-    font-size: 12px;
-    color: var(--text);
-    opacity: 0.7;
-}
-
 .center-list-sort {
     padding: 4px 8px;
     border: 1px solid var(--border);
@@ -461,6 +552,7 @@
 
 /* F-04_SEARCH.md §2.1-g 리스트 헤더 등급 필터 배지 — 등급 내림차순, 0건도 그대로 클릭 가능 */
 .center-list-grade-badges {
+    flex-shrink: 0;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -497,12 +589,31 @@
 }
 
 .grade-badge-btn-active {
-    background: var(--code-bg);
+    background: var(--grade-badge-color, var(--code-bg));
+    color: #fff;
+    font-weight: 700;
+    border-radius: 6px;
+    border-right-color: transparent;
+    box-shadow: 0 0 0 1px var(--grade-badge-color, transparent);
+}
+
+.grade-badge-btn-active .grade-badge {
+    background: #fff;
+    color: var(--grade-badge-color, var(--text-h));
+}
+
+.grade-badge-btn-active .grade-badge-count {
+    color: #fff;
     font-weight: 700;
 }
 
 .grade-badge-btn-empty {
     opacity: 0.5;
+}
+
+/* 선택된 배지는 0건이어도 흐리게 처리하지 않는다 — 선택 상태 자체가 항상 또렷하게 보여야 함. */
+.grade-badge-btn-active.grade-badge-btn-empty {
+    opacity: 1;
 }
 
 .grade-badge-count {
@@ -511,6 +622,7 @@
 
 /* F-04_SEARCH.md §2.1-f 페이지네이션 — 이전/다음 + 페이지 번호 목록 + 직접입력 + 결과 범위 텍스트 */
 .pagination-bar {
+    flex-shrink: 0;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -882,6 +994,7 @@
 @media (max-width: 768px) {
     .top-bar-tabs,
     .top-bar-search,
+    .top-bar-banner-slot,
     .top-bar-icon-btn,
     .top-bar-auth {
         display: none;

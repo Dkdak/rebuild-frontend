@@ -2,11 +2,12 @@ import { apiClient } from "../../../shared/api/apiClient";
 
 // ===== 실제 백엔드 연동 (F-04_SEARCH.md §3.1) =====
 
-export type SearchIndexCandidateType = "BUILDING" | "DONG";
+export type SearchIndexCandidateType = "BUILDING" | "DONG" | "GU";
 
 export interface SearchIndexCandidate {
     type: SearchIndexCandidateType;
     buildingId: string | null;
+    // GU 타입은 별도 필드 없이 이 필드에 sigunguCd(5자리 시군구 코드)를 재사용해서 내려준다(백엔드 계약, 2026-08-03).
     bjdongCd: string | null;
     displayText: string;
     lat: number | null;
@@ -43,7 +44,7 @@ export interface PropertySearchResponse {
     totalPages: number;
 }
 
-// 주소/지역 통합 검색 — search_index를 ILIKE로 조회. 후보 타입은 BUILDING(건물)/DONG(법정동)만 있다.
+// 주소/지역 통합 검색 — search_index를 pg_trgm 인덱스로 조회. 후보 타입은 BUILDING(건물)/DONG(법정동)/GU(자치구, 2026-08-03 추가) 세 가지.
 export const searchAddress = async (keyword: string): Promise<SearchIndexCandidate[]> => {
     if (!keyword.trim()) return [];
     const response = await apiClient.get<SearchIndexCandidate[]>("/api/v1/search-index/search", {
@@ -70,6 +71,7 @@ export interface SearchFilters {
 interface PropertySearchQuery {
     buildingId?: string;
     bjdongCd?: string;
+    sigunguCd?: string;
     buildYearMin?: number;
     buildYearMax?: number;
     propertyTypeFilters?: { type: string; areaMin?: number; areaMax?: number }[];
@@ -78,12 +80,11 @@ interface PropertySearchQuery {
     size?: number;
 }
 
-// buildingId/bjdongCd는 동시 전달 불가하며, 둘 다 없으면 위치 기본값 중구가 적용된다(§0-C).
-// buildYearMin/Max(둘 다 없으면 20년 이상 경과 기본값 §0-C)는 위치 조건과 결합해서 같이 적용된다(§2.3).
+// buildingId/bjdongCd/sigunguCd는 서로 동시 전달 불가(위치 지정 방식 하나만) — 세 개 다 없으면 백엔드가 400(§0-C, §3.2, 2026-08-03).
+// 위치 기본값(중구)·건축연도 기본값(20년 이상)은 더 이상 백엔드가 암묵 처리하지 않는다 — 프론트가 직접 관리(SearchContext의 DEFAULT_FILTERS/DEFAULT_LOCATION_CANDIDATE).
 // propertyTypeFilters([{type,areaMin,areaMax}], §2.1-a·§3.1)는 유형별로 면적을 따로 적용 — 비어있으면 유형/면적 제한 없음.
-// grade(§2.1-g, 리스트 헤더 등급 배지)는 1차엔 전 항목 grade:null이라 실질적으로 항상 0건.
+// grade(§2.1-g, 리스트 헤더 등급 배지)는 investment_result 스파이크 더미데이터 기준으로 실제 필터링됨(§3.1, 2026-08-02 구현 완료).
 // price/roi/nearSubway/sort는 1차 데이터에 대응 필드가 없어 아직 미구현 — 전달하지 않는다.
-// ⚠️ 2026-07-28: GET에서 POST+JSON body로 계약 변경됨(GET은 405) — FEATURE_04_SEARCH.md §3.1에 반영된 실제 동작 기준.
 export const searchProperties = async (query: PropertySearchQuery): Promise<PropertySearchResponse> => {
     const response = await apiClient.post<PropertySearchResponse>("/api/v1/properties/search", query);
     return response.data;
