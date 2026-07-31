@@ -36,8 +36,13 @@ const SORT_OPTIONS = [
     { value: "price-desc", label: "매매가 높은순" },
 ];
 
+interface ResultListProps {
+    // 모바일 전용 — 카드의 "상세보기" 버튼이 호출(`FEATURE_01_LAYOUT.md` §2.2, 2026-08-04: 카드 탭 자체는 선택만, 상세 시트는 별도 버튼으로 분리).
+    onOpenDetail: () => void;
+}
+
 // F-04 소관: 검색 결과 렌더링. SearchContext의 searchResults를 지도(KakaoMap)와 공유한다 (§0-A, §2.3).
-const ResultList = () => {
+const ResultList = ({ onOpenDetail }: ResultListProps) => {
     const {
         searchResults,
         selectedPropertyId,
@@ -61,6 +66,44 @@ const ResultList = () => {
                         검색결과{searchResults ? ` (${totalCount}건)` : ""}
                     </h4>
                 </div>
+                {/* F-04_SEARCH.md §2.1-g item 1(2026-08-04) — 데스크톱은 제목·배지·정렬 한 줄 통합. 폭 부족 시 `.center-list-header`의 flex-wrap으로 자동 줄바꿈. 모바일은 CSS로 숨기고 아래 등급 select 사용. */}
+                {searchResults && (
+                    <div className="center-list-grade-badges">
+                        {gradeSummary.map((item) => (
+                            <button
+                                key={item.grade}
+                                type="button"
+                                className={`grade-badge-btn ${
+                                    gradeFilter === item.grade ? "grade-badge-btn-active" : ""
+                                } ${item.count === 0 ? "grade-badge-btn-empty" : ""}`}
+                                style={{ "--grade-badge-color": GRADE_COLOR[item.grade] } as CSSProperties}
+                                onClick={() => selectGradeFilter(item.grade)}
+                            >
+                                <span className={`grade-badge ${GRADE_CLASS[item.grade] ?? ""}`}>{item.grade}</span>
+                                <span className="grade-badge-count">{item.count.toLocaleString()}</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
+                {/* F-04_SEARCH.md §2.1-g item 2 — 등급 배지(A+~D)의 모바일 대체 UI. 정렬 select보다 앞(왼쪽)에 둬서, 검색 전후로 정렬 select 위치가 안 바뀌게 함(§5.1 버그 수정) — 클릭 대신 선택이지만 동작은 동일하게 selectGradeFilter 호출. */}
+                {searchResults && (
+                    <select
+                        className="center-list-grade-select"
+                        value={gradeFilter ?? ""}
+                        onChange={(e) => {
+                            if (e.target.value) selectGradeFilter(e.target.value);
+                        }}
+                    >
+                        <option value="" disabled>
+                            등급
+                        </option>
+                        {gradeSummary.map((item) => (
+                            <option key={item.grade} value={item.grade}>
+                                {item.grade} {item.count.toLocaleString()}
+                            </option>
+                        ))}
+                    </select>
+                )}
                 <select
                     className="center-list-sort"
                     value={sortOption}
@@ -73,25 +116,6 @@ const ResultList = () => {
                     ))}
                 </select>
             </div>
-
-            {searchResults && (
-                <div className="center-list-grade-badges">
-                    {gradeSummary.map((item) => (
-                        <button
-                            key={item.grade}
-                            type="button"
-                            className={`grade-badge-btn ${
-                                gradeFilter === item.grade ? "grade-badge-btn-active" : ""
-                            } ${item.count === 0 ? "grade-badge-btn-empty" : ""}`}
-                            style={{ "--grade-badge-color": GRADE_COLOR[item.grade] } as CSSProperties}
-                            onClick={() => selectGradeFilter(item.grade)}
-                        >
-                            <span className={`grade-badge ${GRADE_CLASS[item.grade] ?? ""}`}>{item.grade}</span>
-                            <span className="grade-badge-count">{item.count.toLocaleString()}</span>
-                        </button>
-                    ))}
-                </div>
-            )}
 
             <div className="center-list-body">
                 {loading ? (
@@ -128,6 +152,18 @@ const ResultList = () => {
                                         <span>{item.price != null ? `${item.price}만원` : "가격 정보 준비 중"}</span>
                                     </div>
                                     {auxLine && <div className="center-list-item-area-aux">{auxLine}</div>}
+                                    {/* `FEATURE_01_LAYOUT.md` §2.2(2026-08-04) — 카드 탭은 선택만, 상세 시트는 이 버튼으로만 연다(모바일 전용) */}
+                                    <button
+                                        type="button"
+                                        className="center-list-item-detail-btn"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            selectProperty(item.id);
+                                            onOpenDetail();
+                                        }}
+                                    >
+                                        상세보기
+                                    </button>
                                 </li>
                             );
                         })}
