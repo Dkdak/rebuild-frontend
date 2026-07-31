@@ -18,9 +18,26 @@
 }
 
 .top-bar-logo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-weight: 700;
     font-size: 18px;
     color: var(--text-h);
+}
+
+/* 로고 옆 DEV 태그 — 모바일 전용(§2.2 2026-08-05). 데스크톱은 top-bar-banner-slot 쪽 태그를 그대로 씀. */
+.top-bar-dev-tag {
+    display: none;
+    flex-shrink: 0;
+    background: var(--code-bg);
+    color: var(--text);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
 }
 
 /* 로고~메뉴 사이 배너 자리 — flex:1로 남는 공간을 전부 차지해 메뉴(.top-bar-tabs)를 오른쪽으로 밀어낸다. 내용 없으면 빈 공간으로만 남는다. */
@@ -105,6 +122,26 @@
     }
 }
 
+/* 모바일 전용 알림 카드(§2.2 2026-08-05 최종 확정) — TopBar 아래 별도 줄, 짧은 문구 + 닫기 버튼. 데스크톱은 top-bar-banner-slot으로 계속 안내(이 카드는 안 씀). */
+.dev-notice {
+    display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+    .dev-notice {
+        border-color: #7f2b2b;
+        background: #3a1f1f;
+    }
+
+    .dev-notice-text {
+        color: #f3c5c5;
+    }
+
+    .dev-notice-close {
+        color: #f3c5c5;
+    }
+}
+
 .top-bar-tabs {
     display: flex;
     gap: 4px;
@@ -157,6 +194,16 @@
     font-size: 22px;
     color: var(--text-h);
     cursor: pointer;
+}
+
+/* 필터/햄버거 묶음 — 모바일 전용(TopBar.tsx). 데스크톱은 둘 다 각자 display:none이라 굳이 숨길 필요는 없지만, 빈 wrapper가 flex gap을 소비하지 않도록 명시적으로 숨긴다. */
+.top-bar-mobile-actions {
+    display: none;
+}
+
+/* `FEATURE_01_LAYOUT.md` §2.2(2026-08-04) — FilterDrawer 트리거, 모바일 `지도` 탭 전용(TopBar.tsx). 데스크톱은 LeftPanel 상시 노출이라 숨김. */
+.top-bar-filter-btn {
+    display: none;
 }
 
 .top-bar-auth {
@@ -491,6 +538,11 @@
     padding: 20px;
 }
 
+/* `FEATURE_01_LAYOUT.md` §2.2(2026-08-05) — .dev-notice(모바일 전용)가 이 안에 절대 위치로 얹히므로 포지셔닝 컨텍스트 필요. */
+.search-map-wrapper {
+    position: relative;
+}
+
 .center-map-placeholder {
     width: 100%;
     height: 60vh;
@@ -521,10 +573,12 @@
 .center-list-header {
     flex-shrink: 0;
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     gap: 8px;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
     flex-wrap: wrap;
 }
 
@@ -550,16 +604,24 @@
     color: var(--text);
 }
 
-/* F-04_SEARCH.md §2.1-g 리스트 헤더 등급 필터 배지 — 등급 내림차순, 0건도 그대로 클릭 가능 */
+/* `FEATURE.md` §F-04 모바일 반응형 item 3 — 데스크톱에선 숨김(등급 배지 사용), 모바일 미디어쿼리에서만 노출 */
+.center-list-grade-select {
+    display: none;
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    background: var(--bg);
+    color: var(--text);
+}
+
+/* F-04_SEARCH.md §2.1-g 리스트 헤더 등급 필터 배지 — 등급 내림차순, 0건도 그대로 클릭 가능. 2026-08-04부터 데스크톱은 `.center-list-header` 안 한 줄로 통합. */
 .center-list-grade-badges {
     flex-shrink: 0;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0;
-    margin-bottom: 12px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--border);
 }
 
 .grade-badge-btn {
@@ -688,6 +750,15 @@
     white-space: nowrap;
 }
 
+/* `FEATURE.md` §F-04 모바일 반응형 item 1 — 데스크톱에선 숨김, 모바일 미디어쿼리에서만 노출(아래) */
+.pagination-compact {
+    display: none;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+}
+
 .pagination-goto-input {
     width: 48px;
     padding: 6px 8px;
@@ -773,6 +844,11 @@
     opacity: 0.6;
 }
 
+/* `FEATURE_01_LAYOUT.md` §2.2(2026-08-04) — 카드 안 "상세보기" 버튼, 모바일 전용(데스크톱은 RightPanel 상시 노출이라 불필요) */
+.center-list-item-detail-btn {
+    display: none;
+}
+
 .right-panel-placeholder {
     height: 100%;
 }
@@ -807,32 +883,6 @@
     font-size: 13px;
     color: var(--text);
     opacity: 0.7;
-}
-
-/* Mobile-only triggers (hidden on desktop) */
-.mobile-filter-trigger,
-.mobile-detail-trigger {
-    display: none;
-    position: fixed;
-    bottom: 20px;
-    z-index: 20;
-    padding: 10px 18px;
-    border-radius: 999px;
-    border: none;
-    background: var(--accent);
-    color: #fff;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: var(--shadow);
-}
-
-.mobile-filter-trigger {
-    left: 16px;
-}
-
-.mobile-detail-trigger {
-    right: 16px;
 }
 
 /* Mobile off-canvas nav (TopBar hamburger) */
@@ -994,15 +1044,95 @@
 @media (max-width: 768px) {
     .top-bar-tabs,
     .top-bar-search,
-    .top-bar-banner-slot,
     .top-bar-icon-btn,
     .top-bar-auth {
         display: none;
     }
 
+    /* `FEATURE_01_LAYOUT.md` §2.2(2026-08-05 최종 확정) — 탑메뉴는 로고+DEV 태그+필터+햄버거만 한 줄(원래 높이 56px), 안내 문구는 그 아래 별도의 짧은 닫기 가능 카드(.dev-notice)로 분리. 배너는 F-09 스파이크 더미데이터 노출 근거라 모바일에서도 항상 노출해야 함(§5.1). */
+    .top-bar {
+        gap: 8px;
+        padding: 0 12px;
+    }
+
+    .top-bar-banner-slot {
+        display: none;
+    }
+
+    .top-bar-dev-tag {
+        display: inline-block;
+    }
+
+    /* §2.2(2026-08-05 재작업) — 레이아웃 흐름에서 빼고 지도 위 플로팅 오버레이로: 지도/TopBar 높이에 영향 없음, 닫아도 재배치 없음. */
+    .dev-notice {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        right: 8px;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        border: 1px solid #f5a3a3;
+        border-radius: 8px;
+        background: #fdeeee;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .dev-notice-icon {
+        flex-shrink: 0;
+        color: #b91c1c;
+        font-size: 12px;
+    }
+
+    .dev-notice-text {
+        flex: 1;
+        min-width: 0;
+        font-size: 11px;
+        color: #7a2323;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .dev-notice-close {
+        flex-shrink: 0;
+        background: none;
+        border: none;
+        color: #7a2323;
+        font-size: 12px;
+        line-height: 1;
+        padding: 2px;
+        cursor: pointer;
+    }
+
+    /* 필터/햄버거를 하나로 묶어 둘 사이 간격만 좁힘(완전히 붙지는 않게). */
+    .top-bar-mobile-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+
+    /* `FEATURE_01_LAYOUT.md` §2.2(2026-08-05) — 아이콘 버튼으로 변경(텍스트 "필터" 대신 깔때기 아이콘). */
+    .top-bar-filter-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: none;
+        background: none;
+        color: var(--text-h);
+        cursor: pointer;
+    }
+
     .top-bar-hamburger {
         display: block;
-        margin-left: auto;
     }
 
     .app-layout-body > .left-panel,
@@ -1010,23 +1140,86 @@
         display: none;
     }
 
-    .mobile-filter-trigger,
-    .mobile-detail-trigger {
-        display: block;
-    }
-
     .center-panel {
         padding: 8px;
         gap: 8px;
     }
 
+    /* `FEATURE_01_LAYOUT.md` §2.1 표(2026-08-04 재조정) — 45vh(최초)→24vh(카드 안 보임)→32vh(지도 너무 작다는 반응) */
+    /* `FEATURE_01_LAYOUT.md` §2.1 표(2026-08-05 재조정) — 32vh(min 220/max 300)가 여전히 작다는 피드백으로 +~90px 확대 */
     .center-map-placeholder {
-        height: 45vh;
-        min-height: 250px;
+        height: 42vh;
+        min-height: 300px;
+        max-height: 390px;
     }
 
     .center-list-panel {
         flex: 1;
         min-height: 0;
+        padding: 10px;
+    }
+
+    /* item 1 — 페이지네이션: 숫자 나열형·goto 입력창 숨기고 축약형("1 · 2605")만 노출 */
+    .pagination-pages,
+    .pagination-goto {
+        display: none;
+    }
+
+    .pagination-compact {
+        display: inline-block;
+    }
+
+    /* item 4 — "검색결과 (N건)" + 정렬 + 등급 셀렉트박스가 한 줄에 들어가도록 압축 */
+    .center-list-header {
+        flex-wrap: nowrap;
+        gap: 6px;
+    }
+
+    .center-list-header-left {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .center-list-title {
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .center-list-sort,
+    .center-list-grade-select {
+        flex-shrink: 0;
+        max-width: 84px;
+        padding: 3px 4px;
+        font-size: 11px;
+    }
+
+    /* item 3 — 등급 배지(A+/A/B+/B/C/D) 줄바꿈 대신 셀렉트박스 하나로 압축, 클릭 시 필터링 동작은 selectGradeFilter로 동일 */
+    .center-list-grade-badges {
+        display: none;
+    }
+
+    .center-list-grade-select {
+        display: block;
+    }
+
+    /* `FEATURE_01_LAYOUT.md` §2.2(2026-08-04) — 카드는 데스크톱과 동일한 2줄 구성으로 복원(1줄 압축 폐지). 탭 가능 표시는 프레스 상태만 유지, 상세는 전용 버튼으로. */
+    .center-list-item:active {
+        background: var(--code-bg);
+    }
+
+    .center-list-item-detail-btn {
+        display: block;
+        align-self: flex-end;
+        margin-top: 2px;
+        padding: 3px 10px;
+        border: 1px solid var(--accent);
+        border-radius: 999px;
+        background: none;
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
     }
 }

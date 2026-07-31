@@ -73,6 +73,11 @@ const Pagination = () => {
                 )}
             </div>
 
+            {/* `FEATURE.md` §F-04 모바일 반응형 item 1 — 숫자 나열형+goto 입력창 대신 축약형("1 · 2605") 하나로 통합, CSS 미디어쿼리로 전환 */}
+            <span className="pagination-compact">
+                {page} · {totalPages}
+            </span>
+
             <button type="button" className="pagination-nav-btn" disabled={!hasNextPage} onClick={() => goToPage(page + 1)}>
                 다음 ▶
             </button>

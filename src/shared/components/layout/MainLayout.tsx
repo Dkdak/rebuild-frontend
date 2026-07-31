@@ -63,6 +63,7 @@ const MainLayout = () => {
                 showLoginModal={showLoginModal}
                 onOpenLoginModal={() => setShowLoginModal(true)}
                 onCloseLoginModal={() => setShowLoginModal(false)}
+                onOpenFilter={() => setActiveOverlay("filter")}
             />
             {activeTab === "대시보드" ? (
                 <Dashboard />
@@ -71,21 +72,8 @@ const MainLayout = () => {
             ) : (
                 <div className="app-layout-body">
                     <LeftPanel />
-                    <CenterPanel />
+                    <CenterPanel onOpenDetail={() => setActiveOverlay("detail")} />
                     <RightPanel />
-
-                    <button
-                        className="mobile-filter-trigger"
-                        onClick={() => setActiveOverlay("filter")}
-                    >
-                        조건 검색
-                    </button>
-                    <button
-                        className="mobile-detail-trigger"
-                        onClick={() => setActiveOverlay("detail")}
-                    >
-                        상세보기
-                    </button>
                 </div>
             )}
 
