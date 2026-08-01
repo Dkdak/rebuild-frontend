@@ -14,6 +14,14 @@ export interface SearchIndexCandidate {
     lng: number | null;
 }
 
+// F-04_SEARCH.md §2.1-h item 5(2026-08-07 구현 완료) — 건물의 가장 최근 실거래 1건(해제 제외). price는 만원 단위,
+// 매칭 안 된 건물(주로 상업업무용·공장창고 마스킹 지번)은 recentTrade 자체가 null.
+export interface RecentTrade {
+    price: number | null;
+    area: number | null;
+    contractDate: string | null;
+}
+
 export interface PropertyItem {
     id: string;
     propertyType: string | null;
@@ -27,6 +35,7 @@ export interface PropertyItem {
     lng: number | null;
     grade: string | null;
     roi: number | null;
+    recentTrade: RecentTrade | null;
 }
 
 export interface GradeSummaryItem {
@@ -126,6 +135,27 @@ export const formatBuildYear = (buildYear: number | null): string => {
 // 세대수(householdCount)는 아파트·연립다세대만 값이 있고 나머지 유형은 null — 백엔드가 이미 유형별로 걸러서 내려준다.
 export const formatHouseholdCount = (householdCount: number | null): string | null =>
     householdCount != null ? `${householdCount.toLocaleString()}세대` : null;
+
+// ===== 최근 실거래가 (F-04_SEARCH.md §2.1-h item 5) =====
+
+// 만원 단위 원본 → "3억 5,000만원" 형식(1억=10,000만원). 매물 상세가 아니라 카드용 요약이라 억 단위로 뭉뚱그리지 않는다.
+const formatManwon = (manwon: number): string => {
+    const eok = Math.floor(manwon / 10000);
+    const rest = Math.round(manwon % 10000);
+    if (eok === 0) return `${rest.toLocaleString()}만원`;
+    if (rest === 0) return `${eok}억`;
+    return `${eok}억 ${rest.toLocaleString()}만원`;
+};
+
+// recentTrade가 null(매칭 안 됨)이면 그 필드만 생략 — 별도 안내 문구 없음(§2.1-h item 5 그대로).
+// 날짜는 "년/월"을 명시적으로 풀어쓴다("2024년 10월") — "2024.10"처럼 점 표기는 연도인지 월인지 한눈에 안 들어와 혼동됨(2026-08-08 피드백).
+export const formatRecentTrade = (recentTrade: RecentTrade | null): string | null => {
+    if (recentTrade == null || recentTrade.price == null) return null;
+    const priceText = formatManwon(recentTrade.price);
+    const [year, month] = recentTrade.contractDate?.split("-") ?? [];
+    const dateText = year && month ? `${year}년 ${Number(month)}월` : null;
+    return dateText ? `최근 실거래 ${priceText} (${dateText})` : `최근 실거래 ${priceText}`;
+};
 
 // ===== 리스트 헤더 등급 배지 (F-04_SEARCH.md §2.1-g) =====
 

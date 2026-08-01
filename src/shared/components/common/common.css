@@ -178,6 +178,11 @@
     grid-template-columns: repeat(3, 1fr);
 }
 
+/* 상업업무용/공장창고 면적(CommercialAreaRangeControl) — 라벨이 길어서("10,000㎡ 초과 ~ 100,000㎡ 이하") 2열로 넓힘. */
+.filter-preset-grid-commercial {
+    grid-template-columns: repeat(2, 1fr);
+}
+
 .filter-preset-btn {
     padding: 8px 4px;
     border: 1px solid var(--border);

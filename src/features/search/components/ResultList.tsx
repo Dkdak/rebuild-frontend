@@ -4,6 +4,7 @@ import {
     formatAreaDisplay,
     formatBuildYear,
     formatHouseholdCount,
+    formatRecentTrade,
     sortGradeSummary,
     sortPropertyItems,
 } from "../api/searchApi";
@@ -130,6 +131,7 @@ const ResultList = ({ onOpenDetail }: ResultListProps) => {
                             const { main: areaMain, aux: areaAux } = formatAreaDisplay(item);
                             const householdCountText = formatHouseholdCount(item.householdCount);
                             const auxLine = [areaAux, householdCountText].filter(Boolean).join(" · ");
+                            const recentTradeText = formatRecentTrade(item.recentTrade);
                             return (
                                 <li
                                     key={item.id}
@@ -149,7 +151,12 @@ const ResultList = ({ onOpenDetail }: ResultListProps) => {
                                             {formatBuildYear(item.buildYear)}
                                         </span>
                                         <span>{item.grade ?? "등급 산정 중"}</span>
-                                        <span>{item.price != null ? `${item.price}만원` : "가격 정보 준비 중"}</span>
+                                        {/* item.price(정식 매매가, 2차 미착수)는 항상 null — recentTrade(§2.1-h item 5)가 있으면 그걸 가격 자리에 보여주고, 둘 다 없을 때만 플레이스홀더. */}
+                                        <span>
+                                            {item.price != null
+                                                ? `${item.price}만원`
+                                                : (recentTradeText ?? "가격 정보 준비 중")}
+                                        </span>
                                     </div>
                                     {auxLine && <div className="center-list-item-area-aux">{auxLine}</div>}
                                     {/* `FEATURE_01_LAYOUT.md` §2.2(2026-08-04) — 카드 탭은 선택만, 상세 시트는 이 버튼으로만 연다(모바일 전용) */}
