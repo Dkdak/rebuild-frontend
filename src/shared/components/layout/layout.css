@@ -456,22 +456,6 @@
     margin-bottom: 4px;
 }
 
-.left-panel-range-plain {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.left-panel-range-plain input {
-    width: 0;
-    flex: 1;
-    padding: 6px 8px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    font-size: 13px;
-    box-sizing: border-box;
-}
-
 .left-panel-checkbox-item {
     display: flex;
     align-items: center;

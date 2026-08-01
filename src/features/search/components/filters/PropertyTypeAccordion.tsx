@@ -1,10 +1,12 @@
 import type { PropertyTypeFilter } from "../../api/searchApi";
 import AreaRangeControl from "./AreaRangeControl";
+import CommercialAreaRangeControl from "./CommercialAreaRangeControl";
 
-// F-04_SEARCH.md §0-D: 6종 전부. §2.1-a: 주거용 4종만 면적 프리셋 재사용, 상업업무용/공장창고는
-// 실제 면적 분포 조사 전이라(§5.1 Open Item) 프리셋 없이 단순 최소/최대 입력으로 둔다.
+// F-04_SEARCH.md §0-D: 6종 전부. §2.1-a: 주거용 4종은 평 단위 프리셋(AreaRangeControl), 상업업무용/공장창고는
+// ㎡ 단위 큰 구간 슬라이더(CommercialAreaRangeControl) — 기존 단순 min/max 입력을 슬라이더로 전환(사용자 제공 참고 이미지 기준).
 const PROPERTY_TYPES = ["아파트", "연립다세대", "단독다가구", "오피스텔", "상업업무용", "공장창고"];
-const PRESET_TYPES = new Set(["아파트", "연립다세대", "단독다가구", "오피스텔"]);
+const RESIDENTIAL_PRESET_TYPES = new Set(["아파트", "연립다세대", "단독다가구", "오피스텔"]);
+const COMMERCIAL_PRESET_TYPES = new Set(["상업업무용", "공장창고"]);
 const OFFICETEL = "오피스텔";
 
 interface PropertyTypeAccordionProps {
@@ -68,41 +70,19 @@ const PropertyTypeAccordion = ({ propertyTypeFilters, onChange }: PropertyTypeAc
 
                             <div className="property-type-panel-field">
                                 <span className="property-type-panel-label">면적</span>
-                                {PRESET_TYPES.has(filter.type) ? (
+                                {RESIDENTIAL_PRESET_TYPES.has(filter.type) ? (
                                     <AreaRangeControl
                                         areaMin={filter.areaMin}
                                         areaMax={filter.areaMax}
                                         onChange={(areaMin, areaMax) => updateArea(filter.type, areaMin, areaMax)}
                                     />
-                                ) : (
-                                    <div className="left-panel-range-plain">
-                                        <input
-                                            type="number"
-                                            placeholder="최소(㎡)"
-                                            value={filter.areaMin ?? ""}
-                                            onChange={(e) =>
-                                                updateArea(
-                                                    filter.type,
-                                                    e.target.value === "" ? null : Number(e.target.value),
-                                                    filter.areaMax
-                                                )
-                                            }
-                                        />
-                                        <span>~</span>
-                                        <input
-                                            type="number"
-                                            placeholder="최대(㎡)"
-                                            value={filter.areaMax ?? ""}
-                                            onChange={(e) =>
-                                                updateArea(
-                                                    filter.type,
-                                                    filter.areaMin,
-                                                    e.target.value === "" ? null : Number(e.target.value)
-                                                )
-                                            }
-                                        />
-                                    </div>
-                                )}
+                                ) : COMMERCIAL_PRESET_TYPES.has(filter.type) ? (
+                                    <CommercialAreaRangeControl
+                                        areaMin={filter.areaMin}
+                                        areaMax={filter.areaMax}
+                                        onChange={(areaMin, areaMax) => updateArea(filter.type, areaMin, areaMax)}
+                                    />
+                                ) : null}
                             </div>
 
                             <div className="property-type-panel-field">
