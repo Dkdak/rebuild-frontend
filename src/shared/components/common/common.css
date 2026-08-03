@@ -238,3 +238,56 @@
     color: var(--accent);
     border-color: var(--accent-border);
 }
+
+/* GaugeBar — FEATURE_05_PROPERTY_INFO.md §2.1 "리모델링 가능성" 시각화(노후도 달성률·용적률 활용도 공용) */
+.gauge-bar {
+    margin-bottom: 10px;
+}
+
+.gauge-bar-label {
+    margin: 0 0 4px;
+    font-size: 12px;
+    color: var(--text-h);
+}
+
+.gauge-bar-track {
+    height: 8px;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.gauge-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.2s ease;
+}
+
+.gauge-bar-fill-success {
+    background: #16a34a;
+}
+
+.gauge-bar-fill-warning {
+    background: #b45309;
+}
+
+.gauge-bar-fill-neutral {
+    background: var(--accent);
+}
+
+@media (prefers-color-scheme: dark) {
+    .gauge-bar-fill-success {
+        background: #4ade80;
+    }
+    .gauge-bar-fill-warning {
+        background: #fbbf24;
+    }
+}
+
+.gauge-bar-caption {
+    margin: 4px 0 0;
+    font-size: 11px;
+    color: var(--text);
+    opacity: 0.7;
+}

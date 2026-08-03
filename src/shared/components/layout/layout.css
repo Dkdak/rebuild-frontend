@@ -828,6 +828,19 @@
     opacity: 0.6;
 }
 
+/* DOMAIN.md §5.1 "최근 실거래가 표시 착시" V1 경고 — 매칭 오류가 아니라 정직한 고지라 에러색은 과함, 주의색(amber) 사용 */
+.center-list-item-partial-trade-warning {
+    margin-top: 2px;
+    font-size: 11px;
+    color: #b45309;
+}
+
+@media (prefers-color-scheme: dark) {
+    .center-list-item-partial-trade-warning {
+        color: #fbbf24;
+    }
+}
+
 /* `FEATURE_01_LAYOUT.md` §2.2(2026-08-04) — 카드 안 "상세보기" 버튼, 모바일 전용(데스크톱은 RightPanel 상시 노출이라 불필요) */
 .center-list-item-detail-btn {
     display: none;
@@ -837,29 +850,231 @@
     height: 100%;
 }
 
-.right-panel-selected {
-    margin-bottom: 16px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
+.right-panel-field-note {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text);
+    opacity: 0.7;
 }
 
-.right-panel-selected-title {
+.right-panel-fact-list {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.right-panel-fact-list > div {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+}
+
+.right-panel-fact-list dt {
+    color: var(--text);
+    opacity: 0.7;
+}
+
+.right-panel-fact-list dd {
+    margin: 0;
+    color: var(--text-h);
+}
+
+/* FEATURE_05_PROPERTY_INFO.md §2.1(2026-08-08, 8카드 재편) — 8개 섹션 전부 독립 카드로 감싼다(테두리+배경 구분,
+   스크롤 중에도 카드 경계가 분명하도록). 공통 카드 틀: 헤더(타이틀+선택적 우측 배지)/부제/본문/구분선. */
+.right-panel-card {
+    margin-bottom: 16px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--code-bg);
+}
+
+.right-panel-card:last-child {
+    margin-bottom: 0;
+}
+
+.right-panel-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.right-panel-card-title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-h);
+}
+
+.right-panel-card-subtitle {
+    margin: 2px 0 10px;
+    font-size: 11px;
+    color: var(--text);
+    opacity: 0.7;
+}
+
+.right-panel-card-divider {
+    margin: 10px 0;
+    border: none;
+    border-top: 1px solid var(--border);
+}
+
+.right-panel-overview-address {
     margin: 0 0 4px;
     font-size: 15px;
     color: var(--text-h);
 }
 
-.right-panel-selected-meta {
+.right-panel-overview-meta {
     margin: 0;
     font-size: 13px;
     color: var(--text);
 }
 
-.right-panel-selected-area-aux {
-    margin: 4px 0 0;
-    font-size: 12px;
+/* 개요 카드의 "예상 ROI" 등 실제(스파이크) 값 옆에 붙이는 태그 — 리모델링가능성 카드의 부제 문구와 결이 다른, 인라인용 */
+.right-panel-estimate-tag {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    font-size: 10px;
+    font-weight: 500;
     color: var(--text);
+    opacity: 0.8;
+}
+
+/* 시세 카드 — 최근 실거래가(값+보조설명+착시경고 여러 줄) 전용 줄. 공시가격/추정시세는 .right-panel-fact-list 재사용 */
+/* 시세 카드 — FEATURE_08_MARKET.md §2.2 2x2 그리드 */
+.right-panel-market-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.right-panel-market-cell-label {
+    margin: 0 0 2px;
+    font-size: 11px;
+    color: var(--text);
+    opacity: 0.7;
+}
+
+.right-panel-market-cell-value {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-h);
+}
+
+.right-panel-market-cell-muted {
+    font-weight: 500;
     opacity: 0.6;
+}
+
+.right-panel-market-cell-aux {
+    margin: 2px 0 0;
+    font-size: 11px;
+    color: var(--text);
+    opacity: 0.7;
+}
+
+/* FEATURE_01_LAYOUT.md §2.3-b — 5개 그룹 맨 아래 CTA, 리포트 탭 전환 */
+.right-panel-report-cta {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.right-panel-report-cta:hover {
+    opacity: 0.9;
+}
+
+.right-panel-verdict-badge {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.right-panel-verdict-possible {
+    background: #16a34a;
+}
+
+.right-panel-verdict-limited {
+    background: #b45309;
+}
+
+.right-panel-verdict-not-possible {
+    background: #475569;
+}
+
+/* FEATURE_06_REMODELING.md §2.1(2026-08-08 정정) — 배지 아래 구석이 아니라 헤더 구분선 아래 본문 줄로(§2.1 "verdict 배지 부제" 위치 변경) */
+.right-panel-verdict-reason {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text);
+    text-align: left;
+}
+
+/* FEATURE_06_REMODELING.md §2.1(2026-08-08) "판정 근거 체크리스트" — ✓/△ 항목 나열, reason-list를 대체 */
+.right-panel-checklist {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 12px;
+}
+
+.right-panel-checklist li {
+    margin-bottom: 2px;
+}
+
+.right-panel-checklist-ok {
+    color: var(--text);
+}
+
+.right-panel-checklist-warn {
+    color: #b45309;
+}
+
+@media (prefers-color-scheme: dark) {
+    .right-panel-checklist-warn {
+        color: #fbbf24;
+    }
+}
+
+/* AI 투자 리포트 카드 — 장점/주의사항 목록 소제목(F-06 체크리스트 재사용, FEATURE_05_PROPERTY_INFO.md §2.1) */
+.right-panel-ai-summary-label {
+    margin: 0 0 2px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-h);
+}
+
+.right-panel-grade-badge {
+    margin-top: 6px;
+}
+
+/* DOMAIN.md §5.1 "최근 실거래가 표시 착시" V1 경고 — .center-list-item-partial-trade-warning과 동일 색상, 이제 시세분석 카드에서 사용 */
+.right-panel-selected-partial-trade-warning {
+    margin: 2px 0 0;
+    font-size: 11px;
+    color: #b45309;
+}
+
+@media (prefers-color-scheme: dark) {
+    .right-panel-selected-partial-trade-warning {
+        color: #fbbf24;
+    }
 }
 
 .right-panel-empty {
@@ -1005,6 +1220,16 @@
     overflow-y: auto;
 }
 
+/* .right-panel의 데스크톱용 min-width:320px(+ padding)가 좁은 모바일 뷰포트에서 가로 오버플로를 일으켜 해제 —
+   게이지 바 작업 중 375px 실측으로 발견(기존 버그, 오늘 추가한 컴포넌트와 무관). */
+.detail-sheet-panel .right-panel {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    padding: 0;
+    border-left: none;
+}
+
 .detail-sheet-handle {
     width: 40px;
     height: 4px;
@@ -1033,7 +1258,7 @@
         display: none;
     }
 
-    /* `FEATURE_01_LAYOUT.md` §2.2(2026-08-05 최종 확정) — 탑메뉴는 로고+DEV 태그+필터+햄버거만 한 줄(원래 높이 56px), 안내 문구는 그 아래 별도의 짧은 닫기 가능 카드(.dev-notice)로 분리. 배너는 F-09 스파이크 더미데이터 노출 근거라 모바일에서도 항상 노출해야 함(§5.1). */
+    /* `FEATURE_01_LAYOUT.md` §2.2(2026-08-05 최종 확정) — 탑메뉴는 로고+DEV 태그+필터+햄버거만 한 줄(원래 높이 56px), 안내 문구는 그 아래 별도의 짧은 닫기 가능 카드(.dev-notice)로 분리. 배너는 표시값이 잠정 산출 기준 추정치라는 고지라 모바일에서도 항상 노출해야 함(2026-08-1x 문구 정리, §2.2). */
     .top-bar {
         gap: 8px;
         padding: 0 12px;

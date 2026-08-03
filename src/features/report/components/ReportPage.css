@@ -1,0 +1,195 @@
+/* FEATURE_10_AI_REPORT.md §2.1: F-05 3분할과 다른 전용 레이아웃(좌측 네비 + 콘텐츠) */
+.report-page {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.report-layout {
+    display: flex;
+    gap: 24px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.report-nav {
+    flex-shrink: 0;
+    width: 160px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.report-nav-item {
+    text-align: left;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.report-nav-item-active {
+    background: var(--accent-bg);
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.report-nav-item-disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.report-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.report-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 40px 0;
+    color: var(--text);
+}
+
+.report-empty-back {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.report-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.report-header-address {
+    margin: 0;
+    font-size: 18px;
+    color: var(--text-h);
+}
+
+.report-score-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+/* 투자 점수 — F-09 정식 공식 나오기 전까지 숫자 없이 점선 원(스켈레톤)만(FEATURE_10_AI_REPORT.md §2.2) */
+.report-score-circle {
+    flex-shrink: 0;
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    border: 2px dashed var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--text);
+    opacity: 0.6;
+}
+
+.report-metric-box {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--code-bg);
+}
+
+.report-metric-label {
+    margin: 0 0 4px;
+    font-size: 11px;
+    color: var(--text);
+    opacity: 0.7;
+}
+
+.report-metric-value {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-h);
+}
+
+.report-metric-muted {
+    font-weight: 500;
+    opacity: 0.6;
+}
+
+.report-summary {
+    margin-bottom: 20px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--code-bg);
+}
+
+.report-section-title {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-h);
+}
+
+.report-pdf-button {
+    display: block;
+    width: 100%;
+    margin-bottom: 20px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: none;
+    color: var(--text);
+    opacity: 0.5;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: not-allowed;
+}
+
+.report-shortcut-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.report-shortcut-card {
+    padding: 14px 10px;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    text-align: center;
+    color: var(--text-h);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+    .report-layout {
+        flex-direction: column;
+    }
+
+    .report-nav {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .report-shortcut-grid {
+        grid-template-columns: 1fr;
+    }
+}

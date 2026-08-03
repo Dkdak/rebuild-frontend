@@ -5,19 +5,11 @@ import {
     formatBuildYear,
     formatHouseholdCount,
     formatRecentTrade,
+    GRADE_CLASS,
     sortGradeSummary,
     sortPropertyItems,
 } from "../api/searchApi";
 import Pagination from "./Pagination";
-
-const GRADE_CLASS: Record<string, string> = {
-    "A+": "grade-Aplus",
-    A: "grade-A",
-    "B+": "grade-Bplus",
-    B: "grade-B",
-    C: "grade-C",
-    D: "grade-D",
-};
 
 // .grade-Aplus 등(layout.css)과 동일한 색상 — 선택된 배지 강조에 재사용(인라인 CSS 변수로 전달).
 const GRADE_COLOR: Record<string, string> = {
@@ -131,7 +123,11 @@ const ResultList = ({ onOpenDetail }: ResultListProps) => {
                             const { main: areaMain, aux: areaAux } = formatAreaDisplay(item);
                             const householdCountText = formatHouseholdCount(item.householdCount);
                             const auxLine = [areaAux, householdCountText].filter(Boolean).join(" · ");
-                            const recentTradeText = formatRecentTrade(item.recentTrade);
+                            const recentTrade = formatRecentTrade(
+                                item.recentTrade,
+                                item.totalBuildingArea,
+                                item.propertyType
+                            );
                             return (
                                 <li
                                     key={item.id}
@@ -155,9 +151,16 @@ const ResultList = ({ onOpenDetail }: ResultListProps) => {
                                         <span>
                                             {item.price != null
                                                 ? `${item.price}만원`
-                                                : (recentTradeText ?? "가격 정보 준비 중")}
+                                                : (recentTrade?.text ?? "가격 정보 준비 중")}
                                         </span>
                                     </div>
+                                    {/* DOMAIN.md §5.1 "최근 실거래가 표시 착시" V1 — building(동 단위)·trade(호실 단위) 단위 불일치로
+                                        건물 전체가 팔린 것처럼 보이는 착시 방지. 거래 면적이 건물 전체의 20% 미만이면 경고. */}
+                                    {recentTrade?.isPartial && (
+                                        <div className="center-list-item-partial-trade-warning">
+                                            ⚠ 건물 일부 거래(호실 단위 실거래가)
+                                        </div>
+                                    )}
                                     {auxLine && <div className="center-list-item-area-aux">{auxLine}</div>}
                                     {/* `FEATURE_01_LAYOUT.md` §2.2(2026-08-04) — 카드 탭은 선택만, 상세 시트는 이 버튼으로만 연다(모바일 전용) */}
                                     <button
