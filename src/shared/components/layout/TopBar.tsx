@@ -44,7 +44,7 @@ const TopBar = ({
                         <div className="dev-banner-message">
                             <span className="dev-banner-tag">DEV</span>
                             <span className="dev-banner-text">
-                                <strong>개발 중인 서비스입니다.</strong> 표시되는 정보는 테스트 데이터가 포함될 수 있으며, 실제 투자 판단에 사용하지 마세요.
+                                <strong>개발 중인 서비스입니다.</strong> 표시되는 값은 잠정 산출 기준의 추정치이며, 실제 투자 판단에 사용하지 마세요.
                             </span>
                         </div>
                         <span className="dev-banner-badge">개발 서버</span>

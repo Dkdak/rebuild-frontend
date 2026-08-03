@@ -92,7 +92,8 @@ interface PropertySearchQuery {
 // buildingId/bjdongCd/sigunguCd는 서로 동시 전달 불가(위치 지정 방식 하나만) — 세 개 다 없으면 백엔드가 400(§0-C, §3.2, 2026-08-03).
 // 위치 기본값(중구)·건축연도 기본값(20년 이상)은 더 이상 백엔드가 암묵 처리하지 않는다 — 프론트가 직접 관리(SearchContext의 DEFAULT_FILTERS/DEFAULT_LOCATION_CANDIDATE).
 // propertyTypeFilters([{type,areaMin,areaMax}], §2.1-a·§3.1)는 유형별로 면적을 따로 적용 — 비어있으면 유형/면적 제한 없음.
-// grade(§2.1-g, 리스트 헤더 등급 배지)는 investment_result 스파이크 더미데이터 기준으로 실제 필터링됨(§3.1, 2026-08-02 구현 완료).
+// grade(§2.1-g, 리스트 헤더 등급 배지)는 investment_result 실제 계산값 기준으로 필터링됨(§3.1, 2026-08-02 구현 완료 —
+// F-09 스파이크 단계 지나 실계산으로 전환, 상세 화면과 동일 테이블 사용은 analysisApi.ts 참고).
 // price/roi/nearSubway/sort는 1차 데이터에 대응 필드가 없어 아직 미구현 — 전달하지 않는다.
 export const searchProperties = async (query: PropertySearchQuery): Promise<PropertySearchResponse> => {
     const response = await apiClient.post<PropertySearchResponse>("/api/v1/properties/search", query);
@@ -102,7 +103,8 @@ export const searchProperties = async (query: PropertySearchQuery): Promise<Prop
 // ===== 매물 카드 면적 표시 (F-04_SEARCH.md §2.1-e) =====
 
 // 아파트·연립다세대는 area가 세대당 추정 면적(gfa/hh_cnt)이라 전용/공급면적으로 오인되지 않게 "추정" 표시가 항상 필요하다.
-const ESTIMATED_AREA_TYPES = ["아파트", "연립다세대"];
+// F-05 "단지 정보" 카드(공동주택 매물만 노출, FEATURE_17_BUILDING_SUMMARY_MIGRATION.md §3.3)도 같은 기준을 쓴다.
+export const ESTIMATED_AREA_TYPES = ["아파트", "연립다세대"];
 
 export interface AreaDisplay {
     main: string;
@@ -139,7 +141,8 @@ export const formatHouseholdCount = (householdCount: number | null): string | nu
 // ===== 최근 실거래가 (F-04_SEARCH.md §2.1-h item 5) =====
 
 // 만원 단위 원본 → "3억 5,000만원" 형식(1억=10,000만원). 매물 상세가 아니라 카드용 요약이라 억 단위로 뭉뚱그리지 않는다.
-const formatManwon = (manwon: number): string => {
+// F-08 "시세분석" 섹션(marketApi.ts 소비처)도 같은 만원 단위 값(추정시세/공시가격)이라 이 포맷을 그대로 재사용한다.
+export const formatManwon = (manwon: number): string => {
     const eok = Math.floor(manwon / 10000);
     const rest = Math.round(manwon % 10000);
     if (eok === 0) return `${rest.toLocaleString()}만원`;
@@ -147,14 +150,41 @@ const formatManwon = (manwon: number): string => {
     return `${eok}억 ${rest.toLocaleString()}만원`;
 };
 
+// building(동 단위)과 trade(호실/유닛 단위)는 단위가 달라 매칭이 정확해도 "건물 전체가 이 가격에 팔렸다"는
+// 착시가 생길 수 있다(DOMAIN.md §5.1, 을지로6가 실측 사례 — 연면적 23,658㎡ 건물에 3.77㎡ 호실 거래가 매칭). V1 대응:
+// trade.area를 항상 같이 표시하고, 건물 전체 면적(totalBuildingArea) 대비 20% 미만이면 "건물 일부 거래" 플래그.
+const PARTIAL_TRADE_AREA_RATIO = 0.2;
+
+export interface RecentTradeDisplay {
+    text: string;
+    isPartial: boolean;
+}
+
 // recentTrade가 null(매칭 안 됨)이면 그 필드만 생략 — 별도 안내 문구 없음(§2.1-h item 5 그대로).
 // 날짜는 "년/월"을 명시적으로 풀어쓴다("2024년 10월") — "2024.10"처럼 점 표기는 연도인지 월인지 한눈에 안 들어와 혼동됨(2026-08-08 피드백).
-export const formatRecentTrade = (recentTrade: RecentTrade | null): string | null => {
+export const formatRecentTrade = (
+    recentTrade: RecentTrade | null,
+    totalBuildingArea: number | null,
+    propertyType: string | null
+): RecentTradeDisplay | null => {
     if (recentTrade == null || recentTrade.price == null) return null;
     const priceText = formatManwon(recentTrade.price);
     const [year, month] = recentTrade.contractDate?.split("-") ?? [];
     const dateText = year && month ? `${year}년 ${Number(month)}월` : null;
-    return dateText ? `최근 실거래 ${priceText} (${dateText})` : `최근 실거래 ${priceText}`;
+    const areaText = recentTrade.area != null ? `${recentTrade.area}㎡` : null;
+    const detail = [areaText, dateText].filter(Boolean).join(", ");
+    const text = detail ? `최근 실거래 ${priceText} (${detail})` : `최근 실거래 ${priceText}`;
+    // 아파트·연립다세대는 세대 여러 개가 건물 하나를 나눠 쓰므로 "거래 1건 = 세대 1개"가 정상이라, 거래 면적이
+    // 건물 전체 대비 작은 게 당연하다 — 이 유형은 착시 경고 대상이 아니다(ESTIMATED_AREA_TYPES와 동일 기준).
+    const isMultiUnitType = propertyType != null && ESTIMATED_AREA_TYPES.includes(propertyType);
+    const isPartial =
+        !isMultiUnitType &&
+        recentTrade.area != null &&
+        totalBuildingArea != null &&
+        totalBuildingArea > 0
+            ? recentTrade.area / totalBuildingArea < PARTIAL_TRADE_AREA_RATIO
+            : false;
+    return { text, isPartial };
 };
 
 // ===== 리스트 헤더 등급 배지 (F-04_SEARCH.md §2.1-g) =====
@@ -164,6 +194,16 @@ const GRADE_ORDER = ["A+", "A", "B+", "B", "C", "D"];
 
 export const sortGradeSummary = (gradeSummary: GradeSummaryItem[]): GradeSummaryItem[] =>
     [...gradeSummary].sort((a, b) => GRADE_ORDER.indexOf(a.grade) - GRADE_ORDER.indexOf(b.grade));
+
+// .grade-Aplus 등(layout.css) 배경색 클래스 — ResultList(리스트 배지)·RightPanel(상세 개요) 공용.
+export const GRADE_CLASS: Record<string, string> = {
+    "A+": "grade-Aplus",
+    A: "grade-A",
+    "B+": "grade-Bplus",
+    B: "grade-B",
+    C: "grade-C",
+    D: "grade-D",
+};
 
 // ===== 정렬 (클라이언트 사이드) — 백엔드 API에 sort 파라미터가 없어 현재 페이지 결과만 재정렬한다 =====
 

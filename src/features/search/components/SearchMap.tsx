@@ -31,7 +31,7 @@ const SearchMap = () => {
             {!noticeDismissed && (
                 <div className="dev-notice">
                     <span className="dev-notice-icon" aria-hidden="true">ⓘ</span>
-                    <span className="dev-notice-text">테스트 데이터 포함. 투자 판단 주의</span>
+                    <span className="dev-notice-text">잠정 추정치 포함. 투자 판단 주의</span>
                     <button
                         type="button"
                         className="dev-notice-close"
