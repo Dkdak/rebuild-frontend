@@ -870,9 +870,11 @@
     font-size: 12px;
 }
 
+/* 2026-08-1x 사용자 피드백("이거 글자 보여? 난 잘 안보이는데") — color:var(--text)에 opacity:0.7까지 겹쳐서
+   라이트 모드 대비비가 약 3:1까지 떨어져 WCAG AA(본문 12px 기준 4.5:1) 미달이었다. opacity를 빼서 var(--text)
+   원래 값(라이트 모드 약 5.7:1)만 쓰도록 정정 — 다크 모드도 더 밝아지는 방향이라 함께 개선된다. */
 .right-panel-fact-list dt {
     color: var(--text);
-    opacity: 0.7;
 }
 
 .right-panel-fact-list dd {
@@ -881,13 +883,15 @@
 }
 
 /* FEATURE_05_PROPERTY_INFO.md §2.1(2026-08-08, 8카드 재편) — 8개 섹션 전부 독립 카드로 감싼다(테두리+배경 구분,
-   스크롤 중에도 카드 경계가 분명하도록). 공통 카드 틀: 헤더(타이틀+선택적 우측 배지)/부제/본문/구분선. */
+   스크롤 중에도 카드 경계가 분명하도록). 공통 카드 틀: 헤더(타이틀+선택적 우측 배지)/부제/본문/구분선.
+   배경은 페이지와 같은 var(--bg)로 — var(--code-bg)(코드블럭용 회색)를 카드에 쓰던 걸 정정(2026-08-08,
+   사용자 피드백 "카드 배경이 회색이다"), 테두리만으로 카드 경계를 표시한다. */
 .right-panel-card {
     margin-bottom: 16px;
     padding: 12px;
     border: 1px solid var(--border);
     border-radius: 10px;
-    background: var(--code-bg);
+    background: var(--bg);
 }
 
 .right-panel-card:last-child {

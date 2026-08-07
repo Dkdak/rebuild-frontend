@@ -15,6 +15,9 @@ export interface CostEstimationBasis {
     buildingAgeYears: number;
     agingFactorMin: number;
     agingFactorMax: number;
+    // FEATURE_10_AI_REPORT.md §2.6 "민감도 분석" 공사비축 기준값 — minCost/maxCost는 agingFactorMin/Max로 이미
+    // 계산돼 있지만 "기준(default)" 시나리오 공사비는 API에 없어 이 계수로 프론트가 직접 계산한다(2026-08-1x 추가).
+    agingFactorDefault: number;
 }
 
 // status가 AVAILABLE이 아니면 minCost/maxCost/basis 전부 null(§3.3 — 200 OK, 에러 아님).
