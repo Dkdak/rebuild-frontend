@@ -150,6 +150,18 @@ export const formatManwon = (manwon: number): string => {
     return `${eok}억 ${rest.toLocaleString()}만원`;
 };
 
+// formatManwon은 음수를 고려하지 않은 포맷터(억/만원 분리가 음수에서 깨짐) — F-10 "예상 차익"(FEATURE_08_MARKET.md
+// §3.7)은 공사비가 가치 증가분보다 크면 음수가 될 수 있어(리모델링해도 손해인 케이스) 부호를 분리해 절댓값만 넘긴다.
+export const formatSignedManwon = (manwon: number): string => (manwon < 0 ? `-${formatManwon(-manwon)}` : formatManwon(manwon));
+
+// FEATURE_10_AI_REPORT.md §2.5(2026-08-1x) — 리포트(F-10) 전역에서 "억 단위로 나오는" 금액은 formatManwon의
+// "N억 M,MMM만원" 대신 소수 둘째자리 억 하나로 뭉갠다(22,972,972.9만원 → "2297.30억", 22729 → "2.27억"). 1억
+// 미만은 "억단위로 나오는" 금액이 아니라서 대상이 아님 — formatSignedManwon(만원 그대로, 음수 부호 포함)에
+// 위임한다(사용자 피드백 2026-08-1x "평당 1000만원 이런건 만원단위로"). 리포트가 아닌 화면(F-04/F-05 등)은
+// formatManwon/formatSignedManwon을 그대로 쓴다 — 이 포맷은 F-10 report 컴포넌트 전용.
+export const formatEok = (manwon: number): string =>
+    Math.abs(manwon) < 10000 ? formatSignedManwon(manwon) : `${(manwon / 10000).toFixed(2)}억`;
+
 // building(동 단위)과 trade(호실/유닛 단위)는 단위가 달라 매칭이 정확해도 "건물 전체가 이 가격에 팔렸다"는
 // 착시가 생길 수 있다(DOMAIN.md §5.1, 을지로6가 실측 사례 — 연면적 23,658㎡ 건물에 3.77㎡ 호실 거래가 매칭). V1 대응:
 // trade.area를 항상 같이 표시하고, 건물 전체 면적(totalBuildingArea) 대비 20% 미만이면 "건물 일부 거래" 플래그.

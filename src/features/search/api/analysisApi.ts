@@ -1,7 +1,8 @@
 import { apiClient } from "../../../shared/api/apiClient";
-import type { RemodelingAnalysis } from "./remodelingApi";
-import type { MarketAnalysis } from "./marketApi";
+import { buildRemodelingChecklist, type RemodelingAnalysis, type RemodelingChecklistItem } from "./remodelingApi";
+import { CONFIDENCE_LABEL, type MarketAnalysis } from "./marketApi";
 import type { CostEstimation } from "./costApi";
+import { ESTIMATED_AREA_TYPES } from "./searchApi";
 
 // FEATURE_05_PROPERTY_INFO.md §2.1: remodeling/market/grade/roi 통합 조회 — 기존에 따로 부르던
 // getRemodelingAnalysis/getMarketAnalysis를 이 API 하나로 대체(2026-08-1x, 백엔드 구현 완료).
@@ -30,6 +31,127 @@ export interface PropertyAnalysis {
 
 // "2026-08-03T17:36:26" → "2026-08-03" — "최근 갱신" 라벨용(배치 결과, 실시간 값 아님을 알리는 목적).
 export const formatUpdatedAt = (updatedAt: string): string => updatedAt.split("T")[0];
+
+// FEATURE_10_AI_REPORT.md §2.2 "요약 섹션 요약 통계 5칸" — 등급→추천 문구 매핑. 새 계산 로직 아니라 프론트 표시용
+// 매핑일 뿐(backend V1 등급 경계값과 같은 성격의 잠정치, 실측 후 재조정 대상, §5.1).
+export const RECOMMENDATION_LABEL: Record<InvestmentGrade, string> = {
+    A_PLUS: "적극 추천",
+    A: "적극 추천",
+    B_PLUS: "검토",
+    B: "검토",
+    C: "신중",
+    D: "신중",
+};
+
+// FEATURE_08_MARKET.md §3.7 "수익분석" — ProfitAnalysisPage.tsx와 요약 섹션(예상차익/미래가치 통계)이 공유하는
+// 계산 로직. 같은 데이터를 두 곳에서 각자 다시 계산하지 않기 위해 여기 한 곳에만 둔다.
+export interface ProfitAnalysisResult {
+    baseValue: number; // 매입가(공사비 제외) — CashFlowFormula/민감도분석(§2.6)이 공유
+    investMin: number;
+    investMax: number;
+    value: number;
+    gainMin: number;
+    gainMax: number;
+    roiMin: number;
+    roiMax: number;
+}
+
+export const buildProfitAnalysis = (
+    analysis: PropertyAnalysis,
+    householdCount: number | null,
+    propertyType: string | null
+): ProfitAnalysisResult | null => {
+    const { cost, market } = analysis;
+    const postRemodel = market.postRemodelEstimatedPrice;
+    const isHouseholdBased = propertyType != null && ESTIMATED_AREA_TYPES.includes(propertyType);
+
+    // §3.7 "신뢰도": postRemodel이 없거나 UNAVAILABLE이면 전체를 "산출 불가"로 — 절반만 계산된 값을 노출하지 않는다.
+    if (
+        cost.status !== "AVAILABLE" ||
+        cost.minCost == null ||
+        cost.maxCost == null ||
+        postRemodel == null ||
+        postRemodel.value == null ||
+        postRemodel.confidenceLevel === "UNAVAILABLE"
+    ) {
+        return null;
+    }
+
+    const costMinManwon = Math.round(cost.minCost / 10_000);
+    const costMaxManwon = Math.round(cost.maxCost / 10_000);
+    const baseValue = isHouseholdBased
+        ? market.estimatedPrice.value != null && householdCount != null
+            ? market.estimatedPrice.value * householdCount
+            : null
+        : (market.recentTrade?.price ?? market.estimatedPrice.value);
+    if (baseValue == null) {
+        return null;
+    }
+
+    const investMin = baseValue + costMinManwon;
+    const investMax = baseValue + costMaxManwon;
+    const value = postRemodel.value;
+    const gainMin = value - investMax; // 최대 공사비 적용 → 차익 최소
+    const gainMax = value - investMin; // 최소 공사비 적용 → 차익 최대
+    return {
+        baseValue,
+        investMin,
+        investMax,
+        value,
+        gainMin,
+        gainMax,
+        roiMin: investMax > 0 ? (gainMin / investMax) * 100 : 0,
+        roiMax: investMin > 0 ? (gainMax / investMin) * 100 : 0,
+    };
+};
+
+// FEATURE_10_AI_REPORT.md §2.1 "요약 정보" 주의사항 — 구 "리스크 분석"(RiskAnalysisPage.tsx, 폐지) 5항목을
+// 그대로 옮겨왔다(2026-08-1x, 카테고리 재편 — 판정 로직은 변경 없음, 위치만 이동). 새 계산 로직·API 없이 analysis
+// 응답 필드를 "리스크 관점"으로 재구성만 한다(DOMAIN.md §4 "AI는 해석 단계에서만" — 이건 해석도 아니고 조건 재배치).
+// 4/5번 임계값(30%/5년)은 backend V1 정책값(FEATURE_07_COST.md §5.1의 aging_factor.k와 같은 성격).
+export const buildRiskChecklist = (analysis: PropertyAnalysis): RemodelingChecklistItem[] => {
+    const { basis } = analysis.remodeling;
+    const checklist = buildRemodelingChecklist(basis);
+    const { cost, market } = analysis;
+
+    const permitRisk: RemodelingChecklistItem = !basis.permitInProgress
+        ? { ok: true, text: "진행 중인 인허가 없음" }
+        : { ok: false, text: `최근 인허가 진행 중(${basis.recentPermitType ?? "종류 미상"}) — 사업 지연 가능` };
+
+    const districtRisk: RemodelingChecklistItem =
+        basis.districtNames.length === 0
+            ? { ok: true, text: "지구/구역 규제 없음" }
+            : { ok: false, text: `${basis.districtNames.join(", ")} 지정 — 추가 규제 확인 필요` };
+
+    const confidenceRisk: RemodelingChecklistItem =
+        market.estimatedPrice.confidenceLevel === "SAME_DONG"
+            ? { ok: true, text: "시세 추정 신뢰도 높음" }
+            : { ok: false, text: `시세 추정 신뢰도 낮음(${CONFIDENCE_LABEL[market.estimatedPrice.confidenceLevel]})` };
+
+    const costRangeRisk: RemodelingChecklistItem =
+        cost.status !== "AVAILABLE" || cost.minCost == null || cost.maxCost == null
+            ? { ok: false, text: "공사비 추정 정보 없음" }
+            : cost.minCost > 0 && (cost.maxCost - cost.minCost) / cost.minCost < 0.3
+              ? { ok: true, text: "공사비 추정 폭 좁음" }
+              : {
+                    ok: false,
+                    text: `공사비 추정 폭 큼(최소~최대 차이 ${cost.minCost > 0 ? Math.round(((cost.maxCost - cost.minCost) / cost.minCost) * 100) : "?"}%) — 예산 여유 필요`,
+                };
+
+    const agingMarginRisk: RemodelingChecklistItem =
+        basis.buildingAgeYears == null || basis.requiredYears == null
+            ? { ok: false, text: "노후도 정보 없음" }
+            : basis.buildingAgeYears - basis.requiredYears >= 5
+              ? { ok: true, text: "노후도 기준 충분히 충족" }
+              : basis.buildingAgeYears - basis.requiredYears >= 0
+                ? {
+                      ok: false,
+                      text: `노후도 기준 근소 충족(${basis.buildingAgeYears - basis.requiredYears}년 차이) — 조례 개정 시 재검토 필요`,
+                  }
+                : { ok: false, text: checklist.aging.text };
+
+    return [permitRisk, districtRisk, confidenceRisk, costRangeRisk, agingMarginRisk];
+};
 
 // buildingId(=bdrg_sn)가 building 테이블에 없으면 백엔드가 404 — apiClient 호출부에서 catch해 null 처리(market/remodelingApi.ts와 동일 패턴).
 export const getPropertyAnalysis = async (buildingId: string): Promise<PropertyAnalysis | null> => {
