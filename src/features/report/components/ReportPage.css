@@ -47,8 +47,7 @@
     width: 18px;
     font-size: 11px;
     font-weight: 800;
-    color: var(--accent);
-    opacity: 0.75;
+    color: var(--accent-muted);
 }
 
 .report-nav-item:hover {
@@ -104,7 +103,8 @@
 
 /* §2.2 요약 섹션 — 등급/예상차익/미래가치/ROI/추천여부 5칸 통계 밴드(planning/rebuild/레포트.png 레퍼런스 그대로,
    2026-08-08 확장). 라벨은 작고 흐리게, 값은 크고 진하게 — 리포트 표지 톤. 예상차익은 범위 문자열이라 5칸에서는
-   22px가 넘치기 쉬워 18px로 낮추고 줄바꿈을 허용한다(등급 한 칸만 20px로 살짝 키워 시각 앵커 유지). */
+   22px가 넘치기 쉬워 18px로 낮추고 줄바꿈을 허용한다(등급 한 칸만 20px로 살짝 키워 시각 앵커 유지).
+   2026-08-09: "시세 신뢰도" 별도 칸(6칸)을 시도했다가 취소 — 투자등급 칸 캡션으로 병합해 5칸 유지. */
 .report-stat-band {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -127,9 +127,8 @@
 
 .report-stat-label {
     margin: 0 0 6px;
-    font-size: 11px;
-    color: var(--text);
-    opacity: 0.7;
+    font-size: 12px;
+    color: var(--text-muted);
 }
 
 .report-stat-value {
@@ -146,15 +145,14 @@
 
 .report-stat-caption {
     margin: 4px 0 0;
-    font-size: 11px;
-    color: var(--text);
-    opacity: 0.7;
+    font-size: 12px;
+    color: var(--text-muted);
 }
 
 /* 핵심 요약 — 장점/주의사항 2단 그리드(레퍼런스의 "핵심 요약/주의사항/리포트 정보" 밴드와 같은 결) */
 .report-summary-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 16px;
     margin-bottom: 20px;
 }
@@ -291,8 +289,7 @@
     margin: 4px 0 10px;
     font-size: 12px;
     font-weight: 700;
-    color: var(--text);
-    opacity: 0.7;
+    color: var(--text-muted);
 }
 
 .report-site-polygon-body {
@@ -302,6 +299,14 @@
     align-items: center;
     justify-content: center;
     padding: 8px;
+}
+
+/* SitePolygonDiagram.tsx의 SVG 기본 크기 — 이전엔 컴포넌트 인라인 style이었으나, 소비처(F-05 RightPanel)가
+   wrapper에서 max-height로 덮어써야 해서(인라인은 특이도상 불가) 클래스로 옮겼다(2026-08-1x). F-10은 카드
+   폭에 꽉 채우는 기존 동작 그대로 유지. */
+.site-polygon-svg {
+    width: 100%;
+    height: auto;
 }
 
 /* 신뢰도/완화단계 배지 — RightPanel.tsx의 verdict-badge와 톤은 같지만 의미가 달라(가능/불가 아님) 별도 클래스로 분리 */
@@ -344,14 +349,20 @@ dl.right-panel-fact-list.report-fact-grid > div {
     gap: 3px;
 }
 
+/* 2026-08-09 — 기본 right-panel-fact-list dd는 label-value 한 줄 배치(space-between) 기준으로 값을
+   오른쪽 정렬한다. 이 그리드 변형은 라벨을 위/값을 아래로 쌓는 레이아웃이라 값만 오른쪽으로 붙으면
+   라벨과 서로 다른 쪽에 떨어져 보인다 — 왼쪽 정렬로 되돌린다(볼드는 유지, 정렬만 예외). */
+dl.right-panel-fact-list.report-fact-grid dd {
+    text-align: left;
+}
+
 /* FEATURE_10_AI_REPORT.md §2.4 "시세 추이" 꺾은선 그래프 — SitePolygonDiagram과 같은 원칙(라이브러리 없는 순수 SVG) */
 .report-price-trend-labels {
     display: flex;
     justify-content: space-between;
     margin-top: 4px;
-    font-size: 11px;
-    color: var(--text);
-    opacity: 0.7;
+    font-size: 12px;
+    color: var(--text-muted);
 }
 
 /* FEATURE_10_AI_REPORT.md §2.5 "민감도 분석" 3×3 — report-trade-table을 베이스로 재사용, 셀만 톤 컬러 추가.
@@ -369,15 +380,14 @@ dl.right-panel-fact-list.report-fact-grid > div {
 .report-grid-3 .report-sensitivity-table th,
 .report-grid-3 .report-sensitivity-table td {
     padding: 4px 6px;
-    font-size: 11px;
+    font-size: 12px;
 }
 
-/* 축 라벨("최소"/"보수적" 등) 아래 실제 금액(formatEok) — 라벨만으로는 몰랐던 구간을 보여준다(2026-08-1x). */
+/* 축 라벨("최소"/"보수적" 등) 아래 실제 금액(formatManwon) — 라벨만으로는 몰랐던 구간을 보여준다(2026-08-1x). */
 .report-sensitivity-axis-value {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 400;
-    color: var(--text);
-    opacity: 0.6;
+    color: var(--text-muted);
 }
 
 .report-sensitivity-positive {
@@ -414,8 +424,7 @@ dl.right-panel-fact-list.report-fact-grid > div {
 
 .report-cashflow-flow-label {
     font-size: 12px;
-    color: var(--text);
-    opacity: 0.7;
+    color: var(--text-muted);
 }
 
 .report-cashflow-flow-value {
@@ -495,8 +504,7 @@ dl.right-panel-fact-list.report-fact-grid > div {
     padding: 6px 8px;
     text-align: left;
     font-weight: 600;
-    color: var(--text);
-    opacity: 0.7;
+    color: var(--text-muted);
     border-bottom: 1px solid var(--border);
     white-space: nowrap;
 }
@@ -510,6 +518,16 @@ dl.right-panel-fact-list.report-fact-grid > div {
 
 .report-trade-table tr:last-child td {
     border-bottom: none;
+}
+
+/* matchStage 3/4(법정동·구×유형 평균) 거래 행 바로 아래 보조 문구 — "면적·연식 무관, 참고용"(2026-08-1x, §2.2).
+   본문 셀(report-trade-table td)보다 작고 흐리게, 여러 단어라 white-space는 nowrap 해제. */
+.report-trade-table-note {
+    padding: 0 8px 6px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-style: italic;
+    white-space: normal;
 }
 
 @media (prefers-color-scheme: dark) {

@@ -405,8 +405,7 @@
 .left-panel-field-note {
     margin: 4px 0 0;
     font-size: 12px;
-    color: var(--text);
-    opacity: 0.7;
+    color: var(--text-muted);
 }
 
 .left-panel-checkbox-group {
@@ -481,12 +480,13 @@
     color: #fff;
 }
 
-.grade-Aplus { background: #16a34a; }
-.grade-A { background: #22c55e; }
-.grade-Bplus { background: #f59e0b; }
-.grade-B { background: #9ca3af; }
+/* 2026-08-1x: 6단계(A+/A/B+/B/C/D) → 4단계(A/B/C/D)+NA로 재편(FEATURE_09_INVESTMENT.md 확정) — grade-Aplus/
+   grade-Bplus는 폐지, A/B가 그 색을 흡수. NA("정보부족")는 성능 등급과 다른 중립 회색. */
+.grade-A { background: #16a34a; }
+.grade-B { background: #f59e0b; }
 .grade-C { background: #64748b; }
 .grade-D { background: #475569; }
+.grade-NA { background: #9ca3af; }
 
 .center-panel {
     flex: 1;
@@ -721,8 +721,7 @@
 
 .pagination-ellipsis {
     padding: 0 4px;
-    color: var(--text);
-    opacity: 0.6;
+    color: var(--text-muted);
 }
 
 .pagination-goto {
@@ -813,32 +812,74 @@
     color: var(--text-h);
 }
 
+/* 매물 카드 위계 재정리(2026-08-1x) — 리모델링 가능여부 배지는 완전히 삭제, 등급을 카드 왼쪽 44x44 박스로
+   승격(구 .grade-Aplus 등 색상 그대로, .grade-badge 기본 스타일 위에 크기만 오버라이드). 오른쪽은 유형/주소·
+   면적/연식/ROI/가격 텍스트를 묶는 콘텐츠 컬럼. */
+.center-list-item-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+/* .grade-badge와 같은 셀렉터 특이도(단일 클래스)라 로드 순서에 기대지 않도록 .grade-badge.center-list-item-grade-box
+   복합 셀렉터로 width:28px 등 기본값을 확실히 덮어쓴다(이전에 report-card-emphasis에서 겪은 것과 같은 문제 방지). */
+.grade-badge.center-list-item-grade-box {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+/* 2026-08-09 — 44x44 등급 박스 아래 시세 신뢰도 캡션(estimatedPrice.confidenceLevel 근사치, 문서 참고) 추가.
+   .center-list-item-row가 align-items:flex-start인 flex 행이라, 캡션을 박스 바로 아래 두려면 박스+캡션을
+   세로 방향 flex로 한 번 더 묶어야 한다(래퍼 없이 형제로 두면 행 전체가 옆으로 나열됨). */
+.center-list-item-grade-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.grade-box-confidence-caption {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.center-list-item-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
 .center-list-item-meta {
     display: flex;
     gap: 12px;
     font-size: 12px;
-    color: var(--text);
-    opacity: 0.8;
+    color: var(--text-muted);
+}
+
+/* right-panel-estimate-tag 기본값(position:absolute)은 앵커가 자기 셀의 마지막/유일한 내용일 때 전제로 설계됐다
+   (F-05/F-10 소비처는 전부 그렇다). 이 카드 줄은 "시세" 뒤에 ROI가 형제로 이어져(2026-08-09, 시세를 ROI보다
+   앞으로 재배치) 절대배치 배지가 ROI 위에 겹쳐 보이는 문제가 생겼다 — 이 컨텍스트에서만 배지를 일반 흐름으로
+   되돌려 ROI를 오른쪽으로 밀어낸다(다른 소비처의 절대배치 동작엔 영향 없음, 자손 선택자로 한정). */
+.center-list-item-meta .right-panel-estimate-tag {
+    position: static;
+    margin-left: 4px;
 }
 
 .center-list-item-area-aux {
     margin-top: 2px;
-    font-size: 11px;
-    color: var(--text);
-    opacity: 0.6;
-}
-
-/* DOMAIN.md §5.1 "최근 실거래가 표시 착시" V1 경고 — 매칭 오류가 아니라 정직한 고지라 에러색은 과함, 주의색(amber) 사용 */
-.center-list-item-partial-trade-warning {
-    margin-top: 2px;
-    font-size: 11px;
-    color: #b45309;
-}
-
-@media (prefers-color-scheme: dark) {
-    .center-list-item-partial-trade-warning {
-        color: #fbbf24;
-    }
+    font-size: 12px;
+    color: var(--text-muted);
 }
 
 /* `FEATURE_01_LAYOUT.md` §2.2(2026-08-04) — 카드 안 "상세보기" 버튼, 모바일 전용(데스크톱은 RightPanel 상시 노출이라 불필요) */
@@ -853,21 +894,27 @@
 .right-panel-field-note {
     margin: 0;
     font-size: 12px;
-    color: var(--text);
-    opacity: 0.7;
+    color: var(--text-muted);
 }
 
 .right-panel-fact-list {
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
 }
 
+/* 2026-08-09 — 항목 간 구분선 추가(DOMAIN.md §7.4 신규 정책, 라벨·값이 색상 차이만으로는 밀도가 너무 얇아
+   보인다는 지적) — gap 대신 padding+border로 줄 사이 경계를 명확히 한다. */
 .right-panel-fact-list > div {
     display: flex;
     justify-content: space-between;
     font-size: 12px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.right-panel-fact-list > div:last-child {
+    border-bottom: none;
 }
 
 /* 2026-08-1x 사용자 피드백("이거 글자 보여? 난 잘 안보이는데") — color:var(--text)에 opacity:0.7까지 겹쳐서
@@ -880,6 +927,16 @@
 .right-panel-fact-list dd {
     margin: 0;
     color: var(--text-h);
+    text-align: right;
+    font-weight: 600;
+}
+
+/* dd가 오른쪽 정렬이 되면서(2026-08-09) right-panel-estimate-tag 기본값(position:absolute, 앵커 오른쪽으로
+   확장)이 카드 오른쪽 경계 밖으로 넘칠 수 있다 — .center-list-item-meta와 같은 이유로 일반 흐름으로 되돌려
+   dd의 오른쪽 정렬 폭 안에 같이 잡히게 한다. */
+.right-panel-fact-list .right-panel-estimate-tag {
+    position: static;
+    margin-left: 4px;
 }
 
 /* FEATURE_05_PROPERTY_INFO.md §2.1(2026-08-08, 8카드 재편) — 8개 섹션 전부 독립 카드로 감싼다(테두리+배경 구분,
@@ -887,8 +944,10 @@
    배경은 페이지와 같은 var(--bg)로 — var(--code-bg)(코드블럭용 회색)를 카드에 쓰던 걸 정정(2026-08-08,
    사용자 피드백 "카드 배경이 회색이다"), 테두리만으로 카드 경계를 표시한다. */
 .right-panel-card {
-    margin-bottom: 16px;
-    padding: 12px;
+    /* 2026-08-1x: 사이드바 콘텐츠(개요/건물정보/대지도면/시세 4장)가 뷰포트보다 길어 스크롤이 자주 생긴다는
+       사용자 피드백 — 카드 간 여백만 살짝 줄여서 누적 높이를 낮춘다(16→12px, 카드 4개 기준 총 16px 절감). */
+    margin-bottom: 12px;
+    padding: 10px 12px;
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--bg);
@@ -912,11 +971,28 @@
     color: var(--text-h);
 }
 
+/* "대지 도면" 카드 — SitePolygonDiagram.tsx의 .site-polygon-svg(기본 width:100%/height:auto, ReportPage.css)는
+   폭이 좁은 사이드바에서 폴리곤 모양에 따라 세로로 너무 길어질 수 있다(2026-08-1x, "스크롤이 안 생길정도
+   크기로") — 고정 높이 안에서 svg를 height:100%로 눌러 넣고, max-width:100%로 가로도 넘치지 않게 한다. */
+.right-panel-site-polygon-body {
+    /* 280px는 이전에 "너무 작다"는 피드백으로 키운 값인데, 이번엔 반대로 전체 높이를 줄여달라는 요청이라
+       완전히 되돌리지 않고 중간값(240px)으로 절충했다(2026-08-1x). */
+    height: 240px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.right-panel-site-polygon-body .site-polygon-svg {
+    width: auto;
+    height: 100%;
+    max-width: 100%;
+}
+
 .right-panel-card-subtitle {
     margin: 2px 0 10px;
-    font-size: 11px;
-    color: var(--text);
-    opacity: 0.7;
+    font-size: 12px;
+    color: var(--text-muted);
 }
 
 .right-panel-card-divider {
@@ -937,35 +1013,110 @@
     color: var(--text);
 }
 
-/* 개요 카드의 "예상 ROI" 등 실제(스파이크) 값 옆에 붙이는 태그 — 리모델링가능성 카드의 부제 문구와 결이 다른, 인라인용 */
-.right-panel-estimate-tag {
+/* FEATURE_05_PROPERTY_INFO.md §2.1(2026-08-1x) "개요" 3칸 미니 스탯밴드(투자등급/ROI/추천여부) — F-10
+   report-stat-band(5칸)와 같은 라벨-위·값-아래 스타일이지만 사이드바 폭에 맞춰 더 좁게. */
+.right-panel-mini-stat-band {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin: 10px 0 6px;
+}
+
+.right-panel-mini-stat {
+    padding: 0 10px;
+    border-left: 1px solid var(--border);
+    /* 셀 폭이 좁아(사이드바 3분할) ROI 값+"추정치" 배지가 한 줄에 안 들어가면 배지가 다음 줄로 밀려 셀이
+       커진다 — 배지 유무에 따라 카드 전체 높이가 매물마다 흔들리는 원인이었다(2026-08-1x, 사용자 스크린샷
+       2건 비교로 확인: 68px vs 50px). 배지가 줄바꿈되는 최악의 경우 높이로 고정해 항상 일정하게 만든다. */
+    min-height: 70px;
+    /* min-width:0 — CSS Grid 트랙의 기본값(min-width:auto)은 내용의 최소 폭(줄바꿈 없는 텍스트 길이)만큼은
+       1fr을 넘어서라도 늘어난다. "적극 추천"처럼 긴 값이 들어간 셀만 grid-template-columns의 1fr 분배를
+       무시하고 넓어져 3칸 너비가 매물마다 들쭉날쭉해 보였다(2026-08-1x 사용자 피드백 "너비는 고정으로") —
+       0으로 낮춰 항상 정확히 1/3씩만 차지하게 한다(내용이 넘치면 셀 안에서 줄바꿈됨). */
+    min-width: 0;
+}
+
+.right-panel-mini-stat:first-child {
+    border-left: none;
+    padding-left: 0;
+}
+
+.right-panel-mini-stat-label {
+    margin: 0 0 4px;
+    font-size: 12px;
+    color: var(--text);
+}
+
+.right-panel-mini-stat-value {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text-h);
+    line-height: 1.25;
+}
+
+/* "추정치" 스티커 배지(2026-08-1x, 기획자 디자인 확정 — FEATURE_05_PROPERTY_INFO.md §2.1) — 값/타이틀 텍스트
+   오른쪽 위 모서리에 살짝 겹치는 스티커 느낌. F-05/F-10 전체 공통 클래스라 여기 한 곳만 고치면 다 적용된다.
+   기획 문서는 색상 변수를 --bg-accent/--text-accent로 표기했는데, 실제 프로젝트엔 그 이름이 없고 index.css의
+   --accent-bg/--accent가 같은 옅은 파란색 값이라 그대로 매핑했다(새 변수 추가 안 함, DOMAIN.md §4).
+   opacity:0.8도 제거 — right-panel-fact-list dt와 같은 이유(배경별 대비가 들쭉날쭉해짐)로 고정 색상만 쓴다. */
+.right-panel-estimate-anchor {
+    position: relative;
     display: inline-block;
-    margin-left: 6px;
+}
+
+.right-panel-estimate-tag {
+    position: absolute;
+    /* top:-6px로 살짝 띄웠더니 라벨("ROI")과 값("12.64%") 사이에 낀 것처럼 애매해 보인다는 피드백(2026-08-1x,
+       스크린샷 확인) — top:0으로 값과 수평이 맞게 맞췄다. left:100%는 그대로 유지: right(고정 오프셋)이 아니라
+       앵커 텍스트 바로 오른쪽 끝에서 시작해 오른쪽으로만 자라게 한다 —
+       배지 문구 길이가 "추정치"(2자)부터 "추정치 — 실측 견적 아님"(11자)까지 소비처마다 크게 달라, 오른쪽
+       고정폭 오프셋(-34px 등)으로는 긴 문구가 카드 왼쪽 경계 밖으로 넘치는 문제가 있었다(2026-08-1x, 실측
+       확인 — F-10 3곳 전부 좌측 오버플로). left:100% 방식은 문구 길이와 무관하게 항상 앵커 끝에서 시작하므로
+       넘칠 걱정이 없다. */
+    top: 0;
+    left: 100%;
+    margin-left: 4px;
+    display: inline-block;
     padding: 1px 6px;
     border-radius: 999px;
-    background: var(--bg);
-    border: 1px solid var(--border);
+    background: var(--accent-bg);
+    color: var(--accent);
     font-size: 10px;
-    font-weight: 500;
-    color: var(--text);
-    opacity: 0.8;
+    font-weight: 700;
+    white-space: nowrap;
 }
 
-/* 시세 카드 — 최근 실거래가(값+보조설명+착시경고 여러 줄) 전용 줄. 공시가격/추정시세는 .right-panel-fact-list 재사용 */
-/* 시세 카드 — FEATURE_08_MARKET.md §2.2 2x2 그리드 */
-.right-panel-market-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+/* 2026-08-09 — right-panel-estimate-tag가 "추정치" 고정 문구에서 신뢰도 등급(A~D) 표시로 바뀌면서 등급 의미를
+   담게 됐다 — 항상 같은 파란색 대신 analysisApi.ts priceConfidenceTone(A/B=success, C/D=warning)에 맞춰 톤을
+   바꾼다. 다크모드 값은 --accent/--accent-bg 다크 오버라이드와 같은 패턴(밝은 텍스트 + 같은 색상의 옅은 투명
+   배경) — 이 프로젝트에서 이미 success/warning에 쓰던 색(report-sensitivity-positive/partial-trade-warning
+   dark값 #4ade80/#fbbf24)을 그대로 재사용, 새 색상값 발명 안 함(DOMAIN.md §4). */
+.right-panel-estimate-tag-success {
+    background: #e6f4ea;
+    color: #1e7e34;
 }
 
-.right-panel-market-cell-label {
-    margin: 0 0 2px;
-    font-size: 11px;
-    color: var(--text);
-    opacity: 0.7;
+.right-panel-estimate-tag-warning {
+    background: #fdf0e0;
+    color: #a05a00;
 }
 
+@media (prefers-color-scheme: dark) {
+    .right-panel-estimate-tag-success {
+        background: rgba(74, 222, 128, 0.15);
+        color: #4ade80;
+    }
+
+    .right-panel-estimate-tag-warning {
+        background: rgba(251, 191, 36, 0.15);
+        color: #fbbf24;
+    }
+}
+
+/* 시세 카드 — FEATURE_08_MARKET.md §2.2 값 4개. 2x2 그리드(.right-panel-market-grid)는 빈 공간이 많다는 사용자
+   피드백으로 폐지(2026-08-1x, FEATURE_05_PROPERTY_INFO.md §2.1) — 건물정보와 같은 right-panel-fact-list 표로
+   통일. -value/-aux는 F-10 report 컴포넌트가 여전히 재사용 중이라 유지, -grid/-label/-muted는 사용처가 없어 제거. */
 .right-panel-market-cell-value {
     margin: 0;
     font-size: 14px;
@@ -973,20 +1124,21 @@
     color: var(--text-h);
 }
 
-.right-panel-market-cell-muted {
-    font-weight: 500;
-    opacity: 0.6;
-}
-
 .right-panel-market-cell-aux {
     margin: 2px 0 0;
-    font-size: 11px;
-    color: var(--text);
-    opacity: 0.7;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: right;
 }
 
-/* FEATURE_01_LAYOUT.md §2.3-b — 5개 그룹 맨 아래 CTA, 리포트 탭 전환 */
+/* FEATURE_01_LAYOUT.md §2.3-b — 3개 그룹 맨 아래 CTA, 리포트 탭 전환. 2026-08-1x: position:sticky로 스크롤
+   바닥에 고정 — 매물마다 카드 내용 길이가 달라(대지 도면 유무, 착시경고 유무 등) 총 높이가 오락가락하면서
+   버튼을 보려면 매번 스크롤해야 했다는 사용자 피드백("전체 높이를 줄여서 버튼이 보이도록") — 높이를 줄이는
+   대신 버튼 자체를 항상 보이게 고정하는 쪽을 택했다(콘텐츠를 잘라내지 않고도 버튼 접근성이 확실해짐).
+   배경색을 페이지와 맞춰야 스크롤되는 카드가 버튼 아래로 비쳐 보이지 않는다. */
 .right-panel-report-cta {
+    position: sticky;
+    bottom: 0;
     width: 100%;
     padding: 12px;
     border: none;
@@ -996,6 +1148,7 @@
     font-size: 14px;
     font-weight: 700;
     cursor: pointer;
+    box-shadow: 0 -8px 12px -4px var(--bg);
 }
 
 .right-panel-report-cta:hover {
@@ -1059,19 +1212,15 @@
 /* AI 투자 리포트 카드 — 장점/주의사항 목록 소제목(F-06 체크리스트 재사용, FEATURE_05_PROPERTY_INFO.md §2.1) */
 .right-panel-ai-summary-label {
     margin: 0 0 2px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--text-h);
 }
 
-.right-panel-grade-badge {
-    margin-top: 6px;
-}
-
-/* DOMAIN.md §5.1 "최근 실거래가 표시 착시" V1 경고 — .center-list-item-partial-trade-warning과 동일 색상, 이제 시세분석 카드에서 사용 */
+/* DOMAIN.md §5.1 "최근 실거래가 표시 착시" V1 경고 — 매칭 오류가 아니라 정직한 고지라 에러색은 과함, 주의색(amber)
+   사용(2026-08-09: 카드 목록의 동종 경고는 estimatedPrice 전환으로 제거됐고, 이 F-05 상세 화면 쪽만 남음).
+   2026-08-1x: 계약월 문단 안 인라인 span으로 합쳐 한 줄로(예전엔 별도 <p>였다 — margin 제거). */
 .right-panel-selected-partial-trade-warning {
-    margin: 2px 0 0;
-    font-size: 11px;
     color: #b45309;
 }
 
@@ -1084,8 +1233,7 @@
 .right-panel-empty {
     margin: 0 0 16px;
     font-size: 13px;
-    color: var(--text);
-    opacity: 0.7;
+    color: var(--text-muted);
 }
 
 /* Mobile off-canvas nav (TopBar hamburger) */
@@ -1405,7 +1553,7 @@
         flex-shrink: 0;
         max-width: 84px;
         padding: 3px 4px;
-        font-size: 11px;
+        font-size: 12px;
     }
 
     /* item 3 — 등급 배지(A+/A/B+/B/C/D) 줄바꿈 대신 셀렉트박스 하나로 압축, 클릭 시 필터링 동작은 selectGradeFilter로 동일 */
@@ -1431,7 +1579,7 @@
         border-radius: 999px;
         background: none;
         color: var(--accent);
-        font-size: 11px;
+        font-size: 12px;
         font-weight: 600;
         cursor: pointer;
     }

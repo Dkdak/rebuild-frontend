@@ -1,4 +1,4 @@
-import { formatEok } from "../../search/api/searchApi";
+import { formatManwon } from "../../search/api/searchApi";
 
 // FEATURE_10_AI_REPORT.md §2.5 — 매입가+공사비=총투자금, 매도가-총투자금=예상차익을 산식 그대로 나열한다.
 // 2026-08-1x: 세로 막대 비교(구 CashFlowWaterfall)는 매도가(수십억)가 공사비·예상차익(한 자릿수 억)을
@@ -24,7 +24,7 @@ const CashFlowFormula = ({ buyPrice, costMin, costMax, sellPrice, gainMin, gainM
         <div className="report-cashflow-flow">
             <div className="report-cashflow-flow-row">
                 <span className="report-cashflow-flow-label">매입가</span>
-                <span className="report-cashflow-flow-value">{formatEok(buyPrice)}</span>
+                <span className="report-cashflow-flow-value">{formatManwon(buyPrice)}</span>
             </div>
             <div className="report-cashflow-flow-op" aria-hidden="true">
                 +
@@ -32,7 +32,7 @@ const CashFlowFormula = ({ buyPrice, costMin, costMax, sellPrice, gainMin, gainM
             <div className="report-cashflow-flow-row">
                 <span className="report-cashflow-flow-label">공사비</span>
                 <span className="report-cashflow-flow-value">
-                    {formatEok(costMin)} ~ {formatEok(costMax)}
+                    {formatManwon(costMin)} ~ {formatManwon(costMax)}
                 </span>
             </div>
             <div className="report-cashflow-flow-op" aria-hidden="true">
@@ -41,7 +41,7 @@ const CashFlowFormula = ({ buyPrice, costMin, costMax, sellPrice, gainMin, gainM
             <div className="report-cashflow-flow-row report-cashflow-flow-row-total">
                 <span className="report-cashflow-flow-label">총 투자금</span>
                 <span className="report-cashflow-flow-value">
-                    {formatEok(investMin)} ~ {formatEok(investMax)}
+                    {formatManwon(investMin)} ~ {formatManwon(investMax)}
                 </span>
             </div>
 
@@ -49,7 +49,7 @@ const CashFlowFormula = ({ buyPrice, costMin, costMax, sellPrice, gainMin, gainM
 
             <div className="report-cashflow-flow-row">
                 <span className="report-cashflow-flow-label">매도가</span>
-                <span className="report-cashflow-flow-value">{formatEok(sellPrice)}</span>
+                <span className="report-cashflow-flow-value">{formatManwon(sellPrice)}</span>
             </div>
             <div className="report-cashflow-flow-op" aria-hidden="true">
                 −
@@ -57,7 +57,7 @@ const CashFlowFormula = ({ buyPrice, costMin, costMax, sellPrice, gainMin, gainM
             <div className="report-cashflow-flow-row">
                 <span className="report-cashflow-flow-label">총 투자금</span>
                 <span className="report-cashflow-flow-value">
-                    {formatEok(investMin)} ~ {formatEok(investMax)}
+                    {formatManwon(investMin)} ~ {formatManwon(investMax)}
                 </span>
             </div>
             <div className="report-cashflow-flow-op" aria-hidden="true">
@@ -66,7 +66,7 @@ const CashFlowFormula = ({ buyPrice, costMin, costMax, sellPrice, gainMin, gainM
             <div className={`report-cashflow-flow-row report-cashflow-flow-row-result report-cashflow-flow-${gainSign}`}>
                 <span className="report-cashflow-flow-label">예상 차익</span>
                 <span className="report-cashflow-flow-value">
-                    {formatEok(gainMin)} ~ {formatEok(gainMax)}
+                    {formatManwon(gainMin)} ~ {formatManwon(gainMax)}
                 </span>
             </div>
         </div>

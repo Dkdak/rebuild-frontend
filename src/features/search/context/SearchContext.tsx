@@ -122,7 +122,12 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
         setLoading(true);
 
         searchProperties({ ...toFilterParams(filters, null), page: 1, size: PAGE_SIZE })
-            .then(setSearchResults)
+            .then((response) => {
+                setSearchResults(response);
+                // 2026-08-1x 사용자 피드백 — 검색 결과가 나오면 항상 리스트 첫 번째 행이 선택된 채로
+                // 상세정보(RightPanel)가 바로 보이게 한다. 결과 없으면 null 그대로.
+                setSelectedPropertyId(response.items[0]?.id ?? null);
+            })
             .finally(() => setLoading(false));
     };
 
@@ -160,7 +165,8 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
                     size: PAGE_SIZE,
                 });
                 setSearchResults(response);
-                setSelectedPropertyId(null);
+                // 2026-08-1x — 검색 결과가 나오면 항상 첫 행이 선택된 채로 상세정보가 보이게 한다(아래 GU도 동일).
+                setSelectedPropertyId(response.items[0]?.id ?? null);
                 // mapCenter는 참고용 상태로 유지하되(§2.3), 실제 화면 범위는 KakaoMap이 마커 기준으로 자동 맞춘다(fit bounds).
                 setMapCenter(computeMapCenter(response.items));
             } else if (candidate.type === "GU" && candidate.bjdongCd) {
@@ -173,7 +179,7 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
                     size: PAGE_SIZE,
                 });
                 setSearchResults(response);
-                setSelectedPropertyId(null);
+                setSelectedPropertyId(response.items[0]?.id ?? null);
                 setMapCenter(computeMapCenter(response.items));
             }
         } finally {
@@ -182,6 +188,8 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
     };
 
     // 페이지 이동·등급 필터 토글 공용 재조회 — grade는 상태 타이밍 문제를 피하려 인자로 명시적으로 받는다.
+    // 2026-08-1x: 재조회로 새 결과가 나올 때도 첫 행을 선택 상태로 — 페이지를 넘기거나 등급 필터를 바꿔도
+    // 상세정보(RightPanel)가 항상 그 페이지 첫 매물을 보여준다(선택 없이 텅 빈 상태로 남지 않게).
     const refetch = async (nextPage: number, grade: string | null) => {
         const query = activeQueryRef.current;
         if (!query || query.mode === "building") return; // building 모드는 결과가 항상 1건이라 페이지/등급 필터가 없다.
@@ -196,6 +204,7 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
                     size: PAGE_SIZE,
                 });
                 setSearchResults(response);
+                setSelectedPropertyId(response.items[0]?.id ?? null);
             } else if (query.mode === "dong") {
                 const response = await searchProperties({
                     bjdongCd: query.bjdongCd,
@@ -204,6 +213,7 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
                     size: PAGE_SIZE,
                 });
                 setSearchResults(response);
+                setSelectedPropertyId(response.items[0]?.id ?? null);
                 setMapCenter(computeMapCenter(response.items));
             } else {
                 const response = await searchProperties({
@@ -213,6 +223,7 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
                     size: PAGE_SIZE,
                 });
                 setSearchResults(response);
+                setSelectedPropertyId(response.items[0]?.id ?? null);
                 setMapCenter(computeMapCenter(response.items));
             }
         } finally {

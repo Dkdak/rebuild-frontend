@@ -24,7 +24,9 @@ const haversineMeters = (a: LatLng, b: LatLng): number => {
 };
 
 // GeoJSON Polygon.coordinates[0] = 외곽선(첫 점=마지막 점으로 닫힘) — 닫는 점은 제거하고 꼭짓점만 남긴다.
-const parseRing = (geojson: string): LatLng[] | null => {
+// export하는 이유: F-05 RightPanel이 "건축물 도면 있으면 카드로, 없으면 카드 자체를 안 보여준다"(2026-08-1x
+// 사용자 피드백)를 판단하려면 렌더링 전에 유효성만 먼저 알아야 한다 — 파싱 로직을 중복 작성하지 않고 재사용.
+export const parseRing = (geojson: string): LatLng[] | null => {
     try {
         const parsed = JSON.parse(geojson);
         const ring = parsed?.coordinates?.[0];
@@ -43,7 +45,7 @@ const SitePolygonDiagram = ({ geojson }: SitePolygonDiagramProps) => {
     const ring = geojson ? parseRing(geojson) : null;
 
     if (ring == null) {
-        return <p className="right-panel-field-note">대지 도면 정보 없음</p>;
+        return <p className="right-panel-field-note">건축물 도면 정보 없음</p>;
     }
 
     const lat0 = ring.reduce((sum, p) => sum + p.lat, 0) / ring.length;
@@ -82,7 +84,10 @@ const SitePolygonDiagram = ({ geojson }: SitePolygonDiagramProps) => {
     });
 
     return (
-        <svg viewBox={`${viewMinX} ${viewMinY} ${viewW} ${viewH}`} style={{ width: "100%", height: "auto" }} role="img" aria-label="대지 도면">
+        // width:100%/height:auto는 CSS로(인라인 대신 className) — 소비처(F-05 RightPanel)가 폭 좁은 사이드바에서
+        // 세로로 너무 길어지지 않게 자기 wrapper에서 max-height를 걸 수 있어야 한다(2026-08-1x, "스크롤이 안
+        // 생길정도 크기로"). 인라인 style은 특이도가 가장 높아 wrapper 쪽 CSS로 못 덮어써서 클래스로 옮김.
+        <svg viewBox={`${viewMinX} ${viewMinY} ${viewW} ${viewH}`} className="site-polygon-svg" role="img" aria-label="건축물 도면">
             <polygon points={pointsAttr} fill="var(--accent-bg)" stroke="var(--accent)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
             {edgeLabels.map((edge, i) => (
                 // eslint-disable-next-line react/no-array-index-key -- 변 순서가 곧 식별자, 재정렬되지 않는다.

@@ -19,9 +19,8 @@
 }
 
 .popover-trigger:disabled {
-    color: var(--text);
+    color: var(--text-muted);
     cursor: not-allowed;
-    opacity: 0.7;
 }
 
 .popover-trigger-open {
@@ -31,7 +30,7 @@
 
 .popover-trigger-caret {
     font-size: 10px;
-    opacity: 0.6;
+    color: var(--text-muted);
 }
 
 .popover-panel {
@@ -123,8 +122,17 @@
 .filter-popover-title {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     margin: 0 0 4px;
+}
+
+/* 팝오버 안에서 "이 필터가 뭔지"를 알려주는 정적 제목 — 트리거 버튼 라벨은 값이 선택되면 그 값으로 바뀌어서
+   (예: "사용승인일" → "20년 이상") 열린 패널 안에는 필터명을 알려주는 요소가 따로 없었다(2026-08-1x 사용자 피드백). */
+.filter-popover-heading {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-h);
 }
 
 .filter-popover-close {
@@ -147,7 +155,7 @@
     border: 1px solid var(--border);
     border-radius: 999px;
     background: var(--bg);
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text);
     cursor: pointer;
 }
@@ -175,6 +183,12 @@
 
 /* 면적 전용 — ㎡ 모드 라벨("33~66㎡" 등)이 4열에서는 잘려서 3열로 폭을 넓힌다(사용승인일 등 다른 프리셋 그리드는 그대로 4열 유지). */
 .filter-preset-grid-area {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+/* 사용승인일 전용(2026-08-1x, "50년" 추가로 9개=3열×3행) — 패널 폭도 함께 줄여서(Popover width prop) 4열일 때보다
+   버튼이 더 작아지지 않게 한다. */
+.filter-preset-grid-buildyear {
     grid-template-columns: repeat(3, 1fr);
 }
 
@@ -287,7 +301,6 @@
 
 .gauge-bar-caption {
     margin: 4px 0 0;
-    font-size: 11px;
-    color: var(--text);
-    opacity: 0.7;
+    font-size: 12px;
+    color: var(--text-muted);
 }
