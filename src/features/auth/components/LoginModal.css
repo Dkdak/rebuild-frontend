@@ -108,6 +108,7 @@
 }
 
 .login-modal-submit:disabled {
+    /* stylelint-disable-next-line declaration-property-value-disallowed-list -- :disabled 버튼 상태 피드백, 텍스트 흐림 아님 */
     opacity: 0.6;
     cursor: not-allowed;
 }

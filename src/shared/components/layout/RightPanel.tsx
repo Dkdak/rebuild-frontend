@@ -11,7 +11,7 @@ import {
     priceConfidenceTone,
     type PropertyAnalysis,
 } from "../../../features/search/api/analysisApi";
-import SitePolygonDiagram, { parseRing } from "../../../features/report/components/SitePolygonDiagram";
+import SitePolygonDiagram, { parseRing, SitePolygonMeta } from "../../../features/report/components/SitePolygonDiagram";
 
 const formatContractMonth = (dateStr: string | null): string | null => {
     if (!dateStr) return null;
@@ -160,10 +160,22 @@ const RightPanel = ({ onOpenReport }: RightPanelProps) => {
                                 맞았지만(enum→라벨→클래스, 서로 다른 키 공간), 4단계+NA 재편 후 GRADE_CLASS는
                                 grade 코드로 직접 키잉되도록 바뀌었다. A/B/C/D는 GRADE_LABEL이 항등이라 우연히
                                 맞았지만 NA→"정보부족"은 GRADE_CLASS에 그 키가 없어 배지 색이 안 떴다(실측 확인) —
-                                GRADE_CLASS[analysis.grade]로 직접 조회. */}
+                                GRADE_CLASS[analysis.grade]로 직접 조회.
+                                2026-08-09 — 등급 박스 전면 폐지(ResultList.tsx와 공통 grade-text 재사용) + 바로
+                                오른쪽에 신뢰도 스티커(기존 right-panel-estimate-tag 크기 그대로) 병기. priceConfidence는
+                                위에서 이미 계산해 둔 값(추천여부 매트릭스와 같은 출처, 재계산 안 함). */}
                             {analysis?.grade ? (
-                                <span className={`grade-badge ${GRADE_CLASS[analysis.grade] ?? ""}`}>
-                                    {GRADE_LABEL[analysis.grade]}
+                                <span className="right-panel-estimate-anchor">
+                                    <span className={`grade-text ${GRADE_CLASS[analysis.grade] ?? ""}`}>
+                                        {GRADE_LABEL[analysis.grade]}
+                                    </span>
+                                    {priceConfidence != null && (
+                                        <span
+                                            className={`right-panel-estimate-tag right-panel-estimate-tag-${priceConfidenceTone(priceConfidence)}`}
+                                        >
+                                            신뢰도 {priceConfidence}
+                                        </span>
+                                    )}
                                 </span>
                             ) : (
                                 "-"
@@ -267,16 +279,26 @@ const RightPanel = ({ onOpenReport }: RightPanelProps) => {
                 )}
             </section>
 
-            {/* 2-b. 대지 도면 — 값이 있을 때만 별도 카드로(2026-08-1x 사용자 피드백 "너무 답답하다, 도면을 아래로
-                내리고 있으면 카드로, 없으면 카드 자체를 출력하지 말자"). 건물정보와 좌우 2단이던 걸 세로로 분리하고,
-                SitePolygonDiagram의 파싱 결과가 없으면(parseRing null) 섹션 자체를 렌더링하지 않는다 — F-10
-                BasicInfoPage는 3단 그리드 구조를 유지해야 해서 그쪽은 "정보 없음" placeholder를 그대로 둔다(용도가 다름). */}
-            {buildingDetail?.sitePolygon != null && parseRing(buildingDetail.sitePolygon) != null && (
+            {/* 2-b. 대지·건축물 도면 — 둘 중 하나라도 있을 때만 별도 카드로(2026-08-1x 사용자 피드백 "너무 답답하다,
+                도면을 아래로 내리고 있으면 카드로, 없으면 카드 자체를 출력하지 말자"). 건물정보와 좌우 2단이던 걸
+                세로로 분리하고, SitePolygonDiagram의 파싱 결과가 둘 다 없으면(parseRing null) 섹션 자체를 렌더링
+                하지 않는다 — F-10 BasicInfoPage는 3단 그리드 구조를 유지해야 해서 그쪽은 "정보 없음" placeholder를
+                그대로 둔다(용도가 다름). 2026-08-09: siteBoundaryPolygon(대지 경계) 배포로 sitePolygon(건물
+                외곽선)과 겹쳐 그리게 됨 — 둘은 독립 매칭이라 게이팅도 OR로 바꾼다. */}
+            {((buildingDetail?.sitePolygon != null && parseRing(buildingDetail.sitePolygon) != null) ||
+                (buildingDetail?.siteBoundaryPolygon != null && parseRing(buildingDetail.siteBoundaryPolygon) != null)) && (
                 <section className="right-panel-card">
-                    <h5 className="right-panel-card-title">대지 도면</h5>
+                    <h5 className="right-panel-card-title">대지·건축물 도면</h5>
                     <div className="right-panel-site-polygon-body">
-                        <SitePolygonDiagram geojson={buildingDetail?.sitePolygon ?? null} />
+                        <SitePolygonDiagram
+                            buildingGeojson={buildingDetail?.sitePolygon ?? null}
+                            siteGeojson={buildingDetail?.siteBoundaryPolygon ?? null}
+                        />
                     </div>
+                    <SitePolygonMeta
+                        buildingGeojson={buildingDetail?.sitePolygon ?? null}
+                        siteGeojson={buildingDetail?.siteBoundaryPolygon ?? null}
+                    />
                 </section>
             )}
 

@@ -9,12 +9,13 @@ interface ProfitAnalysisPageProps {
     loading: boolean;
     householdCount: number | null;
     propertyType: string | null;
+    totalBuildingArea: number | null;
 }
 
 // FEATURE_10_AI_REPORT.md §2.5(2026-08-1x 재편, 구 "수익 분석"): analysis.market.postRemodelEstimatedPrice(F-08 §3.7)만
 // 사용 — 재무 숫자만 다룬다. 공사비 카드는 "05 리모델링 분석"으로 이동, 여기선 이미 계산된 cost.min/maxCost만 참조.
 // 2026-08-1x: 세로 스택 4카드 → report-grid-3 가로 3열(좌 사업성 요약/중 현금흐름/우 민감도분석)로 재구성.
-const ProfitAnalysisPage = ({ analysis, loading, householdCount, propertyType }: ProfitAnalysisPageProps) => {
+const ProfitAnalysisPage = ({ analysis, loading, householdCount, propertyType, totalBuildingArea }: ProfitAnalysisPageProps) => {
     if (loading) {
         return <p className="right-panel-field-note">조회 중...</p>;
     }
@@ -26,7 +27,7 @@ const ProfitAnalysisPage = ({ analysis, loading, householdCount, propertyType }:
     const postRemodel = market.postRemodelEstimatedPrice;
 
     // §3.7 "사업성 요약"·현금흐름·민감도분석이 공유하는 계산(analysisApi.ts의 buildProfitAnalysis, 재계산 안 함).
-    const profitAnalysis = buildProfitAnalysis(analysis, householdCount, propertyType);
+    const profitAnalysis = buildProfitAnalysis(analysis, householdCount, propertyType, totalBuildingArea);
 
     // "예상 리모델링 비용(적정)" — 기준 공사비는 API에 없어 연면적×기준단가×agingFactorDefault로 직접 계산
     // (F-07 §3.2 산식 그대로). 사업성 요약 표 2행과 민감도분석 "기준" 열이 같은 값을 공유(재계산 안 함).
@@ -93,8 +94,7 @@ const ProfitAnalysisPage = ({ analysis, loading, householdCount, propertyType }:
                                         className={`report-tone-badge report-tone-badge-${CONFIDENCE_TONE[postRemodel.confidenceLevel]}`}
                                         style={{ marginLeft: 6 }}
                                     >
-                                        {/* 좁은 fact-list 행이라 괄호 설명 없는 짧은 라벨 사용(2026-08-1x) — 시장 분석의
-                                            "시세 심화"처럼 자리 있는 카드는 CONFIDENCE_LABEL(괄호 포함) 그대로 쓴다. */}
+                                        {/* 전 구간 공통(2026-08-10) — 자리 여부와 무관하게 짧은 라벨만 사용, 범례는 "시장 분석" 섹션에 한 번만 */}
                                         {CONFIDENCE_LABEL_SHORT[postRemodel.confidenceLevel]}
                                     </span>
                                 )}

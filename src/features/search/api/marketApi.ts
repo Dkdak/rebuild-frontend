@@ -73,6 +73,29 @@ export interface PostRemodelEstimatedPrice {
     optimisticValue: number | null;
 }
 
+// FEATURE_10_AI_REPORT.md §2.3 item 5(2026-08-10 배포) — "거래 활성도" 카드. 모집단은 estimatedPrice의 실제
+// 신뢰도 단계와 무관하게 항상 고정(법정동×유형×면적±20%·연식±5년, F-08 SAME_DONG 단계와 동일 필터) — "이 매물과
+// 거의 동일한 조건의 거래가 최근 얼마나 있었나"를 보여주는 지표라 estimatedPrice처럼 범위를 넓히지 않는다.
+// 0건도 유효한 값(데이터 없음이 아니라 "낮음" 신호)이라 null과 {0,0,0}을 구분해야 한다 — 유형 분류 자체가
+// 안 되거나 대상 면적을 못 구할 때만(estimatedPrice가 UNAVAILABLE이 되는 것과 같은 조건) null.
+export interface TradeActivity {
+    recent1yCount: number;
+    recent3yCount: number;
+    recent5yCount: number;
+}
+
+// FEATURE_10_AI_REPORT.md §2.3 item 4(2026-08-10 배포) — "시장 내 가격 위치" 카드. p25/median/p75는 ㎡당가
+// (만원 단위, 총액 아님). thisPropertyPercentile은 0~100(클수록 비싼 쪽) — "상위 N%"로 보여줄 땐
+// 100-thisPropertyPercentile로 환산. 모집단은 estimatedPrice가 실제로 resolve된 단계와 완전히 동일해
+// tradeActivity와 달리 완화 단계를 그대로 따라간다. thisPropertyPercentile이 정확히 50.0이면 recentTrade가
+// 없거나 지분(구분소유 일부) 거래로 판정돼 중앙값으로 대체됐다는 뜻(§8.16 판정 재사용) — 이례적인 값 아님.
+export interface PricePosition {
+    p25: number;
+    median: number;
+    p75: number;
+    thisPropertyPercentile: number;
+}
+
 export interface MarketAnalysis {
     recentTrade: RecentTrade | null;
     estimatedPrice: EstimatedPrice;
@@ -81,6 +104,9 @@ export interface MarketAnalysis {
     // §3.7: F-06 "불가" 판정이거나 참조 필드가 없으면 이 객체 자체가 null(절반만 계산된 값 노출 안 함).
     postRemodelEstimatedPrice: PostRemodelEstimatedPrice | null;
     priceTrend: PriceTrend | null;
+    // estimatedPrice가 UNAVAILABLE이면(비교할 분포 자체가 없어) 둘 다 null(2026-08-10 배포, 실측 확인).
+    tradeActivity: TradeActivity | null;
+    pricePosition: PricePosition | null;
 }
 
 // FEATURE_08_MARKET.md §5.1 확정본 — 신뢰도 배지 한글 라벨. UNAVAILABLE은 배지 자체를 안 띄우고 "추정 불가" 텍스트만
@@ -97,7 +123,10 @@ export const CONFIDENCE_LABEL: Record<ConfidenceLevel, string> = {
 
 // 좁은 fact-list 행(사업성 요약의 "미래가치" 등)에서는 괄호 설명이 값 텍스트를 밀어내 줄바꿈을 깨뜨린다(2026-08-1x).
 // 숫자 점수화는 하지 않는다(근거 없는 값이라 DOMAIN.md §4 위반) — 괄호 설명만 생략, 등급 자체는 CONFIDENCE_LABEL과 동일.
-// 카드 헤더처럼 자리가 있는 곳(예: "시세 심화")은 CONFIDENCE_LABEL을 그대로 쓴다.
+// 2026-08-10: "카드 헤더처럼 자리가 있는 곳은 CONFIDENCE_LABEL 그대로" 예외를 폐지 — MarketAnalysisPage.tsx
+// "시세 심화" 카드도 이제 이 짧은 라벨만 쓰고, 괄호 설명은 "04 시장 분석" 섹션에 범례 한 번으로 대체한다
+// (반복되는 배지마다 긴 문구를 안 붙여도 되게). 긴 라벨(CONFIDENCE_LABEL) 자체는 다른 소비처가 생길 수 있어
+// 남겨두되, 지금은 이 페이지들에서 안 쓴다.
 export const CONFIDENCE_LABEL_SHORT: Record<ConfidenceLevel, string> = {
     SAME_DONG: "높음",
     SAME_GU: "중간",
@@ -116,3 +145,9 @@ export const CONFIDENCE_TONE: Record<Exclude<ConfidenceLevel, "UNAVAILABLE">, "s
     DONG_TYPE_AVERAGE: "neutral",
     GU_TYPE_AVERAGE: "neutral",
 };
+
+// "거래 활성도" 카드(FEATURE_10_AI_REPORT.md §2.3 item 5) — "시장 유동성" 판정은 백엔드가 안 내려주는 프론트
+// V1 잠정치. 최근 1년 거래건수(TradeActivity.recent1yCount)만 기준으로 삼고, 3/5년은 참고용 raw 숫자로만
+// 노출(판정에 안 씀). 2026-08-10 tradeActivity 필드 배포 완료 — MarketAnalysisPage.tsx에서 사용 중.
+export const getLiquidity = (recent1yCount: number): "활발" | "보통" | "낮음" =>
+    recent1yCount >= 20 ? "활발" : recent1yCount >= 5 ? "보통" : "낮음";
