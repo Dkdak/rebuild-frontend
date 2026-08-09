@@ -238,6 +238,7 @@
 }
 
 @keyframes top-bar-auth-skeleton-pulse {
+    /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 로딩 스켈레톤 펄스 애니메이션, 텍스트 흐림 아님 */
     0%, 100% { opacity: 0.5; }
     50% { opacity: 1; }
 }
@@ -268,6 +269,7 @@
 
 .left-panel-address-search {
     margin-bottom: 16px;
+    position: relative;
 }
 
 .left-panel-address-search input {
@@ -289,14 +291,15 @@
     height: 20px;
     border: none;
     background: none;
-    color: var(--text);
+    color: var(--text-muted);
     font-size: 12px;
     cursor: pointer;
-    opacity: 0.6;
 }
 
+/* opacity:1로 밝히던 방식이던 걸 opacity 자체를 없애면서 무의미해져, hover 시 진한 색(--text)으로 바꾸는
+   방식으로 대체 — 원래 의도(호버 시 더 또렷하게)는 그대로 유지. */
 .left-panel-address-clear:hover {
-    opacity: 1;
+    color: var(--text);
 }
 
 .left-panel-title {
@@ -338,10 +341,6 @@
     font-weight: 600;
     margin: 8px 0 20px;
     cursor: pointer;
-}
-
-.left-panel-address-search {
-    position: relative;
 }
 
 .left-panel-address-candidates {
@@ -653,13 +652,22 @@
     font-weight: 700;
 }
 
+/* 2026-08-10 — opacity:0.5는 버튼 전체(등급 배지 박스 배경색까지) 균일하게 흐리게 만들었지만, color만
+   바꾸면 상속으로 라벨/카운트(자체 color 없음)는 흐려져도 .grade-badge의 배경(.grade-A 등, background는
+   상속 안 됨)은 원래 진한 색 그대로 튀어 보인다 — 배지 배경도 같이 무디게 명시. */
 .grade-badge-btn-empty {
-    opacity: 0.5;
+    color: var(--text-muted);
 }
 
-/* 선택된 배지는 0건이어도 흐리게 처리하지 않는다 — 선택 상태 자체가 항상 또렷하게 보여야 함. */
-.grade-badge-btn-active.grade-badge-btn-empty {
-    opacity: 1;
+.grade-badge-btn-empty .grade-badge {
+    background: var(--text-muted);
+}
+
+/* 선택된 배지는 0건이어도 흐리게 처리하지 않는다 — 선택 상태 자체가 항상 또렷하게 보여야 함.
+   .grade-badge-btn-active .grade-badge(위)와 specificity가 같아 소스 순서상 아래의 empty 규칙이 이길 수
+   있어, active+empty 조합엔 3-class 복합 셀렉터로 우선순위를 확실히 준다. */
+.grade-badge-btn-active.grade-badge-btn-empty .grade-badge {
+    background: #fff;
 }
 
 .grade-badge-count {
@@ -691,6 +699,7 @@
 }
 
 .pagination-nav-btn:disabled {
+    /* stylelint-disable-next-line declaration-property-value-disallowed-list -- :disabled 버튼 상태 피드백, 텍스트 흐림 아님 */
     opacity: 0.4;
     cursor: not-allowed;
 }
@@ -803,6 +812,53 @@
     gap: 8px;
 }
 
+/* 2026-08-09 — 등급 표시를 색상 박스/배지에서 "굵고 진하고 조금 큰 글자"로 전면 교체(전 화면 공통 요청,
+   ResultList/RightPanel/ReportPage 전부 재사용) — 등급 의미는 색만으로 충분히 식별된다는 판단, 별도 배경
+   불필요. em 기반 font-size라 소비처(카드 13px/미니스탯 15px/리포트 헤더 19px)마다 주변 글자 대비 "조금
+   크게"가 자동으로 유지된다. 색은 기존 .grade-A 등(배경용, layout.css:485)과 같은 값을 재사용하되, 그 규칙이
+   단일 클래스 셀렉터라 .grade-A만 붙여도 배경까지 그대로 상속돼(실측 확인 — "박스가 다시 보인다" 버그) 여기
+   background:none으로 명시적으로 지운다. */
+.grade-text {
+    font-weight: 800;
+    font-size: 1.15em;
+    background: none;
+}
+
+.grade-text.grade-A {
+    color: #16a34a;
+}
+
+.grade-text.grade-B {
+    color: #f59e0b;
+}
+
+.grade-text.grade-C {
+    color: #64748b;
+}
+
+.grade-text.grade-D {
+    color: #475569;
+}
+
+.grade-text.grade-NA {
+    color: #9ca3af;
+}
+
+/* 2026-08-09(위치 정정) — 데스크톱에서 등급 글자는 유형·주소 줄 "안"이 아니라 옛 44x44 박스가 있던 자리(카드
+   맨 앞, 콘텐츠 컬럼과 나란한 별도 칸)에 그대로 둔다. 모바일은 3줄 스펙대로 등급+주소가 한 줄이라 이 칸 대신
+   center-list-item-mobile-line1 안의 grade-text를 쓴다(아래 미디어쿼리에서 이 칸만 숨김). */
+.center-list-item-grade-leftmost {
+    flex-shrink: 0;
+    align-self: center;
+    min-width: 24px;
+    text-align: center;
+    /* 옛 44x44 박스 대비 기본 .grade-text(1.15em, ~15px)가 너무 수수하다는 지적 — 20~23px(1.7em)로 한 번
+       키웠는데도 "더 커도 좋겠다"는 추가 피드백으로 2.3em(≈30px)로 재조정. .grade-text를 쓰는 다른 소비처
+       (모바일 3줄 등급+주소 인라인, F-05/F-10 재사용)는 주소·미니스탯 텍스트와 한 줄에 섞여야 해서 그대로
+       두고, 카드 맨 앞 단독 칸인 이곳만 별도로 키운다. */
+    font-size: 2.3em;
+}
+
 .center-list-item-type {
     color: var(--text);
     font-weight: 700;
@@ -812,44 +868,10 @@
     color: var(--text-h);
 }
 
-/* 매물 카드 위계 재정리(2026-08-1x) — 리모델링 가능여부 배지는 완전히 삭제, 등급을 카드 왼쪽 44x44 박스로
-   승격(구 .grade-Aplus 등 색상 그대로, .grade-badge 기본 스타일 위에 크기만 오버라이드). 오른쪽은 유형/주소·
-   면적/연식/ROI/가격 텍스트를 묶는 콘텐츠 컬럼. */
 .center-list-item-row {
     display: flex;
     align-items: flex-start;
     gap: 10px;
-}
-
-/* .grade-badge와 같은 셀렉터 특이도(단일 클래스)라 로드 순서에 기대지 않도록 .grade-badge.center-list-item-grade-box
-   복합 셀렉터로 width:28px 등 기본값을 확실히 덮어쓴다(이전에 report-card-emphasis에서 겪은 것과 같은 문제 방지). */
-.grade-badge.center-list-item-grade-box {
-    width: 44px;
-    height: 44px;
-    padding: 0;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    font-size: 16px;
-}
-
-/* 2026-08-09 — 44x44 등급 박스 아래 시세 신뢰도 캡션(estimatedPrice.confidenceLevel 근사치, 문서 참고) 추가.
-   .center-list-item-row가 align-items:flex-start인 flex 행이라, 캡션을 박스 바로 아래 두려면 박스+캡션을
-   세로 방향 flex로 한 번 더 묶어야 한다(래퍼 없이 형제로 두면 행 전체가 옆으로 나열됨). */
-.center-list-item-grade-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    flex-shrink: 0;
-}
-
-.grade-box-confidence-caption {
-    font-size: 10px;
-    color: var(--text-muted);
-    text-align: center;
 }
 
 .center-list-item-content {
@@ -870,10 +892,22 @@
 /* right-panel-estimate-tag 기본값(position:absolute)은 앵커가 자기 셀의 마지막/유일한 내용일 때 전제로 설계됐다
    (F-05/F-10 소비처는 전부 그렇다). 이 카드 줄은 "시세" 뒤에 ROI가 형제로 이어져(2026-08-09, 시세를 ROI보다
    앞으로 재배치) 절대배치 배지가 ROI 위에 겹쳐 보이는 문제가 생겼다 — 이 컨텍스트에서만 배지를 일반 흐름으로
-   되돌려 ROI를 오른쪽으로 밀어낸다(다른 소비처의 절대배치 동작엔 영향 없음, 자손 선택자로 한정). */
-.center-list-item-meta .right-panel-estimate-tag {
+   되돌려 ROI를 오른쪽으로 밀어낸다(다른 소비처의 절대배치 동작엔 영향 없음, 자손 선택자로 한정). 모바일
+   3줄 레이아웃의 시세+ROI 줄(center-list-item-mobile-line3)도 같은 문제가 있어 함께 묶는다. */
+.center-list-item-meta .right-panel-estimate-tag,
+.center-list-item-mobile-line3 .right-panel-estimate-tag {
     position: static;
     margin-left: 4px;
+}
+
+/* 2026-08-09 — 데스크톱 2줄(center-list-item-main/-meta에 desktop-line 추가)과 모바일 3줄(아래 3개 클래스)은
+   같은 항목이 서로 다른 줄로 묶여(유형이 붙는 상대가 다름) 순수 order 트릭으로 못 바꾸고 마크업을 두 벌
+   렌더링한다(ResultList.tsx) — 데스크톱 기준 기본값은 desktop-line 표시/mobile-line 숨김, 모바일
+   미디어쿼리(@media max-width:768px)에서 뒤집는다. */
+.center-list-item-mobile-line1,
+.center-list-item-mobile-line2,
+.center-list-item-mobile-line3 {
+    display: none;
 }
 
 .center-list-item-area-aux {
@@ -975,9 +1009,10 @@
    폭이 좁은 사이드바에서 폴리곤 모양에 따라 세로로 너무 길어질 수 있다(2026-08-1x, "스크롤이 안 생길정도
    크기로") — 고정 높이 안에서 svg를 height:100%로 눌러 넣고, max-width:100%로 가로도 넘치지 않게 한다. */
 .right-panel-site-polygon-body {
-    /* 280px는 이전에 "너무 작다"는 피드백으로 키운 값인데, 이번엔 반대로 전체 높이를 줄여달라는 요청이라
-       완전히 되돌리지 않고 중간값(240px)으로 절충했다(2026-08-1x). */
-    height: 240px;
+    /* 280px는 이전에 "너무 작다"는 피드백으로 키운 값인데, "전체 높이를 줄여달라"는 요청으로 240px 중간값
+       절충(2026-08-1x) → siteBoundaryPolygon 겹쳐 그리기+범례 추가(2026-08-09)로 카드가 다시 길어지자
+       200px로 한 번 더 줄였다. 폴리곤 자체는 SVG(height:100%)라 계속 이 높이에 맞춰 자동으로 눌러진다. */
+    height: 200px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1152,6 +1187,7 @@
 }
 
 .right-panel-report-cta:hover {
+    /* stylelint-disable-next-line declaration-property-value-disallowed-list -- :hover 버튼 상태 피드백, 텍스트 흐림 아님 */
     opacity: 0.9;
 }
 
@@ -1570,10 +1606,43 @@
         background: var(--code-bg);
     }
 
+    /* 2026-08-09 — 데스크톱은 폭이 넉넉해 면적·연식/시세/ROI 3항목이 nowrap 한 줄에 다 들어갔지만, 모바일
+       카드 폭(약 260px, 44px 등급박스+gap 제외)에서는 3항목이 각자 1/3씩 쪼그라들며 항목 "안에서" 글자
+       단위로 줄바꿈돼(시세의 "신뢰도 D" 배지가 다음 줄로 밀리는 등) 읽기 어려웠다(사용자 스크린샷 확인).
+       flex-wrap으로 항목 "사이"에서 줄바꿈되게 하면 각 항목은 한 줄을 온전히 차지해 안 깨진다. */
+    .center-list-item-meta {
+        flex-wrap: wrap;
+        row-gap: 2px;
+    }
+
+    /* 2026-08-09 — 카드를 3줄로 재편("등급|주소" / "용도|면적|년차" / "시세|ROI|상세보기"). 유형이 붙는 상대가
+       데스크톱(등급+유형+주소)과 달라 데스크톱 마크업을 그대로 숨기고 모바일 전용 마크업을 보여주는 방식으로
+       전환한다(위 layout.css 기본값과 반대로 뒤집기). 카드 맨 앞 등급 칸(center-list-item-grade-leftmost)도
+       숨기고 — 모바일은 대신 mobile-line1 안의 등급 글자를 쓴다(등급+주소 한 줄, 3줄 스펙 그대로). */
+    .center-list-item-desktop-line,
+    .center-list-item-grade-leftmost {
+        display: none;
+    }
+
+    .center-list-item-mobile-line1 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .center-list-item-mobile-line2,
+    .center-list-item-mobile-line3 {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 12px;
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
     .center-list-item-detail-btn {
-        display: block;
-        align-self: flex-end;
-        margin-top: 2px;
+        display: inline-block;
+        margin-left: auto;
         padding: 3px 10px;
         border: 1px solid var(--accent);
         border-radius: 999px;

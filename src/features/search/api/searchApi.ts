@@ -181,7 +181,10 @@ export const formatManwon = (manwon: number): string => formatCurrency(manwon * 
 // building(동 단위)과 trade(호실/유닛 단위)는 단위가 달라 매칭이 정확해도 "건물 전체가 이 가격에 팔렸다"는
 // 착시가 생길 수 있다(DOMAIN.md §5.1, 을지로6가 실측 사례 — 연면적 23,658㎡ 건물에 3.77㎡ 호실 거래가 매칭). V1 대응:
 // trade.area를 항상 같이 표시하고, 건물 전체 면적(totalBuildingArea) 대비 20% 미만이면 "건물 일부 거래" 플래그.
-const PARTIAL_TRADE_AREA_RATIO = 0.2;
+// 2026-08-10: buildProfitAnalysis(analysisApi.ts)의 baseValue 산정도 같은 기준으로 recentTrade.price를
+// 건너뛰어야 해서 export — 두 곳이 각자 다른 기준으로 "일부 거래"를 판정하면 한쪽만 경고하고 다른 쪽은 그
+// 값을 그대로 계산에 쓰는 불일치가 생긴다.
+export const PARTIAL_TRADE_AREA_RATIO = 0.2;
 
 export interface RecentTradeDisplay {
     text: string;

@@ -153,7 +153,7 @@ const LeftPanel = ({ onSearchSubmit }: LeftPanelProps = {}) => {
             </div>
 
             <div className="left-panel-field">
-                <Popover label="거래유형 (매매만 지원)" open={false} onToggle={() => {}} onClose={() => {}} disabled />
+                <Popover label="거래유형 (준비 중)" open={false} onToggle={() => {}} onClose={() => {}} disabled />
             </div>
 
             <div className="left-panel-field">

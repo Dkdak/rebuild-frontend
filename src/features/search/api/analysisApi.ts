@@ -2,7 +2,7 @@ import { apiClient } from "../../../shared/api/apiClient";
 import { buildRemodelingChecklist, type RemodelingAnalysis, type RemodelingChecklistItem } from "./remodelingApi";
 import { CONFIDENCE_LABEL, type ConfidenceLevel, type MarketAnalysis } from "./marketApi";
 import type { CostEstimation } from "./costApi";
-import { ESTIMATED_AREA_TYPES } from "./searchApi";
+import { ESTIMATED_AREA_TYPES, PARTIAL_TRADE_AREA_RATIO } from "./searchApi";
 
 // FEATURE_05_PROPERTY_INFO.md §2.1: remodeling/market/grade/roi 통합 조회 — 기존에 따로 부르던
 // getRemodelingAnalysis/getMarketAnalysis를 이 API 하나로 대체(2026-08-1x, 백엔드 구현 완료).
@@ -101,7 +101,8 @@ export interface ProfitAnalysisResult {
 export const buildProfitAnalysis = (
     analysis: PropertyAnalysis,
     householdCount: number | null,
-    propertyType: string | null
+    propertyType: string | null,
+    totalBuildingArea: number | null
 ): ProfitAnalysisResult | null => {
     const { cost, market } = analysis;
     const postRemodel = market.postRemodelEstimatedPrice;
@@ -121,11 +122,27 @@ export const buildProfitAnalysis = (
 
     const costMinManwon = Math.round(cost.minCost / 10_000);
     const costMaxManwon = Math.round(cost.maxCost / 10_000);
+
+    // 2026-08-10 — "건물 일부 거래" 착시(DOMAIN.md §5.1, 을지로6가 실측 사례: 연면적 23,658㎡ 건물에 3.77㎡
+    // 호실 거래가 매칭)로 recentTrade.price가 매입가로 그대로 쓰이면, 건물 전체 스케일인 postRemodel.value/
+    // cost와 자릿수가 6~7자리 차이 나 예상차익·미래가치·ROI가 터무니없이 커진다(실측 확인, 약 1,311억). 같은
+    // 판정 기준(formatRecentTrade의 isPartial, searchApi.ts)을 재사용해 일부 거래면 recentTrade.price를
+    // 건너뛰고 estimatedPrice.value로 폴백 — estimatedPrice는 ㎡당가×건물전체면적이라 전 유형 공통으로
+    // 스케일이 맞는다(PropertyItem.estimatedPrice 주석과 동일 근거).
+    const isPartialTrade =
+        !isHouseholdBased &&
+        market.recentTrade?.area != null &&
+        totalBuildingArea != null &&
+        totalBuildingArea > 0 &&
+        market.recentTrade.area / totalBuildingArea < PARTIAL_TRADE_AREA_RATIO;
+
     const baseValue = isHouseholdBased
         ? market.estimatedPrice.value != null && householdCount != null
             ? market.estimatedPrice.value * householdCount
             : null
-        : (market.recentTrade?.price ?? market.estimatedPrice.value);
+        : isPartialTrade
+          ? market.estimatedPrice.value
+          : (market.recentTrade?.price ?? market.estimatedPrice.value);
     if (baseValue == null) {
         return null;
     }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { formatSeismicDesign, formatUseApprovalDate, getBuildingDetail, type BuildingDetail } from "../../search/api/buildingApi";
-import SitePolygonDiagram from "./SitePolygonDiagram";
+import { getBuildingSummary, type BuildingSummary } from "../../search/api/buildingSummaryApi";
+import SitePolygonDiagram, { SitePolygonMeta } from "./SitePolygonDiagram";
 
 interface BasicInfoPageProps {
     buildingId: string;
@@ -13,10 +14,17 @@ interface BasicInfoPageProps {
 // 좌측 핵심 지표 / 중앙 대지 도면(자리만) / 우측 건축물대장 요약. F-05 RightPanel "건물정보" 카드와 같은
 // GET /api/v1/properties/{buildingId} 재조회, 같은 null/0 처리 규칙(대지면적·건폐율·용적률·세대수는 0을
 // "정보 없음"으로 취급) — F-05는 그대로 두고 F-10만 이 레이아웃으로 확장한다.
-// "부속건축물"(이 건물 소속 별동)과 F-06 시장 분석의 "단지 정보"(F-17 단지 전체 집계)는 다른 값 — 라벨 구분 주의.
+// "동수"(F-17 building-summary.mainBuildingCount, 단지 전체 주건축물 동수)와 "부속건축물"(이 건물 소속 별동,
+// buildingApi.ts auxiliaryBuildingCount)은 둘 다 "N동"으로 표시되지만 다른 값 — 혼동 주의(2026-08-10, 구
+// "단지 정보" 섹션이 MarketAnalysisPage.tsx에서 삭제되며 "동수" 필드가 이 카드로 이동, 같은 카드 안에 나란히
+// 있어 라벨 구분이 더 중요해짐).
 const BasicInfoPage = ({ buildingId, address, zoneName, floorAreaRatioLimit }: BasicInfoPageProps) => {
     const [buildingDetail, setBuildingDetail] = useState<BuildingDetail | null>(null);
     const [loading, setLoading] = useState(false);
+    // 2026-08-10 — F-17 building-summary 호출이 MarketAnalysisPage.tsx "단지 정보"에서 여기로 이동(그 섹션
+    // 삭제) — "동수"(mainBuildingCount) 하나만 쓴다. 공동주택이 아니면 summary 자체가 null/필드가 비어
+    // "정보 없음"으로 자연 처리되므로 별도 조건부 렌더링(구 isCondoType류) 불필요.
+    const [summary, setSummary] = useState<BuildingSummary | null>(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -28,6 +36,16 @@ const BasicInfoPage = ({ buildingId, address, zoneName, floorAreaRatioLimit }: B
             .finally(() => {
                 if (!cancelled) setLoading(false);
             });
+        return () => {
+            cancelled = true;
+        };
+    }, [buildingId]);
+
+    useEffect(() => {
+        let cancelled = false;
+        getBuildingSummary(buildingId).then((result) => {
+            if (!cancelled) setSummary(result);
+        });
         return () => {
             cancelled = true;
         };
@@ -112,12 +130,20 @@ const BasicInfoPage = ({ buildingId, address, zoneName, floorAreaRatioLimit }: B
                 </dl>
             </section>
 
-            {/* 중앙 — 대지 도면(gis_building.polygonGeojson 기반, FEATURE_05_PROPERTY_INFO.md §3.1) */}
+            {/* 중앙 — 대지·건축물 도면(sitePolygon/siteBoundaryPolygon 기반, FEATURE_05_PROPERTY_INFO.md §3.1,
+                2026-08-09 siteBoundaryPolygon 배포로 겹쳐 그리기 확장) */}
             <section className="right-panel-card report-site-polygon-card">
-                <h5 className="right-panel-card-title">대지 도면</h5>
+                <h5 className="right-panel-card-title">대지·건축물 도면</h5>
                 <div className="report-site-polygon-body">
-                    <SitePolygonDiagram geojson={buildingDetail?.sitePolygon ?? null} />
+                    <SitePolygonDiagram
+                        buildingGeojson={buildingDetail?.sitePolygon ?? null}
+                        siteGeojson={buildingDetail?.siteBoundaryPolygon ?? null}
+                    />
                 </div>
+                <SitePolygonMeta
+                    buildingGeojson={buildingDetail?.sitePolygon ?? null}
+                    siteGeojson={buildingDetail?.siteBoundaryPolygon ?? null}
+                />
             </section>
 
             {/* 우측 — 건축물대장 요약 */}
@@ -127,6 +153,10 @@ const BasicInfoPage = ({ buildingId, address, zoneName, floorAreaRatioLimit }: B
                     <div>
                         <dt>구조</dt>
                         <dd>{buildingDetail?.structureNm ?? "정보 준비 중"}</dd>
+                    </div>
+                    <div>
+                        <dt>동수</dt>
+                        <dd>{summary?.mainBuildingCount != null ? `${summary.mainBuildingCount}동` : "정보 없음"}</dd>
                     </div>
                     <div>
                         <dt>지붕구조</dt>

@@ -11,6 +11,7 @@ import {
     GRADE_LABEL,
     PRICE_CONFIDENCE_CAUTION,
     priceConfidenceFromLevel,
+    priceConfidenceTone,
     type PropertyAnalysis,
 } from "../../search/api/analysisApi";
 import BasicInfoPage from "./BasicInfoPage";
@@ -55,8 +56,9 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
     const selected = searchResults?.items.find((item) => item.id === selectedPropertyId) ?? null;
 
     // FEATURE_05_PROPERTY_INFO.md §2.1: RightPanel과 동일하게 GET .../analysis 하나로 remodeling/grade/roi/cost/market 조회.
-    // §2.1 공통규칙 — 좌측 네비가 가리키는 모든 섹션이 이 응답 하나를 재사용(섹션 전환 시 재호출 없음), "시장 분석"의
-    // 단지 정보만 예외(MarketAnalysisPage 내부에서 F-17 별도 호출), 기본 정보도 예외(BasicInfoPage 내부에서 건축물대장 별도 호출).
+    // §2.1 공통규칙 — 좌측 네비가 가리키는 모든 섹션이 이 응답 하나를 재사용(섹션 전환 시 재호출 없음). 기본
+    // 정보만 예외(BasicInfoPage 내부에서 건축물대장·F-17 단지정보 별도 호출, 2026-08-10: 단지정보 호출이
+    // MarketAnalysisPage에서 여기로 이동).
     const [analysis, setAnalysis] = useState<PropertyAnalysis | null>(null);
     const [analysisLoading, setAnalysisLoading] = useState(false);
 
@@ -94,6 +96,11 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
     const recommendation = analysis?.grade != null ? getRecommendation(analysis.grade, priceConfidence) : "-";
     const isLowConfidence = priceConfidence === "D";
 
+    // 2026-08-10 — 요약 통계 밴드 "현재가" 칸용. 위 priceConfidence(postRemodelEstimatedPrice 기준, 등급/추천여부/
+    // 예상차익·미래가치·ROI 정밀도에 공유)와는 다른 출처 — "현재가"는 리모델링 전 현재 시세라 estimatedPrice
+    // 기준 신뢰도를 따로 계산한다(재사용하면 안 됨).
+    const currentPriceConfidence = analysis ? priceConfidenceFromLevel(analysis.market.estimatedPrice.confidenceLevel) : null;
+
     // 핵심 요약(장점/주의사항) — 장점은 F-06 체크리스트, 주의사항은 F-06 체크리스트 + 구 "리스크 분석" 5항목 +
     // 시세 신뢰도 주의 문구를 합친다(2026-08-1x 카테고리 재편 — 판정 로직은 그대로, buildRiskChecklist를 여기로
     // 옮겨왔을 뿐 / 2026-08-09 시세 신뢰도 문구 추가). PRICE_CONFIDENCE_CAUTION이 null이면(A등급, 또는
@@ -110,7 +117,9 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
     ];
 
     // 요약 통계 밴드의 예상차익/미래가치 — "사업성 분석" 섹션과 같은 계산(analysisApi.ts의 buildProfitAnalysis, 재계산 안 함).
-    const profitAnalysis = analysis ? buildProfitAnalysis(analysis, selected?.householdCount ?? null, selected?.propertyType ?? null) : null;
+    const profitAnalysis = analysis
+        ? buildProfitAnalysis(analysis, selected?.householdCount ?? null, selected?.propertyType ?? null, selected?.totalBuildingArea ?? null)
+        : null;
 
     // "핵심 데이터 n/4 확보" — 폐지된 구 "종합 평가"(EvaluationPage.tsx) 로직 그대로 이동(2026-08-1x, 헤더 캡션으로 흡수,
     // 판정 로직 변경 없음, 새 API 없음).
@@ -157,9 +166,10 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                 </div>
                                 <div className="report-header-actions">
                                     {/* 2026-08-1x 버그 수정(RightPanel.tsx와 동일) — GRADE_CLASS는 이제 grade
-                                        코드로 직접 키잉되므로 GRADE_LABEL 경유 없이 바로 조회. */}
+                                        코드로 직접 키잉되므로 GRADE_LABEL 경유 없이 바로 조회.
+                                        2026-08-09 — 등급 박스 전면 폐지, ResultList/RightPanel과 공통 grade-text로. */}
                                     {analysis?.grade && (
-                                        <span className={`grade-badge ${GRADE_CLASS[analysis.grade] ?? ""}`}>
+                                        <span className={`grade-text ${GRADE_CLASS[analysis.grade] ?? ""}`}>
                                             {GRADE_LABEL[analysis.grade]}
                                         </span>
                                     )}
@@ -183,21 +193,65 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                 </div>
                                 <div className="report-stat-band">
                                     {/* 2026-08-09 — 별도 "시세 신뢰도" 칸(6칸)은 취소, 투자등급 칸 안에 등급 크게 +
-                                        캡션으로 "신뢰도 {등급}" 작게 병기하는 5칸 구성으로 되돌림. priceConfidence는
-                                        추천여부(getRecommendation)와 같은 출처(postRemodelEstimatedPrice 기준,
-                                        재계산 안 함) — null이면(UNAVAILABLE) 캡션 생략. */}
+                                        바로 옆 신뢰도 스티커(RightPanel.tsx 미니스탯과 같은 패턴 — right-panel-estimate-anchor/-tag
+                                        재사용, 캡션에서 스티커로 위치 변경) — priceConfidence는 추천여부(getRecommendation)와
+                                        같은 출처(postRemodelEstimatedPrice 기준, 재계산 안 함). */}
                                     <div className="report-stat">
                                         <p className="report-stat-label">투자등급</p>
-                                        <p className="report-stat-value">{analysis?.grade ? GRADE_LABEL[analysis.grade] : "-"}</p>
-                                        <p className="report-stat-caption">
-                                            {analysisLoading
-                                                ? "분석 중..."
-                                                : analysis == null
-                                                  ? "정보 없음"
-                                                  : priceConfidence != null
-                                                    ? `신뢰도 ${priceConfidence}`
-                                                    : " "}
+                                        {/* report-stat-value가 이미 자체 font-size/weight(18~20px/800)를 쓰고 있어
+                                            grade-text(폰트 크기까지 같이 바꾸는 올인원 클래스) 대신 색상만 얹는
+                                            grade-color-{grade} 전용 클래스를 쓴다(등급 박스 폐지 후속). */}
+                                        <p className="report-stat-value">
+                                            {analysis?.grade ? (
+                                                <span className="right-panel-estimate-anchor">
+                                                    <span className={`grade-color-${analysis.grade}`}>{GRADE_LABEL[analysis.grade]}</span>
+                                                    {priceConfidence != null && (
+                                                        <span
+                                                            className={`right-panel-estimate-tag right-panel-estimate-tag-${priceConfidenceTone(priceConfidence)}`}
+                                                        >
+                                                            신뢰도 {priceConfidence}
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            ) : (
+                                                "-"
+                                            )}
                                         </p>
+                                        <p className="report-stat-caption">
+                                            {analysisLoading ? "분석 중..." : analysis == null ? "정보 없음" : " "}
+                                        </p>
+                                    </div>
+                                    <div className="report-stat">
+                                        <p className="report-stat-label">현재가</p>
+                                        {/* 2026-08-10 — baseValue는 06 "사업성 요약" 카드가 이미 쓰는 값(ProfitAnalysisResult.baseValue,
+                                            매입가/공사비 제외) 그대로 재사용 — F-05 "시세"(estimatedPrice.value)를 직접 쓰면 안 됨(세대
+                                            기반 유형은 세대당 vs 건물 전체로 스케일이 다름, 사용자 지적). */}
+                                        <p className="report-stat-value">
+                                            {profitAnalysis ? formatManwon(profitAnalysis.baseValue) : "산출 불가"}
+                                        </p>
+                                        {/* 캡션 <p>는 값 유무와 무관하게 항상 렌더링 — 다른 칸들과 같은 3줄 구조를 유지해야
+                                            report-stat-band 안에서 칸별 높이가 어긋나지 않는다(캡션 자체를 조건부로 통째로
+                                            빼면 이 칸만 짧아짐). */}
+                                        <p className="report-stat-caption">
+                                            {profitAnalysis && currentPriceConfidence ? (
+                                                <span
+                                                    className={`report-tone-badge report-tone-badge-light-${priceConfidenceTone(currentPriceConfidence)}`}
+                                                >
+                                                    신뢰도 {currentPriceConfidence}
+                                                </span>
+                                            ) : (
+                                                " "
+                                            )}
+                                        </p>
+                                    </div>
+                                    <div className="report-stat">
+                                        <p className="report-stat-label">미래가치</p>
+                                        <p className="report-stat-value">
+                                            {profitAnalysis
+                                                ? `${isLowConfidence ? "약 " : ""}${formatManwon(profitAnalysis.value)}`
+                                                : "산출 불가"}
+                                        </p>
+                                        <p className="report-stat-caption"> </p>
                                     </div>
                                     <div className="report-stat">
                                         <p className="report-stat-label">예상차익</p>
@@ -209,15 +263,6 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                                 ? isLowConfidence
                                                     ? `약 ${formatManwon((profitAnalysis.gainMin + profitAnalysis.gainMax) / 2)}`
                                                     : `${formatManwon(profitAnalysis.gainMin)} ~ ${formatManwon(profitAnalysis.gainMax)}`
-                                                : "산출 불가"}
-                                        </p>
-                                        <p className="report-stat-caption"> </p>
-                                    </div>
-                                    <div className="report-stat">
-                                        <p className="report-stat-label">미래가치</p>
-                                        <p className="report-stat-value">
-                                            {profitAnalysis
-                                                ? `${isLowConfidence ? "약 " : ""}${formatManwon(profitAnalysis.value)}`
                                                 : "산출 불가"}
                                         </p>
                                         <p className="report-stat-caption"> </p>
@@ -330,13 +375,7 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                     <span className="report-section-heading-number">04</span>
                                     <h4 className="report-section-heading-title">시장 분석</h4>
                                 </div>
-                                <MarketAnalysisPage
-                                    analysis={analysis}
-                                    loading={analysisLoading}
-                                    buildingId={selected.id}
-                                    propertyType={selected.propertyType}
-                                    area={selected.area}
-                                />
+                                <MarketAnalysisPage analysis={analysis} loading={analysisLoading} area={selected.area} />
                             </div>
 
                             {/* 5. 리모델링 분석 — 구 "사업성 분석"(BusinessAnalysisPage) 개명, 공사비 카드 흡수 */}
@@ -365,6 +404,7 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                     loading={analysisLoading}
                                     householdCount={selected.householdCount}
                                     propertyType={selected.propertyType}
+                                    totalBuildingArea={selected.totalBuildingArea}
                                 />
                             </div>
 

@@ -101,13 +101,14 @@
     flex-shrink: 0;
 }
 
-/* §2.2 요약 섹션 — 등급/예상차익/미래가치/ROI/추천여부 5칸 통계 밴드(planning/rebuild/레포트.png 레퍼런스 그대로,
-   2026-08-08 확장). 라벨은 작고 흐리게, 값은 크고 진하게 — 리포트 표지 톤. 예상차익은 범위 문자열이라 5칸에서는
-   22px가 넘치기 쉬워 18px로 낮추고 줄바꿈을 허용한다(등급 한 칸만 20px로 살짝 키워 시각 앵커 유지).
-   2026-08-09: "시세 신뢰도" 별도 칸(6칸)을 시도했다가 취소 — 투자등급 칸 캡션으로 병합해 5칸 유지. */
+/* §2.2 요약 섹션 — 투자등급/현재가/미래가치/예상차익/ROI/추천여부 6칸 통계 밴드(planning/rebuild/레포트.png
+   레퍼런스 그대로, 2026-08-08 확장). 라벨은 작고 흐리게, 값은 크고 진하게 — 리포트 표지 톤. 예상차익은 범위
+   문자열이라 22px가 넘치기 쉬워 18px로 낮추고 줄바꿈을 허용한다(등급 한 칸만 20px로 살짝 키워 시각 앵커 유지).
+   2026-08-09: "시세 신뢰도" 별도 칸(6칸)을 시도했다가 취소, 투자등급 칸 캡션으로 병합해 5칸으로 되돌림 →
+   2026-08-10: "현재가" 칸이 새로 추가되며 다시 6칸(신뢰도 스티커와는 별개 칸). */
 .report-stat-band {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 0;
     margin: 16px 0 20px;
     padding: 16px 0;
@@ -118,6 +119,9 @@
 .report-stat {
     padding: 0 14px;
     border-left: 1px solid var(--border);
+    /* 2026-08-09 — 등급 칸에 신뢰도 스티커가 옆에 붙으면서 라벨/값이 셀 폭 안에서 좌측에 치우쳐 보인다는 지적
+       — 스탯밴드 5칸 전체를 가운데 정렬로 통일(칸마다 따로따로 정렬이 다르면 더 어색하다). */
+    text-align: center;
 }
 
 .report-stat:first-child {
@@ -141,6 +145,29 @@
 
 .report-stat:first-child .report-stat-value {
     font-size: 20px;
+}
+
+/* 2026-08-09 — "투자등급" 칸 값에 등급색 적용(등급 박스 전면 폐지 후속, ResultList.tsx grade-text와 같은 색값
+   재사용). report-stat-value가 이미 자체 font-size/weight를 쓰므로 색상만 얹는 전용 클래스 — layout.css의
+   .grade-A 등(배경용, 단일 클래스라 다른 데 영향 줄 수 있음)과 별개로 새 이름을 써서 충돌을 피한다. */
+.grade-color-A {
+    color: #16a34a;
+}
+
+.grade-color-B {
+    color: #f59e0b;
+}
+
+.grade-color-C {
+    color: #64748b;
+}
+
+.grade-color-D {
+    color: #475569;
+}
+
+.grade-color-NA {
+    color: #9ca3af;
 }
 
 .report-stat-caption {
@@ -173,8 +200,7 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     background: none;
-    color: var(--text);
-    opacity: 0.5;
+    color: var(--text-muted);
     font-size: 12px;
     font-weight: 600;
     cursor: not-allowed;
@@ -309,13 +335,54 @@
     height: auto;
 }
 
+/* 2026-08-09 — 범례("건축물 도면"/"대지 도면" 라벨 분리)+누락 안내+면책 문구(SitePolygonDiagram.tsx의
+   SitePolygonMeta). 고정 높이 wrapper(right-panel-site-polygon-body/report-site-polygon-body) 바깥에 오는
+   일반 블록이라 별도 높이 제약은 없지만, F-05 사이드바가 이미 스크롤 전제로 꽉 찬 높이라(2026-08-09 지적)
+   범례 줄+면책 문구 줄로 나뉘어 있던 걸 한 줄(flex-wrap)로 합쳐 카드 높이를 줄인다. */
+.site-polygon-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.site-polygon-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* SVG 폴리곤 스트로크와 같은 스타일(실선 accent=건물 외곽선, 점선 text=대지 경계)로 범례 스와치를 맞춘다 —
+   범례만 보고도 도면의 어느 선이 뭔지 바로 대응되게. */
+.site-polygon-legend-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 0;
+    border-top: 2px solid transparent;
+}
+
+.site-polygon-legend-swatch-building {
+    border-top-color: var(--accent);
+}
+
+.site-polygon-legend-swatch-site {
+    border-top-style: dashed;
+    border-top-color: var(--text);
+}
+
 /* 신뢰도/완화단계 배지 — RightPanel.tsx의 verdict-badge와 톤은 같지만 의미가 달라(가능/불가 아님) 별도 클래스로 분리 */
 .report-tone-badge {
     display: inline-block;
     padding: 3px 10px;
     border-radius: 999px;
-    font-size: 11px;
+    /* 2026-08-10 — 11px는 이번 세션 초반에 정한 전체 가독성 정책(폰트 12px 이상)을 어기고 있었다 — 배지만
+       빠뜨린 채 넘어감. 12px로 통일. */
+    font-size: 12px;
     font-weight: 700;
+    line-height: 1.2;
     color: #fff;
     background: #64748b;
     white-space: nowrap;
@@ -331,6 +398,26 @@
 
 .report-tone-badge-neutral {
     background: #64748b;
+}
+
+/* 2026-08-10 — 표(TradeTable) 안에서는 진한 알약형(위 3개, 흰 글씨)이 행마다 반복되면 너무 무거워 보인다는
+   지적 — 가벼운 톤(옅은 배경+진한 글자)으로 교체. 진한 스타일은 "시세 심화" 카드의 단독 배지 전용으로 남긴다.
+   --bg-success 등은 이 프로젝트 index.css에 아직 없는 토큰이라(디자인 시스템에 추가되면 자동으로 그 값을
+   따라가게) fallback 리터럴을 항상 같이 쓴다 — neutral만 예외로 이 프로젝트에 이미 있는 --code-bg/--text-muted
+   (다크모드 값 자체 보유)로 폴백해 별도 다크 오버라이드가 필요 없다. */
+.report-tone-badge-light-success {
+    background: var(--bg-success, #eaf3de);
+    color: var(--text-success, #27500a);
+}
+
+.report-tone-badge-light-warning {
+    background: var(--bg-warning, #faeeda);
+    color: var(--text-warning, #854f0b);
+}
+
+.report-tone-badge-light-neutral {
+    background: var(--surface-1, var(--code-bg));
+    color: var(--text-muted);
 }
 
 /* right-panel-fact-list는 F-05의 좁은 사이드바(약 300px)에 맞춰 label-value를 한 줄에 space-between으로
@@ -354,6 +441,124 @@ dl.right-panel-fact-list.report-fact-grid > div {
    라벨과 서로 다른 쪽에 떨어져 보인다 — 왼쪽 정렬로 되돌린다(볼드는 유지, 정렬만 예외). */
 dl.right-panel-fact-list.report-fact-grid dd {
     text-align: left;
+}
+
+/* 2026-08-10 — "시장 가격 수준" 카드(디자인 mockup 참고) — 최근실거래/추정시세 ㎡당가를 fact-list 대신 큰 숫자
+   2단 비교로 강조한다. report-stat-value(18~20px)보다 한 단계 더 키워 카드 안에서 확실히 눈에 띄게. */
+.report-price-level-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 10px 0 12px;
+}
+
+.report-price-level-item {
+    padding: 0 14px;
+    border-left: 1px solid var(--border);
+}
+
+.report-price-level-item:first-child {
+    border-left: none;
+    padding-left: 0;
+}
+
+.report-price-level-label {
+    margin: 0 0 4px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.report-price-level-value {
+    margin: 0;
+    /* 2026-08-10 — 22px는 report-stat-band(투자등급 등 헤드라인 수치, 18~20px)보다도 커서 위계가 뒤집혔다는
+       지적으로 축소. 단위(만원/㎡)도 라벨로 옮기고 값은 숫자만 남겨 폭을 줄였다(3열로 좁아지며 줄바꿈 방지). */
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text-h);
+    white-space: nowrap;
+}
+
+/* 이미지 mockup은 이 줄을 본문(--text)보다 확실히 강조된 색(주황/붉은 톤)으로 표시 — 신뢰도 배지와 같은
+   warning 토큰 재사용(새 색 발명 안 함), 굵기도 올려 델타 문장이 카드 안에서 바로 눈에 들어오게 한다. */
+.report-price-level-delta {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-warning, #854f0b);
+}
+
+@media (prefers-color-scheme: dark) {
+    .report-price-level-delta {
+        color: #fbbf24;
+    }
+}
+
+/* 2026-08-10 — "시장 내 가격 위치" 백분위 게이지(디자인 mockup 참고, pricePosition 배포). 라이브러리 없는
+   순수 CSS(SitePolygonDiagram/PriceTrendChart와 같은 원칙) — 트랙 위에 이 매물 위치(marker)를 left%로
+   절대배치한다. 마커 라벨이 카드 좌우 경계를 넘지 않도록 0/100% 근처에서는 자기 정렬을 살짝 당긴다. */
+.report-price-position-gauge {
+    position: relative;
+    height: 34px;
+    margin: 18px 0 6px;
+}
+
+.report-price-position-track {
+    position: absolute;
+    top: 16px;
+    left: 0;
+    right: 0;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--border);
+}
+
+.report-price-position-marker {
+    position: absolute;
+    top: -4px;
+    transform: translateX(-50%);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+}
+
+.report-price-position-marker::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 22px;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 12px;
+    border-radius: 999px;
+    background: var(--accent);
+}
+
+.report-price-position-ticks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* 2026-08-10 — "현재 추정 시세 근거"/"리모델링 후 예상 시세 근거" 카드 상단 경고 배너(디자인 mockup 참고).
+   report-tone-badge-light-warning과 같은 색이지만 그건 짧은 라벨용 알약형(inline-block)이라 문장이 길면
+   어색하다 — 문단 전체를 감싸는 블록형으로 별도 클래스. */
+.report-warning-note {
+    display: block;
+    margin: 0 0 10px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: var(--bg-warning, #faeeda);
+    color: var(--text-warning, #854f0b);
+    font-size: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+    .report-warning-note {
+        background: rgba(251, 191, 36, 0.15);
+        color: #fbbf24;
+    }
 }
 
 /* FEATURE_10_AI_REPORT.md §2.4 "시세 추이" 꺾은선 그래프 — SitePolygonDiagram과 같은 원칙(라이브러리 없는 순수 SVG) */
@@ -437,8 +642,7 @@ dl.right-panel-fact-list.report-fact-grid dd {
     text-align: center;
     font-size: 12px;
     font-weight: 700;
-    color: var(--text);
-    opacity: 0.35;
+    color: var(--text-muted);
     line-height: 1.4;
 }
 
@@ -520,16 +724,6 @@ dl.right-panel-fact-list.report-fact-grid dd {
     border-bottom: none;
 }
 
-/* matchStage 3/4(법정동·구×유형 평균) 거래 행 바로 아래 보조 문구 — "면적·연식 무관, 참고용"(2026-08-1x, §2.2).
-   본문 셀(report-trade-table td)보다 작고 흐리게, 여러 단어라 white-space는 nowrap 해제. */
-.report-trade-table-note {
-    padding: 0 8px 6px;
-    color: var(--text-muted);
-    font-size: 12px;
-    font-style: italic;
-    white-space: normal;
-}
-
 @media (prefers-color-scheme: dark) {
     .report-tone-badge-success {
         background: #4ade80;
@@ -538,6 +732,18 @@ dl.right-panel-fact-list.report-fact-grid dd {
     .report-tone-badge-warning {
         background: #fbbf24;
         color: #451a03;
+    }
+
+    /* light 변형은 리터럴 fallback이라 다크모드에서 자동으로 안 바뀐다 — right-panel-estimate-tag-success/-warning과
+       같은 색(rgba 옅은 배경 + 밝은 글자)으로 별도 오버라이드. neutral은 --code-bg/--text-muted 자체에 다크값이
+       있어 생략. */
+    .report-tone-badge-light-success {
+        background: rgba(74, 222, 128, 0.15);
+        color: #4ade80;
+    }
+    .report-tone-badge-light-warning {
+        background: rgba(251, 191, 36, 0.15);
+        color: #fbbf24;
     }
 }
 

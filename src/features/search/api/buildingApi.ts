@@ -23,9 +23,13 @@ export interface BuildingDetail {
     auxiliaryBuildingCount: number | null; // 부속건축물 동수 — 이 건물(지번) 소속 별동(창고·경비실 등), F-17 "단지 정보"의 동수(주건축물수)와는 다른 값
     auxiliaryBuildingArea: number | null; // 부속건축물 면적
     parkingCount: number | null; // 주차대수(옥내외 기계식+자주식 4종 합산, 법정 대수는 데이터 없음 — 실제 대수만)
-    // 대지 도면(GeoJSON Polygon 문자열) — F-05 RightPanel "건물정보"·F-10 BasicInfoPage 둘 다 SitePolygonDiagram.tsx로
-    // 렌더링(2026-08-1x, §2.1 "대지 도면 흡수"). building_gis_mapping 미매칭이면 null.
+    // 건물 외곽선(GeoJSON Polygon 문자열, 화면 라벨 "건축물 도면") — F-05 RightPanel "건물정보"·F-10 BasicInfoPage
+    // 둘 다 SitePolygonDiagram.tsx로 렌더링(2026-08-1x, §2.1 "대지 도면 흡수"). building_gis_mapping 미매칭이면 null.
     sitePolygon: string | null;
+    // 대지 경계(GeoJSON Polygon 문자열, 화면 라벨 "대지 도면", 2026-08-09 백엔드 배포) — sitePolygon과 같은
+    // 포맷이지만 별도 매칭 배치 결과라 독립적으로 null일 수 있다(실측 확인). SitePolygonDiagram.tsx가
+    // sitePolygon과 겹쳐 그린다.
+    siteBoundaryPolygon: string | null;
 }
 
 // buildingId(=bdrg_sn)가 building 테이블에 없으면 백엔드가 404 — apiClient 호출부에서 catch해 null 처리(market/remodelingApi.ts와 동일 패턴).
