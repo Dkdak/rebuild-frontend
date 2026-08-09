@@ -1,8 +1,8 @@
-import { formatEok } from "../../search/api/searchApi";
+import { formatManwon } from "../../search/api/searchApi";
 
 // FEATURE_10_AI_REPORT.md §2.5 "민감도 분석" — 공사비축(최소/기준/최대) × 매도가축(보수적/기준/낙관적) 3×3,
 // 프론트에서 (매도가-(매입가+공사비))÷(매입가+공사비)×100 재계산(새 API 없음, CashFlowFormula와 같은
-// ProfitAnalysisResult.baseValue 재사용). 축 라벨 아래에 실제 금액(formatEok, 좁은 칸 전용)을 같이 보여줘
+// ProfitAnalysisResult.baseValue 재사용). 축 라벨 아래에 실제 금액(formatManwon, 좁은 칸 전용)을 같이 보여줘
 // "최소"/"보수적" 같은 라벨만으로는 알 수 없던 실제 구간을 알 수 있게 한다(2026-08-1x).
 interface SensitivityMatrixProps {
     buyPrice: number; // 매입가(만원, 공사비 제외)
@@ -26,7 +26,7 @@ const SensitivityMatrix = ({ buyPrice, costs, sellPrices }: SensitivityMatrixPro
                         <th key={label}>
                             {label}
                             <br />
-                            <span className="report-sensitivity-axis-value">{formatEok(sellPrices[colIndex])}</span>
+                            <span className="report-sensitivity-axis-value">{formatManwon(sellPrices[colIndex])}</span>
                         </th>
                     ))}
                 </tr>
@@ -37,7 +37,7 @@ const SensitivityMatrix = ({ buyPrice, costs, sellPrices }: SensitivityMatrixPro
                         <th>
                             {COST_LABELS[rowIndex]}
                             <br />
-                            <span className="report-sensitivity-axis-value">{formatEok(cost)}</span>
+                            <span className="report-sensitivity-axis-value">{formatManwon(cost)}</span>
                         </th>
                         {sellPrices.map((sellPrice, colIndex) => {
                             const totalInvest = buyPrice + cost;

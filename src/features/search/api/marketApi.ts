@@ -2,12 +2,23 @@ import type { RecentTrade } from "./searchApi";
 
 // FEATURE_08_MARKET.md §3.6: 백엔드 구현 완료(2026-08-08). 값 단위 전부 만원 — 단 landPrice(개별공시지가)만
 // 예외로 원/㎡ 단가 그대로(총액이 아니라 단가라는 의미 자체가 달라서 환산하지 않음, §3.6 "단위 주의").
-export type ConfidenceLevel = "SAME_DONG" | "SAME_GU" | "WIDENED_RANGE" | "UNAVAILABLE";
+// 2026-08-1x(3번째 요청): matchStage 3/4(법정동×유형 평균 / 구×유형 평균) 추가 — 백엔드가 실제로 이 값을
+// 내려주기 시작해서, 타입 확장 없이는 MATCH_STAGE_LEVEL[3/4]가 undefined가 되고 그 값으로 CONFIDENCE_LABEL을
+// 조회하면 깨진다(§2.2).
+export type ConfidenceLevel =
+    | "SAME_DONG"
+    | "SAME_GU"
+    | "WIDENED_RANGE"
+    | "DONG_TYPE_AVERAGE"
+    | "GU_TYPE_AVERAGE"
+    | "UNAVAILABLE";
 
 // FEATURE_10_AI_REPORT.md §2.9: "유사 사례" 페이지용 — 추정 시세 계산에 실제로 쓰인 비교 거래 원본(집계 통계가
-// 아니라 개별 행). matchStage(0=법정동/1=구/2=범위확대)는 같은 배열 안에서 항상 confidenceLevel과 같은 단계 —
-// MATCH_STAGE_LEVEL로 변환해 CONFIDENCE_LABEL/CONFIDENCE_TONE을 그대로 재사용한다. 지번은 내려오지 않고
-// 법정동(dong)까지만(개인정보 성격은 아니지만 실거래가 공개 시스템 관례를 따름, §2.9).
+// 아니라 개별 행). matchStage(0=법정동/1=구/2=범위확대/3=법정동×유형 평균/4=구×유형 평균)는 같은 배열 안에서
+// 항상 confidenceLevel과 같은 단계 — MATCH_STAGE_LEVEL로 변환해 CONFIDENCE_LABEL/CONFIDENCE_TONE을 그대로
+// 재사용한다. 지번은 내려오지 않고 법정동(dong)까지만(개인정보 성격은 아니지만 실거래가 공개 시스템 관례를
+// 따름, §2.9). matchStage>=3(평균 기반)은 면적·연식을 반영 못 하는 근본적으로 다른 신뢰도 등급이라
+// MarketAnalysisPage.tsx의 TradeTable에서 "면적·연식 무관, 참고용" 보조 문구를 행마다 붙인다.
 export interface ComparableTrade {
     dong: string;
     area: number;
@@ -20,6 +31,8 @@ export const MATCH_STAGE_LEVEL: Record<number, Exclude<ConfidenceLevel, "UNAVAIL
     0: "SAME_DONG",
     1: "SAME_GU",
     2: "WIDENED_RANGE",
+    3: "DONG_TYPE_AVERAGE",
+    4: "GU_TYPE_AVERAGE",
 };
 
 export interface EstimatedPrice {
@@ -77,6 +90,8 @@ export const CONFIDENCE_LABEL: Record<ConfidenceLevel, string> = {
     SAME_DONG: "높음(같은 법정동 비교)",
     SAME_GU: "중간(같은 구 비교)",
     WIDENED_RANGE: "낮음(면적·연식 범위 확대)",
+    DONG_TYPE_AVERAGE: "매우 낮음(법정동·유형 평균, 면적·연식 미반영)",
+    GU_TYPE_AVERAGE: "매우 낮음(구·유형 평균, 면적·연식 미반영)",
     UNAVAILABLE: "추정 불가(비교 가능한 유사 거래 없음)",
 };
 
@@ -87,12 +102,17 @@ export const CONFIDENCE_LABEL_SHORT: Record<ConfidenceLevel, string> = {
     SAME_DONG: "높음",
     SAME_GU: "중간",
     WIDENED_RANGE: "낮음",
+    DONG_TYPE_AVERAGE: "매우 낮음",
+    GU_TYPE_AVERAGE: "매우 낮음",
     UNAVAILABLE: "추정 불가",
 };
 
-// §2.2 "신뢰도 배지 색상": SAME_DONG=success·SAME_GU=warning·WIDENED_RANGE=neutral(회색)·UNAVAILABLE은 배지 없음(호출부에서 분기).
+// §2.2 "신뢰도 배지 색상": SAME_DONG=success·SAME_GU=warning·WIDENED_RANGE/DONG_TYPE_AVERAGE/GU_TYPE_AVERAGE
+// =neutral(회색)·UNAVAILABLE은 배지 없음(호출부에서 분기).
 export const CONFIDENCE_TONE: Record<Exclude<ConfidenceLevel, "UNAVAILABLE">, "success" | "warning" | "neutral"> = {
     SAME_DONG: "success",
     SAME_GU: "warning",
     WIDENED_RANGE: "neutral",
+    DONG_TYPE_AVERAGE: "neutral",
+    GU_TYPE_AVERAGE: "neutral",
 };

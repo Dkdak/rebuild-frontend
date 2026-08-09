@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { CONFIDENCE_LABEL, CONFIDENCE_TONE, MATCH_STAGE_LEVEL, type ComparableTrade } from "../../search/api/marketApi";
-import { ESTIMATED_AREA_TYPES, formatEok } from "../../search/api/searchApi";
+import { ESTIMATED_AREA_TYPES, formatManwon } from "../../search/api/searchApi";
 import type { PropertyAnalysis } from "../../search/api/analysisApi";
 import { getBuildingSummary, type BuildingSummary } from "../../search/api/buildingSummaryApi";
 import PriceTrendChart from "./PriceTrendChart";
@@ -41,19 +41,31 @@ const TradeTable = ({ trades }: { trades: ComparableTrade[] }) => {
                 <tbody>
                     {topFive(trades).map((trade, index) => {
                         const level = MATCH_STAGE_LEVEL[trade.matchStage];
+                        // matchStage 3/4(법정동·구×유형 평균)는 면적·연식을 반영 못 하는 근본적으로 다른 산출
+                        // 방식이라(§2.2), 개별 거래 행 바로 아래에 보조 문구 행을 하나 더 붙여 구분한다.
+                        const isAverageBased = trade.matchStage >= 3;
                         return (
                             // eslint-disable-next-line react/no-array-index-key -- 동일 동/면적/가격 거래가 같은 날 여러 건일 수 있어 index를 섞는다.
-                            <tr key={`${trade.dong}-${trade.contractDate}-${index}`}>
-                                <td>{trade.dong}</td>
-                                <td>{trade.area}㎡</td>
-                                <td>{formatEok(trade.price)}</td>
-                                <td>{formatContractMonth(trade.contractDate)}</td>
-                                <td>
-                                    <span className={`report-tone-badge report-tone-badge-${CONFIDENCE_TONE[level] ?? "neutral"}`}>
-                                        {CONFIDENCE_LABEL[level]}
-                                    </span>
-                                </td>
-                            </tr>
+                            <Fragment key={`${trade.dong}-${trade.contractDate}-${index}`}>
+                                <tr>
+                                    <td>{trade.dong}</td>
+                                    <td>{trade.area}㎡</td>
+                                    <td>{formatManwon(trade.price)}</td>
+                                    <td>{formatContractMonth(trade.contractDate)}</td>
+                                    <td>
+                                        <span className={`report-tone-badge report-tone-badge-${CONFIDENCE_TONE[level] ?? "neutral"}`}>
+                                            {CONFIDENCE_LABEL[level]}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {isAverageBased && (
+                                    <tr>
+                                        <td colSpan={5} className="report-trade-table-note">
+                                            면적·연식 무관, 참고용
+                                        </td>
+                                    </tr>
+                                )}
+                            </Fragment>
                         );
                     })}
                 </tbody>

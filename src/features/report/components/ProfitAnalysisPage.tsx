@@ -1,4 +1,4 @@
-import { formatEok } from "../../search/api/searchApi";
+import { formatManwon } from "../../search/api/searchApi";
 import { CONFIDENCE_LABEL_SHORT, CONFIDENCE_TONE } from "../../search/api/marketApi";
 import { buildProfitAnalysis, type PropertyAnalysis } from "../../search/api/analysisApi";
 import CashFlowFormula from "./CashFlowFormula";
@@ -72,22 +72,22 @@ const ProfitAnalysisPage = ({ analysis, loading, householdCount, propertyType }:
                     <dl className="right-panel-fact-list">
                         <div>
                             <dt>현재가치(매입 예상가)</dt>
-                            <dd>{formatEok(profitAnalysis.baseValue)}</dd>
+                            <dd>{formatManwon(profitAnalysis.baseValue)}</dd>
                         </div>
                         <div>
                             <dt>예상 리모델링 비용</dt>
-                            <dd>{remodelCostBase != null ? formatEok(remodelCostBase) : "산출 불가"}</dd>
+                            <dd>{remodelCostBase != null ? formatManwon(remodelCostBase) : "산출 불가"}</dd>
                         </div>
                         <div>
                             <dt>총 투자금</dt>
                             <dd>
-                                {formatEok(profitAnalysis.investMin)} ~ {formatEok(profitAnalysis.investMax)}
+                                {formatManwon(profitAnalysis.investMin)} ~ {formatManwon(profitAnalysis.investMax)}
                             </dd>
                         </div>
                         <div>
                             <dt>미래가치</dt>
                             <dd>
-                                {formatEok(profitAnalysis.value)}
+                                {formatManwon(profitAnalysis.value)}
                                 {postRemodel?.confidenceLevel != null && postRemodel.confidenceLevel !== "UNAVAILABLE" && (
                                     <span
                                         className={`report-tone-badge report-tone-badge-${CONFIDENCE_TONE[postRemodel.confidenceLevel]}`}
@@ -104,7 +104,7 @@ const ProfitAnalysisPage = ({ analysis, loading, householdCount, propertyType }:
                         <div>
                             <dt>예상 차익</dt>
                             <dd>
-                                {formatEok(profitAnalysis.gainMin)} ~ {formatEok(profitAnalysis.gainMax)}
+                                {formatManwon(profitAnalysis.gainMin)} ~ {formatManwon(profitAnalysis.gainMax)}
                             </dd>
                         </div>
                         <div>

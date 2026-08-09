@@ -1,4 +1,6 @@
 import { apiClient } from "../../../shared/api/apiClient";
+import type { RemodelingVerdict } from "./remodelingApi";
+import type { EstimatedPrice } from "./marketApi";
 
 // ===== 실제 백엔드 연동 (F-04_SEARCH.md §3.1) =====
 
@@ -35,7 +37,17 @@ export interface PropertyItem {
     lng: number | null;
     grade: string | null;
     roi: number | null;
+    // 2026-08-09 백엔드 배포 완료 후에도 필드 자체는 유지(F-05 RightPanel.tsx "최근 실거래가" 행이 계속 사용) —
+    // 카드(ResultList.tsx) 3번째 줄만 estimatedPrice로 교체(FEATURE_04_SEARCH.md §2.1-h item 5/8).
     recentTrade: RecentTrade | null;
+    // 카드 2줄(등급+리모델링 가능여부 배지, 2026-08-1x 3줄 재정리) — F-06 verdict 그대로(실측 확인, 새 계산 없음).
+    remodelingVerdict: RemodelingVerdict | null;
+    // FEATURE_04_SEARCH.md §2.1-h item 5(2026-08-09 백엔드 구현 완료) — F-08 `.../market` 응답의 estimatedPrice와
+    // 완전히 같은 모양(investment_result.market_basis에서 추가 계산 없이 그대로 꺼냄). 카드 3번째 줄이 recentTrade
+    // 대신 이 값을 쓰는 이유: 단독다가구·상업업무용 등은 recentTrade 자체가 없거나, 매칭돼도 건물 전체 대비 작은
+    // 호실 하나 거래가 "건물 전체가 이 가격"처럼 보이는 착시가 있었다(㎡당가×건물전체면적인 estimatedPrice는
+    // 전 유형 공통으로 스케일이 맞아 이 착시가 안 생긴다).
+    estimatedPrice: EstimatedPrice;
 }
 
 export interface GradeSummaryItem {
@@ -113,15 +125,22 @@ export interface AreaDisplay {
 
 // main: 카드 메인 표시값(area). 유형이 세대당 추정 대상이면 "약 84㎡(추정)"처럼 라벨을 붙인다(§2.1-e).
 // aux: 보조 표시값(totalBuildingArea) — main과 다를 때만("세대당 추정" 유형) 채워진다.
+// 1평 = 3.305785㎡(정확한 환산값) — RightPanel.tsx의 sqmToPyeong·AreaRangeControl.tsx의 PYEONG_TO_SQM과 동일
+// 상수로 통일(2026-08-1x, 검색 카드 면적에도 평수 병기 요청).
+const SQM_PER_PYEONG = 3.305785;
+const withPyeong = (sqm: number): string => `${sqm.toLocaleString()}㎡(${Math.round(sqm / SQM_PER_PYEONG).toLocaleString()}평)`;
+
 export const formatAreaDisplay = (item: PropertyItem): AreaDisplay => {
     if (item.area == null) {
         return { main: "면적 정보 없음", aux: null };
     }
     const isEstimated = item.propertyType != null && ESTIMATED_AREA_TYPES.includes(item.propertyType);
-    const main = isEstimated ? `약 ${item.area}㎡(추정)` : `${item.area}㎡`;
+    const main = isEstimated
+        ? `약 ${item.area.toLocaleString()}㎡(${Math.round(item.area / SQM_PER_PYEONG).toLocaleString()}평, 추정)`
+        : withPyeong(item.area);
     const aux =
         item.totalBuildingArea != null && item.totalBuildingArea !== item.area
-            ? `건물 전체 ${item.totalBuildingArea}㎡`
+            ? `건물 전체 ${withPyeong(item.totalBuildingArea)}`
             : null;
     return { main, aux };
 };
@@ -140,27 +159,24 @@ export const formatHouseholdCount = (householdCount: number | null): string | nu
 
 // ===== 최근 실거래가 (F-04_SEARCH.md §2.1-h item 5) =====
 
-// 만원 단위 원본 → "3억 5,000만원" 형식(1억=10,000만원). 매물 상세가 아니라 카드용 요약이라 억 단위로 뭉뚱그리지 않는다.
-// F-08 "시세분석" 섹션(marketApi.ts 소비처)도 같은 만원 단위 값(추정시세/공시가격)이라 이 포맷을 그대로 재사용한다.
-export const formatManwon = (manwon: number): string => {
-    const eok = Math.floor(manwon / 10000);
-    const rest = Math.round(manwon % 10000);
-    if (eok === 0) return `${rest.toLocaleString()}만원`;
-    if (rest === 0) return `${eok}억`;
-    return `${eok}억 ${rest.toLocaleString()}만원`;
+// FEATURE_08_MARKET.md/FEATURE_10_AI_REPORT.md 공통 확정(2026-08-1x) — 금액 표시 전역 통일. 이전엔 formatManwon
+// ("N억 M,MMM만원", 만원 입력)과 formatEok("N.NN억", 만원 입력, F-10 좁은 칸 전용)가 서로 다른 규칙을 써서
+// 화면마다 표기가 갈렸다("검색카드/F-05/F-08/F-10 전체를 공용 포맷터 하나로 통일" 요청) — formatCurrency(원
+// 입력) 하나를 단일 출처로 두고, 만원 단위 값을 쓰는 기존 소비처를 위해 formatManwon을 그 위의 얇은 래퍼로만
+// 남긴다. 규칙: 1억 이상이면 소수 둘째자리 억("17.20억"), 미만이면 반올림 정수 만원("601만원"). 예시:
+// 1,720,000,000원 → "17.20억", 6,009,000원 → "601만원". 음수(예상 차익 손실 케이스)는 절댓값 기준으로
+// 억/만원 분기하되 부호는 그대로 살린다(toFixed/toLocaleString이 음수 부호를 자동으로 유지) — 사용자가 준
+// 스니펫엔 없던 처리지만, 리포트에서 음수 금액이 실제로 나오므로("-4.54억" 등) 반드시 필요하다.
+export const formatCurrency = (won: number): string => {
+    const eok = won / 100_000_000;
+    if (Math.abs(eok) >= 1) return `${eok.toFixed(2)}억`;
+    return `${Math.round(won / 10_000).toLocaleString()}만원`;
 };
 
-// formatManwon은 음수를 고려하지 않은 포맷터(억/만원 분리가 음수에서 깨짐) — F-10 "예상 차익"(FEATURE_08_MARKET.md
-// §3.7)은 공사비가 가치 증가분보다 크면 음수가 될 수 있어(리모델링해도 손해인 케이스) 부호를 분리해 절댓값만 넘긴다.
-export const formatSignedManwon = (manwon: number): string => (manwon < 0 ? `-${formatManwon(-manwon)}` : formatManwon(manwon));
-
-// FEATURE_10_AI_REPORT.md §2.5(2026-08-1x) — 리포트(F-10) 전역에서 "억 단위로 나오는" 금액은 formatManwon의
-// "N억 M,MMM만원" 대신 소수 둘째자리 억 하나로 뭉갠다(22,972,972.9만원 → "2297.30억", 22729 → "2.27억"). 1억
-// 미만은 "억단위로 나오는" 금액이 아니라서 대상이 아님 — formatSignedManwon(만원 그대로, 음수 부호 포함)에
-// 위임한다(사용자 피드백 2026-08-1x "평당 1000만원 이런건 만원단위로"). 리포트가 아닌 화면(F-04/F-05 등)은
-// formatManwon/formatSignedManwon을 그대로 쓴다 — 이 포맷은 F-10 report 컴포넌트 전용.
-export const formatEok = (manwon: number): string =>
-    Math.abs(manwon) < 10000 ? formatSignedManwon(manwon) : `${(manwon / 10000).toFixed(2)}억`;
+// 기존 만원 단위 소비처(recentTrade.price, market.estimatedPrice.value 등 "만원 단위" 관례를 따르는 값들)가
+// 호출부를 안 바꿔도 되도록 얇게 감싼 래퍼 — 원 단위 값(예: 토지당 가격, cost API)은 formatManwon을 거치지
+// 말고 formatCurrency를 직접 쓴다.
+export const formatManwon = (manwon: number): string => formatCurrency(manwon * 10_000);
 
 // building(동 단위)과 trade(호실/유닛 단위)는 단위가 달라 매칭이 정확해도 "건물 전체가 이 가격에 팔렸다"는
 // 착시가 생길 수 있다(DOMAIN.md §5.1, 을지로6가 실측 사례 — 연면적 23,658㎡ 건물에 3.77㎡ 호실 거래가 매칭). V1 대응:
@@ -201,20 +217,23 @@ export const formatRecentTrade = (
 
 // ===== 리스트 헤더 등급 배지 (F-04_SEARCH.md §2.1-g) =====
 
-// 배지는 등급 내림차순 고정(A+ 최상단) — 백엔드 gradeSummary 배열 순서를 신뢰하지 않고 프론트에서 정렬한다.
-const GRADE_ORDER = ["A+", "A", "B+", "B", "C", "D"];
+// 배지는 등급 내림차순 고정(A 최상단) — 백엔드 gradeSummary 배열 순서를 신뢰하지 않고 프론트에서 정렬한다.
+// 2026-08-1x: 6단계(A+/A/B+/B/C/D) → 4단계(A/B/C/D)+NA로 재편(FEATURE_09_INVESTMENT.md 확정, 백엔드 배포 완료
+// 후 실측) — 키를 "정보부족"(한글 번역)으로 잘못 넣었었는데, 실제 GET .../search 응답은 grade/gradeSummary
+// 둘 다 raw 코드 "NA"를 그대로 보낸다(다른 등급도 "A"/"B" 등 raw, 번역 안 함 — 실측 확인). "NA"는 성능 등급이
+// 아니라 데이터 부족 케이스라 5번째(맨 끝)에 둔다.
+const GRADE_ORDER = ["A", "B", "C", "D", "NA"];
 
 export const sortGradeSummary = (gradeSummary: GradeSummaryItem[]): GradeSummaryItem[] =>
     [...gradeSummary].sort((a, b) => GRADE_ORDER.indexOf(a.grade) - GRADE_ORDER.indexOf(b.grade));
 
-// .grade-Aplus 등(layout.css) 배경색 클래스 — ResultList(리스트 배지)·RightPanel(상세 개요) 공용.
+// .grade-A 등(layout.css) 배경색 클래스 — ResultList(리스트 배지)·RightPanel(상세 개요) 공용.
 export const GRADE_CLASS: Record<string, string> = {
-    "A+": "grade-Aplus",
     A: "grade-A",
-    "B+": "grade-Bplus",
     B: "grade-B",
     C: "grade-C",
     D: "grade-D",
+    NA: "grade-NA",
 };
 
 // ===== 정렬 (클라이언트 사이드) — 백엔드 API에 sort 파라미터가 없어 현재 페이지 결과만 재정렬한다 =====

@@ -4,7 +4,9 @@ const AIOpinionPage = () => (
     <>
         <section className="right-panel-card">
             <h5 className="right-panel-card-title">
-                항목<span className="right-panel-estimate-tag">추정치 — 정식 산출 전</span>
+                <span className="right-panel-estimate-anchor">
+                    항목<span className="right-panel-estimate-tag">추정치 — 정식 산출 전</span>
+                </span>
             </h5>
             <dl className="right-panel-fact-list report-fact-grid">
                 <div>

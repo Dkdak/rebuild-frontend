@@ -1,5 +1,17 @@
 :root {
   --text: #6b6375;
+  /* 2026-08-1x — 캡션/라벨/보조문구용 "고정" 흐린 색(가독성 전면 감사, FEATURE_05/08/10 공통). 예전엔
+     color:var(--text)+opacity로 흐리게 처리했는데 배경마다(카드/툴팁/모달 등) 실질 대비가 들쭉날쭉했다
+     (right-panel-fact-list dt에서 opacity 0.7이 라이트모드 ~3:1로 WCAG AA 12px 기준(4.5:1) 미달이었던
+     것과 같은 문제). --text보다 한 톤 연하지만 그 자체로 AA를 통과하는 고정값(라이트 ~4.9:1) — 배경에
+     opacity로 얹지 않고 이 변수를 그대로 color로만 쓴다. 타겟이 40대 이상 투자자라 "흐림"의 하한선을
+     여유 있게 잡았다(사용자 피드백). */
+  --text-muted: #756e7f;
+  /* report-nav-item-number(01~10 번호, 이모지 대체용 장식 숫자) 전용 — color:var(--accent)+opacity:0.75를
+     흰 배경(#fff) 위에서 미리 블렌딩한 고정값(--text-muted와 동일 원칙, 2026-08-1x). accent(#2563eb)를
+     그대로 쓰면 리포트의 무채색+포인트블루 톤 대비 너무 튀어서 톤을 낮췄다는 원래 의도는 유지하되,
+     opacity로 배경에 얹지 않고 고정 색상 하나로 계산해 둔다. */
+  --accent-muted: #5c8af0;
   --text-h: #08060d;
   --bg: #fff;
   --border: #e5e4e7;
@@ -33,6 +45,10 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --text: #9ca3af;
+    /* 라이트와 동일 원칙 — 다크 배경(#16171d) 기준 고정 대비 ~4.8:1 유지(--text 자체는 ~7:1이라 그보다 한 톤만 낮춤). */
+    --text-muted: #7d8492;
+    /* accent(#60a5fa) + opacity:0.75를 다크 배경(#16171d) 위에서 미리 블렌딩한 값. */
+    --accent-muted: #4e82c3;
     --text-h: #f3f4f6;
     --bg: #16171d;
     --border: #2e303a;

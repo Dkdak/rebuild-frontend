@@ -1,6 +1,6 @@
 import { apiClient } from "../../../shared/api/apiClient";
 import { buildRemodelingChecklist, type RemodelingAnalysis, type RemodelingChecklistItem } from "./remodelingApi";
-import { CONFIDENCE_LABEL, type MarketAnalysis } from "./marketApi";
+import { CONFIDENCE_LABEL, type ConfidenceLevel, type MarketAnalysis } from "./marketApi";
 import type { CostEstimation } from "./costApi";
 import { ESTIMATED_AREA_TYPES } from "./searchApi";
 
@@ -8,20 +8,25 @@ import { ESTIMATED_AREA_TYPES } from "./searchApi";
 // getRemodelingAnalysis/getMarketAnalysis를 이 API 하나로 대체(2026-08-1x, 백엔드 구현 완료).
 // grade/roi는 investment_result 스파이크 더미데이터가 아니라 이 응답의 실제 계산값 — RightPanel 개요 카드가 이번에 처음 연동.
 // 배치(주기적 재실행) 결과라 updatedAt 기준 "최근 갱신" 라벨 필수 표시.
-export type InvestmentGrade = "A_PLUS" | "A" | "B_PLUS" | "B" | "C" | "D";
+// 2026-08-1x — 6단계(A+/A/B+/B/C/D) → 4단계(A/B/C/D)+NA로 재편(FEATURE_09_INVESTMENT.md 반영, 백엔드 확정).
+// A+/B+ 세부 구간은 폐지 — A/B 등급 자체가 그 자리를 흡수. NA는 등급 산정에 필요한 데이터 자체가 모자란
+// 케이스(구 INSUFFICIENT_DATA와 같은 개념, enum 값만 NA로 정정)로 A~D(성능 등급)와는 성격이 다르다.
+export type InvestmentGrade = "A" | "B" | "C" | "D" | "NA";
 
 export const GRADE_LABEL: Record<InvestmentGrade, string> = {
-    A_PLUS: "A+",
     A: "A",
-    B_PLUS: "B+",
     B: "B",
     C: "C",
     D: "D",
+    NA: "정보부족",
 };
 
 export interface PropertyAnalysis {
     grade: InvestmentGrade;
-    roi: number;
+    // roi==null이면 backend stage != FULL이라는 뜻(실측 확인) — "산정 중"이 아니라 "산출 불가"로 취급해야 한다
+    // (§2.2 확정, 2026-08-1x). 타입이 number였던 건 실제 런타임과 다른 선언 오류 — 이미 곳곳에서 null 체크는
+    // 하고 있었어서 동작엔 문제 없었음.
+    roi: number | null;
     remodeling: RemodelingAnalysis;
     // 공사비 카드는 F-10 "수익 분석"으로 이동 예정이라 이 화면(F-05)에서는 아직 쓰지 않는다(costApi.ts 참고).
     cost: CostEstimation;
@@ -32,16 +37,53 @@ export interface PropertyAnalysis {
 // "2026-08-03T17:36:26" → "2026-08-03" — "최근 갱신" 라벨용(배치 결과, 실시간 값 아님을 알리는 목적).
 export const formatUpdatedAt = (updatedAt: string): string => updatedAt.split("T")[0];
 
-// FEATURE_10_AI_REPORT.md §2.2 "요약 섹션 요약 통계 5칸" — 등급→추천 문구 매핑. 새 계산 로직 아니라 프론트 표시용
-// 매핑일 뿐(backend V1 등급 경계값과 같은 성격의 잠정치, 실측 후 재조정 대상, §5.1).
-export const RECOMMENDATION_LABEL: Record<InvestmentGrade, string> = {
-    A_PLUS: "적극 추천",
-    A: "적극 추천",
-    B_PLUS: "검토",
-    B: "검토",
-    C: "신중",
-    D: "신중",
+// FEATURE_10_AI_REPORT.md §2.2(2026-08-09 재편) — 추천여부를 grade 단독 매핑에서 grade×시세 신뢰도 매트릭스로
+// 확장. postRemodelEstimatedPrice(F-08 §2.3 "미래 가치")의 confidenceLevel을 4단계로 압축한 게 PriceConfidenceGrade —
+// SAME_DONG만 최고 B인 이유는 recentTrade는 F-05 "시세" 카드 개념일 뿐, 이 매트릭스가 참조하는
+// postRemodelEstimatedPrice엔 실거래 개념 자체가 없다(FEATURE_08_MARKET.md §2.3).
+export type PriceConfidenceGrade = "A" | "B" | "C" | "D";
+
+export const priceConfidenceFromLevel = (confidenceLevel: ConfidenceLevel): PriceConfidenceGrade | null => {
+    switch (confidenceLevel) {
+        case "SAME_DONG":
+            return "B";
+        case "SAME_GU":
+        case "WIDENED_RANGE":
+            return "C";
+        case "DONG_TYPE_AVERAGE":
+        case "GU_TYPE_AVERAGE":
+            return "D";
+        case "UNAVAILABLE":
+            return null;
+    }
 };
+
+// 신뢰도 배지 색 톤(2026-08-09) — report-tone-badge/MarketAnalysisPage.tsx TradeTable과 같은 규칙(A/B=success,
+// C/D=warning). right-panel-estimate-tag가 이제 등급 의미를 담으니 고정 파란색 대신 이 톤을 따른다.
+export const priceConfidenceTone = (grade: PriceConfidenceGrade): "success" | "warning" =>
+    grade === "A" || grade === "B" ? "success" : "warning";
+
+// 핵심 요약 "주의사항" item 3(§2.1) — priceConfidence가 이 맵에서 null이 아닌 문구를 반환할 때만 목록에 추가.
+// A는 항목 자체 생략(주의할 게 없음), UNAVAILABLE(priceConfidence===null)은 애초에 예상차익/미래가치/ROI가
+// 전부 "산출 불가"라 별도 문구가 불필요.
+export const PRICE_CONFIDENCE_CAUTION: Record<PriceConfidenceGrade, string | null> = {
+    A: null,
+    B: "동일 법정동 유사거래 기반 추정 시세입니다",
+    C: "비교 범위를 넓힌 유사거래 기반 추정 시세입니다(구 단위 확장 또는 면적·연식 조건 완화)",
+    D: "지역·유형 평균 기반 추정 시세입니다(면적·연식 미반영, 참고용)",
+};
+
+const RECOMMENDATION_MATRIX: Record<InvestmentGrade, Record<PriceConfidenceGrade | "NONE", string>> = {
+    A: { A: "적극 추천", B: "적극 추천", C: "추천", D: "검토", NONE: "판단 불가" },
+    B: { A: "추천", B: "추천", C: "검토", D: "검토", NONE: "판단 불가" },
+    C: { A: "검토", B: "검토", C: "비추천", D: "비추천", NONE: "판단 불가" },
+    D: { A: "비추천", B: "비추천", C: "비추천", D: "비추천", NONE: "판단 불가" },
+    NA: { A: "판단 불가", B: "판단 불가", C: "판단 불가", D: "판단 불가", NONE: "판단 불가" },
+};
+
+export const getRecommendation = (grade: InvestmentGrade, priceConfidence: PriceConfidenceGrade | null): string =>
+    RECOMMENDATION_MATRIX[grade][priceConfidence ?? "NONE"];
+// 기존 RECOMMENDATION_LABEL(grade 단독 매핑)은 삭제 — 위 매트릭스로 완전히 대체.
 
 // FEATURE_08_MARKET.md §3.7 "수익분석" — ProfitAnalysisPage.tsx와 요약 섹션(예상차익/미래가치 통계)이 공유하는
 // 계산 로직. 같은 데이터를 두 곳에서 각자 다시 계산하지 않기 위해 여기 한 곳에만 둔다.

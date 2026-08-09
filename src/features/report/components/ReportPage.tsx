@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { useSearch } from "../../search/context/SearchContext";
-import { formatEok, GRADE_CLASS } from "../../search/api/searchApi";
+import { formatManwon, GRADE_CLASS } from "../../search/api/searchApi";
 import { buildRemodelingChecklist, remodelingChecklistItems } from "../../search/api/remodelingApi";
 import {
     buildProfitAnalysis,
     buildRiskChecklist,
     formatUpdatedAt,
     getPropertyAnalysis,
+    getRecommendation,
     GRADE_LABEL,
-    RECOMMENDATION_LABEL,
+    PRICE_CONFIDENCE_CAUTION,
+    priceConfidenceFromLevel,
     type PropertyAnalysis,
 } from "../../search/api/analysisApi";
 import BasicInfoPage from "./BasicInfoPage";
@@ -82,13 +84,30 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
         document.querySelector(".report-page")?.scrollTo({ top: 0 });
     }, [selected?.id]);
 
-    // 핵심 요약(장점/주의사항) — 장점은 F-06 체크리스트, 주의사항은 F-06 체크리스트 + 구 "리스크 분석" 5항목을
-    // 합친다(2026-08-1x 카테고리 재편 — 판정 로직은 그대로, buildRiskChecklist를 여기로 옮겨왔을 뿐).
+    // 추천여부(2026-08-09 재편) — grade 단독 매핑에서 grade×시세 신뢰도 매트릭스로 확장(analysisApi.ts
+    // getRecommendation). priceConfidence는 요약 통계 밴드 "시세 신뢰도" 칸·예상차익/미래가치/ROI 정밀도
+    // 조정(isLowConfidence)·핵심 요약 주의사항 문구까지 공유하는 단일 출처(같은 값 재계산 안 함).
+    const priceConfidence =
+        analysis?.market.postRemodelEstimatedPrice?.confidenceLevel != null
+            ? priceConfidenceFromLevel(analysis.market.postRemodelEstimatedPrice.confidenceLevel)
+            : null;
+    const recommendation = analysis?.grade != null ? getRecommendation(analysis.grade, priceConfidence) : "-";
+    const isLowConfidence = priceConfidence === "D";
+
+    // 핵심 요약(장점/주의사항) — 장점은 F-06 체크리스트, 주의사항은 F-06 체크리스트 + 구 "리스크 분석" 5항목 +
+    // 시세 신뢰도 주의 문구를 합친다(2026-08-1x 카테고리 재편 — 판정 로직은 그대로, buildRiskChecklist를 여기로
+    // 옮겨왔을 뿐 / 2026-08-09 시세 신뢰도 문구 추가). PRICE_CONFIDENCE_CAUTION이 null이면(A등급, 또는
+    // UNAVAILABLE이라 priceConfidence 자체가 null) 항목을 아예 추가하지 않는다.
     const remodelingChecklist = analysis?.remodeling ? buildRemodelingChecklist(analysis.remodeling.basis) : null;
     const remodelingItems = remodelingChecklist ? remodelingChecklistItems(remodelingChecklist) : [];
     const riskCautions = analysis ? buildRiskChecklist(analysis).filter((item) => !item.ok) : [];
+    const priceConfidenceCaution = priceConfidence != null ? PRICE_CONFIDENCE_CAUTION[priceConfidence] : null;
     const strengths = remodelingItems.filter((item) => item.ok);
-    const cautions = [...remodelingItems.filter((item) => !item.ok), ...riskCautions];
+    const cautions = [
+        ...remodelingItems.filter((item) => !item.ok),
+        ...riskCautions,
+        ...(priceConfidenceCaution != null ? [{ ok: false as const, text: priceConfidenceCaution }] : []),
+    ];
 
     // 요약 통계 밴드의 예상차익/미래가치 — "사업성 분석" 섹션과 같은 계산(analysisApi.ts의 buildProfitAnalysis, 재계산 안 함).
     const profitAnalysis = analysis ? buildProfitAnalysis(analysis, selected?.householdCount ?? null, selected?.propertyType ?? null) : null;
@@ -137,8 +156,10 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                     <h3 className="report-header-address">{selected.address}</h3>
                                 </div>
                                 <div className="report-header-actions">
+                                    {/* 2026-08-1x 버그 수정(RightPanel.tsx와 동일) — GRADE_CLASS는 이제 grade
+                                        코드로 직접 키잉되므로 GRADE_LABEL 경유 없이 바로 조회. */}
                                     {analysis?.grade && (
-                                        <span className={`grade-badge ${GRADE_CLASS[GRADE_LABEL[analysis.grade]] ?? ""}`}>
+                                        <span className={`grade-badge ${GRADE_CLASS[analysis.grade] ?? ""}`}>
                                             {GRADE_LABEL[analysis.grade]}
                                         </span>
                                     )}
@@ -161,37 +182,63 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                     <h4 className="report-section-heading-title">요약 정보</h4>
                                 </div>
                                 <div className="report-stat-band">
+                                    {/* 2026-08-09 — 별도 "시세 신뢰도" 칸(6칸)은 취소, 투자등급 칸 안에 등급 크게 +
+                                        캡션으로 "신뢰도 {등급}" 작게 병기하는 5칸 구성으로 되돌림. priceConfidence는
+                                        추천여부(getRecommendation)와 같은 출처(postRemodelEstimatedPrice 기준,
+                                        재계산 안 함) — null이면(UNAVAILABLE) 캡션 생략. */}
                                     <div className="report-stat">
                                         <p className="report-stat-label">투자등급</p>
                                         <p className="report-stat-value">{analysis?.grade ? GRADE_LABEL[analysis.grade] : "-"}</p>
                                         <p className="report-stat-caption">
-                                            {analysisLoading ? "분석 중..." : analysis == null ? "정보 없음" : " "}
+                                            {analysisLoading
+                                                ? "분석 중..."
+                                                : analysis == null
+                                                  ? "정보 없음"
+                                                  : priceConfidence != null
+                                                    ? `신뢰도 ${priceConfidence}`
+                                                    : " "}
                                         </p>
                                     </div>
                                     <div className="report-stat">
                                         <p className="report-stat-label">예상차익</p>
+                                        {/* 2026-08-09: "추정치" 태그 제거, 대신 isLowConfidence(시세 신뢰도 D)면 범위
+                                            대신 중앙값 하나만 "약 N.N억"로 — 낮은 신뢰도로 산출한 넓은 범위를 그대로
+                                            보여주면 오히려 정밀해 보이는 착시가 있었다는 지적. */}
                                         <p className="report-stat-value">
                                             {profitAnalysis
-                                                ? `${formatEok(profitAnalysis.gainMin)} ~ ${formatEok(profitAnalysis.gainMax)}`
+                                                ? isLowConfidence
+                                                    ? `약 ${formatManwon((profitAnalysis.gainMin + profitAnalysis.gainMax) / 2)}`
+                                                    : `${formatManwon(profitAnalysis.gainMin)} ~ ${formatManwon(profitAnalysis.gainMax)}`
                                                 : "산출 불가"}
                                         </p>
-                                        <p className="report-stat-caption">{profitAnalysis ? "추정치" : " "}</p>
+                                        <p className="report-stat-caption"> </p>
                                     </div>
                                     <div className="report-stat">
                                         <p className="report-stat-label">미래가치</p>
-                                        <p className="report-stat-value">{profitAnalysis ? formatEok(profitAnalysis.value) : "산출 불가"}</p>
-                                        <p className="report-stat-caption">{profitAnalysis ? "추정치" : " "}</p>
+                                        <p className="report-stat-value">
+                                            {profitAnalysis
+                                                ? `${isLowConfidence ? "약 " : ""}${formatManwon(profitAnalysis.value)}`
+                                                : "산출 불가"}
+                                        </p>
+                                        <p className="report-stat-caption"> </p>
                                     </div>
                                     <div className="report-stat">
                                         <p className="report-stat-label">ROI</p>
+                                        {/* roi==null이면 backend stage != FULL(실측 확인) — "산정 중"은 곧 채워질 것처럼
+                                            오해를 줘서 "산출 불가"로 정정(§2.2, 2026-08-1x). 소수점 제거(2026-08-09,
+                                            ResultList/RightPanel과 동일 패턴) + isLowConfidence면 "약 " 접두. */}
                                         <p className="report-stat-value">
-                                            {analysisLoading ? "분석 중..." : analysis?.roi != null ? `${analysis.roi}%` : "산정 중"}
+                                            {analysisLoading
+                                                ? "분석 중..."
+                                                : analysis?.roi != null
+                                                  ? `${isLowConfidence ? "약 " : ""}${Math.round(analysis.roi)}%`
+                                                  : "산출 불가"}
                                         </p>
-                                        <p className="report-stat-caption">{!analysisLoading && analysis?.roi != null ? "추정치" : " "}</p>
+                                        <p className="report-stat-caption"> </p>
                                     </div>
                                     <div className="report-stat">
                                         <p className="report-stat-label">추천여부</p>
-                                        <p className="report-stat-value">{analysis?.grade ? RECOMMENDATION_LABEL[analysis.grade] : "-"}</p>
+                                        <p className="report-stat-value">{recommendation}</p>
                                         <p className="report-stat-caption"> </p>
                                     </div>
                                 </div>
@@ -233,6 +280,22 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                                     <li>해당 없음</li>
                                                 )}
                                             </ul>
+                                        </div>
+                                        {/* 2026-08-09 — "리포트 정보" 3번째 칸. 분석일자는 헤더 "최근 갱신"과 같은 값(analysis.updatedAt)을
+                                            새 계산 없이 그대로 재사용 — right-panel-fact-list 재사용이라 구분선·볼드체(2026-08-09
+                                            F-05 정정분)도 그대로 따라온다. */}
+                                        <div className="report-summary-col">
+                                            <p className="right-panel-ai-summary-label">리포트 정보</p>
+                                            <dl className="right-panel-fact-list">
+                                                <div>
+                                                    <dt>분석일자</dt>
+                                                    <dd>{analysis?.updatedAt ? formatUpdatedAt(analysis.updatedAt) : "-"}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt>데이터 출처</dt>
+                                                    <dd>건축물대장·실거래가·공시가격 등 공공데이터</dd>
+                                                </div>
+                                            </dl>
                                         </div>
                                     </div>
                                 )}

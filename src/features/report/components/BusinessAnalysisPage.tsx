@@ -1,5 +1,5 @@
 import { buildRemodelingChecklist, buildVerdictReason, VERDICT_LABEL } from "../../search/api/remodelingApi";
-import { ESTIMATED_AREA_TYPES, formatEok } from "../../search/api/searchApi";
+import { ESTIMATED_AREA_TYPES, formatCurrency } from "../../search/api/searchApi";
 import type { PropertyAnalysis } from "../../search/api/analysisApi";
 import GaugeBar from "../../../shared/components/common/GaugeBar";
 
@@ -11,10 +11,9 @@ interface BusinessAnalysisPageProps {
     householdCount: number | null;
 }
 
-// won(cost API 단위) → formatEok(만원 단위 포맷터, 1억 이상은 "N.NN억"으로 압축) 입력으로 환산. ㎡당·세대당처럼
-// 원래 작은 값(수백만원대)은 formatEok가 자동으로 formatSignedManwon에 위임해 "만원" 그대로 나온다(2026-08-1x
-// 사용자 피드백 — "평당 1000만원 이런건 만원단위로"). 헤드라인 범위(억대)와 같은 함수로 통일.
-const formatWon = (won: number): string => formatEok(Math.round(won / 10_000));
+// cost API 값은 원 단위라 formatCurrency를 직접 쓴다(2026-08-1x 금액 표시 전역 통일 — 만원 변환용 로컬 래퍼
+// 불필요, formatCurrency가 내부에서 억/만원 분기까지 전부 처리).
+const formatWon = formatCurrency;
 
 const COST_STATUS_MESSAGE: Record<string, string> = {
     NOT_APPLICABLE_REMODELING_NOT_POSSIBLE: "리모델링 불가로 공사비 산정 대상 아님",
@@ -78,7 +77,9 @@ const BusinessAnalysisPage = ({ analysis, loading, buildYear, propertyType, hous
                 구 "수익 분석"(F-07)에서 이동, 2026-08-1x 위계형 재배치. */}
             <section className="right-panel-card report-card-emphasis">
                 <h5 className="right-panel-card-title">
-                    예상 공사비<span className="right-panel-estimate-tag">추정치 — 실측 견적 아님</span>
+                    <span className="right-panel-estimate-anchor">
+                        예상 공사비<span className="right-panel-estimate-tag">추정치 — 실측 견적 아님</span>
+                    </span>
                 </h5>
                 {costDetail == null ? (
                     <p className="right-panel-field-note">{COST_STATUS_MESSAGE[cost.status] ?? "산출 불가"}</p>

@@ -1,4 +1,4 @@
-import { formatEok } from "../../search/api/searchApi";
+import { formatManwon } from "../../search/api/searchApi";
 import type { PropertyAnalysis } from "../../search/api/analysisApi";
 
 interface FutureValuePageProps {
@@ -39,21 +39,23 @@ const FutureValuePage = ({ analysis, loading }: FutureValuePageProps) => {
     return (
         <section className="right-panel-card">
             <h5 className="right-panel-card-title">
-                가치 시나리오<span className="right-panel-estimate-tag">추정치 — 실측 견적 아님</span>
+                <span className="right-panel-estimate-anchor">
+                    가치 시나리오<span className="right-panel-estimate-tag">추정치 — 실측 견적 아님</span>
+                </span>
             </h5>
             {showThreeWay ? (
                 <dl className="right-panel-fact-list">
                     <div>
                         <dt>보수적</dt>
-                        <dd>{formatEok(conservativeValue)}</dd>
+                        <dd>{formatManwon(conservativeValue)}</dd>
                     </div>
                     <div>
                         <dt>기준</dt>
-                        <dd>{formatEok(baseValue)}</dd>
+                        <dd>{formatManwon(baseValue)}</dd>
                     </div>
                     <div>
                         <dt>낙관적</dt>
-                        <dd>{formatEok(optimisticValue)}</dd>
+                        <dd>{formatManwon(optimisticValue)}</dd>
                     </div>
                 </dl>
             ) : (
@@ -61,7 +63,7 @@ const FutureValuePage = ({ analysis, loading }: FutureValuePageProps) => {
                     <dl className="right-panel-fact-list">
                         <div>
                             <dt>기준</dt>
-                            <dd>{formatEok(baseValue)}</dd>
+                            <dd>{formatManwon(baseValue)}</dd>
                         </div>
                     </dl>
                     <p className="right-panel-market-cell-aux">비교 거래가 적어 보수적·낙관적 범위는 생략(기준값만 표시)</p>

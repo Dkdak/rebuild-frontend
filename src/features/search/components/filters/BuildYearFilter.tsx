@@ -3,7 +3,8 @@ import Popover from "../../../../shared/components/common/Popover";
 import RangeSlider from "../../../../shared/components/common/RangeSlider";
 import type { SearchFilters } from "../../api/searchApi";
 
-// planning/rebuild/사용승인일.PNG 참고 — 준공 후 경과 연차 tick.
+// planning/rebuild/사용승인일.PNG 참고 — 준공 후 경과 연차 tick. 2026-08-1x: "50년" 추가(9개, 3열×3행) —
+// 마지막 tick만 위쪽이 열린 구간("~" 표시, 아래 렌더링 로직)이라 30년은 이제 닫힌 값, 50년이 새 열린 끝.
 const AGE_TICKS = [
     { label: "입주예정", years: 0 },
     { label: "2년", years: 2 },
@@ -13,6 +14,7 @@ const AGE_TICKS = [
     { label: "20년", years: 20 },
     { label: "25년", years: 25 },
     { label: "30년", years: 30 },
+    { label: "50년", years: 50 },
 ];
 const LAST_INDEX = AGE_TICKS.length - 1;
 const CURRENT_YEAR = new Date().getFullYear();
@@ -113,8 +115,9 @@ const BuildYearFilter = ({ filters, onApply }: BuildYearFilterProps) => {
     const triggerLabel = isFullRange ? "사용승인일" : rangeText;
 
     return (
-        <Popover label={triggerLabel} open={open} onToggle={() => setOpen((v) => !v)} onClose={handleClose}>
+        <Popover label={triggerLabel} open={open} onToggle={() => setOpen((v) => !v)} onClose={handleClose} width={260}>
             <div className="filter-popover-title">
+                <h6 className="filter-popover-heading">사용승인일</h6>
                 <button type="button" className="filter-popover-close" onClick={handleClose}>
                     ✕
                 </button>
@@ -129,7 +132,8 @@ const BuildYearFilter = ({ filters, onApply }: BuildYearFilterProps) => {
                 onChange={handleSliderChange}
             />
 
-            <div className="filter-preset-grid">
+            {/* 2026-08-1x: "50년" 추가로 9개 — 4열이면 마지막 줄에 1개만 남아 3열×3행으로 정리(filter-preset-grid-buildyear). */}
+            <div className="filter-preset-grid filter-preset-grid-buildyear">
                 {AGE_TICKS.map((tick, tickIndex) => {
                     // 이 지점이 확정된 범위 안에 들어가면 선택된 것으로 표시한다(포인트라 양끝 포함, §2.1-c).
                     const selected = !isFullRange && tickIndex >= confirmedMinIndex && tickIndex <= confirmedMaxIndex;
@@ -140,7 +144,7 @@ const BuildYearFilter = ({ filters, onApply }: BuildYearFilterProps) => {
                             className={`filter-preset-btn ${selected ? "filter-preset-btn-active" : ""}`}
                             onClick={() => handlePresetClick(tickIndex)}
                         >
-                            {/* 마지막 tick은 위쪽이 열려 있다 — 30년 이상(50년·100년 등 더 오래된 건물도 포함)임을 표시(§2.1-b). */}
+                            {/* 마지막 tick(50년)만 위쪽이 열려 있다 — 50년 이상(그보다 오래된 건물도 포함)임을 표시(§2.1-b). */}
                             {tickIndex === LAST_INDEX ? `${tick.label}~` : tick.label}
                         </button>
                     );
