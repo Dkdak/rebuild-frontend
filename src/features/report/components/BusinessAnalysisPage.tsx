@@ -1,191 +1,152 @@
-import { buildRemodelingChecklist, buildVerdictReason, VERDICT_LABEL } from "../../search/api/remodelingApi";
-import { ESTIMATED_AREA_TYPES, formatCurrency } from "../../search/api/searchApi";
-import type { PropertyAnalysis } from "../../search/api/analysisApi";
-import GaugeBar from "../../../shared/components/common/GaugeBar";
+import { formatManwon } from "../../search/api/searchApi";
+import { CONFIDENCE_LABEL_SHORT, CONFIDENCE_TONE } from "../../search/api/marketApi";
+import { buildProfitAnalysis, type PropertyAnalysis } from "../../search/api/analysisApi";
+import CashFlowFormula from "./CashFlowFormula";
+import SensitivityMatrix from "./SensitivityMatrix";
 
-interface BusinessAnalysisPageProps {
+interface ProfitAnalysisPageProps {
     analysis: PropertyAnalysis | null;
     loading: boolean;
-    buildYear: number | null;
-    propertyType: string | null;
     householdCount: number | null;
+    propertyType: string | null;
+    totalBuildingArea: number | null;
 }
 
-// cost API 값은 원 단위라 formatCurrency를 직접 쓴다(2026-08-1x 금액 표시 전역 통일 — 만원 변환용 로컬 래퍼
-// 불필요, formatCurrency가 내부에서 억/만원 분기까지 전부 처리).
-const formatWon = formatCurrency;
-
-const COST_STATUS_MESSAGE: Record<string, string> = {
-    NOT_APPLICABLE_REMODELING_NOT_POSSIBLE: "리모델링 불가로 공사비 산정 대상 아님",
-    NO_REFERENCE_RATE: "해당 유형 기준단가 없음, 추정 불가",
-    AREA_UNAVAILABLE: "산출 불가",
-};
-
-// FEATURE_10_AI_REPORT.md §2.3(2026-08-1x 재편, 구 "사업성 분석"): analysis.remodeling(F-06) + 공사비 카드
-// (구 "수익 분석"에서 이동, F-07) — 새 API 없음. 2026-08-1x: 5카드 균등 스택 → 위계형 배치(종합판정 배너 →
-// 예상 공사비 강조 카드 → "판단 근거" 소제목 아래 report-grid-3(게이지×2 + 세부 근거 표)).
-const BusinessAnalysisPage = ({ analysis, loading, buildYear, propertyType, householdCount }: BusinessAnalysisPageProps) => {
+// FEATURE_10_AI_REPORT.md §2.5(2026-08-1x 재편, 구 "수익 분석"): analysis.market.postRemodelEstimatedPrice(F-08 §3.7)만
+// 사용 — 재무 숫자만 다룬다. 공사비 카드는 "05 리모델링 분석"으로 이동, 여기선 이미 계산된 cost.min/maxCost만 참조.
+// 2026-08-1x: 세로 스택 4카드 → report-grid-3 가로 3열(좌 사업성 요약/중 현금흐름/우 민감도분석)로 재구성.
+const ProfitAnalysisPage = ({ analysis, loading, householdCount, propertyType, totalBuildingArea }: ProfitAnalysisPageProps) => {
     if (loading) {
         return <p className="right-panel-field-note">조회 중...</p>;
     }
-    if (analysis?.remodeling == null) {
+    if (analysis == null) {
         return <p className="right-panel-field-note">정보 없음</p>;
     }
 
-    const { remodeling, cost } = analysis;
-    const { basis } = remodeling;
-    const checklist = buildRemodelingChecklist(basis);
-    const reason = buildVerdictReason(remodeling.verdict, checklist);
+    const { cost, market } = analysis;
+    const postRemodel = market.postRemodelEstimatedPrice;
 
-    // §2.3 item 3 "용적률 게이지" — API에 현재 용적률 필드가 없어 법정상한-여유로 역산(FEATURE_07_COST.md §2.1과 동일 근거).
-    const currentFar =
-        basis.floorAreaRatioLimit != null && basis.floorAreaRatioSurplus != null
-            ? basis.floorAreaRatioLimit - basis.floorAreaRatioSurplus
+    // §3.7 "사업성 요약"·현금흐름·민감도분석이 공유하는 계산(analysisApi.ts의 buildProfitAnalysis, 재계산 안 함).
+    const profitAnalysis = buildProfitAnalysis(analysis, householdCount, propertyType, totalBuildingArea);
+
+    // "예상 리모델링 비용(적정)" — 기준 공사비는 API에 없어 연면적×기준단가×agingFactorDefault로 직접 계산
+    // (F-07 §3.2 산식 그대로). 사업성 요약 표 2행과 민감도분석 "기준" 열이 같은 값을 공유(재계산 안 함).
+    const remodelCostBase =
+        cost.status === "AVAILABLE" && cost.basis != null
+            ? Math.round((cost.basis.grossFloorArea * cost.basis.baseUnitPricePerSqm * cost.basis.agingFactorDefault) / 10_000)
             : null;
-    const farPercent = currentFar != null && basis.floorAreaRatioLimit ? (currentFar / basis.floorAreaRatioLimit) * 100 : 0;
 
-    const isHouseholdBased = propertyType != null && ESTIMATED_AREA_TYPES.includes(propertyType);
-    // null이 아님을 별도 변수로 묶어 아래 JSX에서 non-null assertion(!) 없이 쓴다(analysisApi.ts의
-    // buildProfitAnalysis류 "조건 충족 시에만 값 있는 객체" 관례와 동일).
-    const costDetail =
-        cost.status === "AVAILABLE" && cost.minCost != null && cost.maxCost != null && cost.basis != null
-            ? { minCost: cost.minCost, maxCost: cost.maxCost, basis: cost.basis }
+    // 민감도분석 — 공사비축(최소/기준/최대) × 매도가축(보수적/기준/낙관적). "매도가" 시나리오는 postRemodel(미래/exit
+    // price) 기준이라야 한다 — market.estimatedPrice의 conservativeValue/optimisticValue는 "현재가" 시나리오라
+    // 다른 개념(비세대기반 유형은 실제로 값이 다름, §2.6 정정).
+    const sensitivity =
+        profitAnalysis != null &&
+        cost.status === "AVAILABLE" &&
+        cost.minCost != null &&
+        cost.maxCost != null &&
+        remodelCostBase != null &&
+        postRemodel?.conservativeValue != null &&
+        postRemodel.optimisticValue != null
+            ? {
+                  buyPrice: profitAnalysis.baseValue,
+                  costs: [Math.round(cost.minCost / 10_000), remodelCostBase, Math.round(cost.maxCost / 10_000)] as [
+                      number,
+                      number,
+                      number,
+                  ],
+                  sellPrices: [postRemodel.conservativeValue, profitAnalysis.value, postRemodel.optimisticValue] as [
+                      number,
+                      number,
+                      number,
+                  ],
+              }
             : null;
 
     return (
-        <>
-            {/* 1. 헤더 — verdict 배지+판정 사유(F-05/요약 페이지와 동일 로직). 섹션 타이틀은 ReportPage의 번호 헤딩이
-                이미 "리모델링 분석"으로 보여주므로 여기서는 반복하지 않고 더 구체적인 라벨을 쓴다. */}
+        <div className="report-grid-3">
+            {/* 1. 사업성 요약 — 구 "리모델링 후 예상 시세"(Exit Price)/"수익분석" 카드 병합, 6행 표(§2.5) */}
             <section className="right-panel-card">
-                <div className="right-panel-card-header">
-                    <h5 className="right-panel-card-title">종합 판정</h5>
-                    <span
-                        className={`right-panel-verdict-badge right-panel-verdict-${remodeling.verdict.toLowerCase().replace("_", "-")}`}
-                    >
-                        {VERDICT_LABEL[remodeling.verdict]}
-                    </span>
-                </div>
-                {reason && (
-                    <>
-                        <hr className="right-panel-card-divider" />
-                        <p className="right-panel-verdict-reason">{reason}</p>
-                    </>
-                )}
-            </section>
-
-            {/* 2. 예상 공사비 — 강조 카드(위계 상 종합판정 다음으로 중요), 좌(헤드라인)/우(산출 근거 표) 2단.
-                구 "수익 분석"(F-07)에서 이동, 2026-08-1x 위계형 재배치. */}
-            <section className="right-panel-card report-card-emphasis">
-                <h5 className="right-panel-card-title">
-                    <span className="right-panel-estimate-anchor">
-                        예상 공사비<span className="right-panel-estimate-tag">추정치 — 실측 견적 아님</span>
-                    </span>
-                </h5>
-                {costDetail == null ? (
-                    <p className="right-panel-field-note">{COST_STATUS_MESSAGE[cost.status] ?? "산출 불가"}</p>
+                <h5 className="right-panel-card-title">사업성 요약</h5>
+                {profitAnalysis == null ? (
+                    <p className="right-panel-field-note">산출 불가</p>
                 ) : (
-                    <div className="report-cost-split">
-                        <div className="report-cost-split-headline">
-                            <p className="right-panel-market-cell-value">
-                                {formatWon(costDetail.minCost)} ~ {formatWon(costDetail.maxCost)}
-                            </p>
-                            <p className="right-panel-market-cell-aux">
-                                {householdCount != null && isHouseholdBased
-                                    ? `세대당 약 ${formatWon(costDetail.minCost / householdCount)} ~ ${formatWon(costDetail.maxCost / householdCount)} · `
-                                    : ""}
-                                ㎡당 약 {formatWon(costDetail.minCost / costDetail.basis.grossFloorArea)} ~{" "}
-                                {formatWon(costDetail.maxCost / costDetail.basis.grossFloorArea)}
-                            </p>
-                        </div>
-                        <dl className="right-panel-fact-list report-cost-split-table">
-                            <div>
-                                <dt>연면적</dt>
-                                <dd>{costDetail.basis.grossFloorArea}㎡</dd>
-                            </div>
-                            <div>
-                                <dt>기준단가</dt>
-                                <dd>{costDetail.basis.baseUnitPricePerSqm.toLocaleString()}원/㎡</dd>
-                            </div>
-                            <div>
-                                <dt>노후도 보정계수</dt>
-                                <dd>
-                                    {costDetail.basis.agingFactorMin.toFixed(2)} ~ {costDetail.basis.agingFactorMax.toFixed(2)}
-                                </dd>
-                            </div>
-                        </dl>
-                    </div>
-                )}
-            </section>
-
-            {/* 3. 판단 근거 — 게이지 2개(상대적으로 작은 카드) + 세부 근거 표, report-grid-3(기본정보와 같은 클래스 재사용) */}
-            <p className="report-subsection-title">판단 근거</p>
-            <div className="report-grid-3">
-                <section className="right-panel-card">
-                    <h5 className="right-panel-card-title">노후도 달성률</h5>
-                    {basis.buildingAgeYears != null && basis.requiredYears != null ? (
-                        <GaugeBar
-                            label={`건축연수 ${basis.buildingAgeYears}년 / 필요연한 ${basis.requiredYears}년`}
-                            percent={remodeling.score ?? 0}
-                            tone={checklist.aging.ok ? "success" : "warning"}
-                            caption={`달성률 ${remodeling.score ?? 0}% · ${basis.zoneName ?? "용도지역 미상"} 기준 필요연수 ${checklist.aging.ok ? "충족" : "미달"}`}
-                        />
-                    ) : (
-                        <p className="right-panel-field-note">정보 없음</p>
-                    )}
-                </section>
-
-                <section className="right-panel-card">
-                    <h5 className="right-panel-card-title">용적률 활용도</h5>
-                    {currentFar != null && basis.floorAreaRatioLimit != null ? (
-                        <GaugeBar
-                            label={`${currentFar.toFixed(2)}% / ${basis.floorAreaRatioLimit}%`}
-                            percent={farPercent}
-                            tone="neutral"
-                            caption={`여유 ${basis.floorAreaRatioSurplus}%p · 증축가능면적 약 ${basis.additionalBuildableAreaSqm ?? "?"}㎡ · 법정 상한 기준(완화 전)`}
-                        />
-                    ) : (
-                        <p className="right-panel-field-note">정보 없음</p>
-                    )}
-                </section>
-
-                <section className="right-panel-card">
-                    <h5 className="right-panel-card-title">세부 근거</h5>
                     <dl className="right-panel-fact-list">
                         <div>
-                            <dt>용도지역</dt>
-                            <dd>{basis.zoneName ?? "정보 없음"}</dd>
+                            <dt>현재가치(매입 예상가)</dt>
+                            <dd>{formatManwon(profitAnalysis.baseValue)}</dd>
                         </div>
                         <div>
-                            <dt>최근 인허가</dt>
+                            <dt>예상 리모델링 비용</dt>
+                            <dd>{remodelCostBase != null ? formatManwon(remodelCostBase) : "산출 불가"}</dd>
+                        </div>
+                        <div>
+                            <dt>총 투자금</dt>
                             <dd>
-                                {basis.recentPermitType
-                                    ? `${basis.recentPermitType}${basis.recentPermitDate ? ` (${basis.recentPermitDate})` : ""}`
-                                    : "없음"}
+                                {formatManwon(profitAnalysis.investMin)} ~ {formatManwon(profitAnalysis.investMax)}
                             </dd>
                         </div>
                         <div>
-                            <dt>건물 나이</dt>
+                            <dt>미래가치</dt>
                             <dd>
-                                {basis.buildingAgeYears != null
-                                    ? `${basis.buildingAgeYears}년${buildYear != null ? `(준공 ${buildYear}년)` : ""}`
-                                    : "정보 없음"}
+                                {formatManwon(profitAnalysis.value)}
+                                {postRemodel?.confidenceLevel != null && postRemodel.confidenceLevel !== "UNAVAILABLE" && (
+                                    <span
+                                        className={`report-tone-badge report-tone-badge-${CONFIDENCE_TONE[postRemodel.confidenceLevel]}`}
+                                        style={{ marginLeft: 6 }}
+                                    >
+                                        {/* 전 구간 공통(2026-08-10) — 자리 여부와 무관하게 짧은 라벨만 사용, 범례는 "시장 분석" 섹션에 한 번만 */}
+                                        {CONFIDENCE_LABEL_SHORT[postRemodel.confidenceLevel]}
+                                    </span>
+                                )}
+                                <span className="right-panel-market-cell-aux"> 비교 거래 {postRemodel?.comparableCount ?? 0}건</span>
                             </dd>
                         </div>
                         <div>
-                            <dt>예상 세대 증가</dt>
+                            <dt>예상 차익</dt>
                             <dd>
-                                {!isHouseholdBased
-                                    ? "해당 없음"
-                                    : basis.estimatedAdditionalHouseholds != null
-                                      ? `${basis.estimatedAdditionalHouseholds}세대`
-                                      : "정보 없음"}
+                                {formatManwon(profitAnalysis.gainMin)} ~ {formatManwon(profitAnalysis.gainMax)}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt>예상 수익률(ROI)</dt>
+                            <dd>
+                                {profitAnalysis.roiMin.toFixed(1)}% ~ {profitAnalysis.roiMax.toFixed(1)}%
                             </dd>
                         </div>
                     </dl>
-                </section>
-            </div>
-        </>
+                )}
+            </section>
+
+            {/* 2. 현금흐름 — 매입가+공사비=총투자금, 매도가-총투자금=예상차익 산식 그대로(같은 profitAnalysis 재사용).
+                막대 비교(구 CashFlowWaterfall)는 매도가가 다른 항목을 압도해 해석이 안 됐다(사용자 피드백
+                2026-08-1x) — 산식 흐름으로 교체. */}
+            <section className="right-panel-card">
+                <h5 className="right-panel-card-title">현금흐름</h5>
+                {profitAnalysis == null ? (
+                    <p className="right-panel-field-note">산출 불가</p>
+                ) : (
+                    <CashFlowFormula
+                        buyPrice={profitAnalysis.baseValue}
+                        costMin={Math.round((cost.minCost ?? 0) / 10_000)}
+                        costMax={Math.round((cost.maxCost ?? 0) / 10_000)}
+                        sellPrice={profitAnalysis.value}
+                        gainMin={profitAnalysis.gainMin}
+                        gainMax={profitAnalysis.gainMax}
+                    />
+                )}
+            </section>
+
+            {/* 3. 민감도 분석 — 공사비×매도가 3×3, 새 API 없이 프론트에서 재계산(§2.5) */}
+            <section className="right-panel-card">
+                <h5 className="right-panel-card-title">민감도 분석</h5>
+                {sensitivity == null ? (
+                    <p className="right-panel-field-note">산출 불가</p>
+                ) : (
+                    <SensitivityMatrix buyPrice={sensitivity.buyPrice} costs={sensitivity.costs} sellPrices={sensitivity.sellPrices} />
+                )}
+            </section>
+        </div>
     );
 };
 
-export default BusinessAnalysisPage;
+export default ProfitAnalysisPage;
