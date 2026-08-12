@@ -1,6 +1,6 @@
 import { apiClient } from "../../../shared/api/apiClient";
-import type { RemodelingVerdict } from "./remodelingApi";
-import type { EstimatedPrice } from "./marketApi";
+import type { RemodelingVerdict } from "../../remodeling/api/remodelingApi";
+import type { EstimatedPrice } from "../../market/api/marketApi";
 
 // ===== 실제 백엔드 연동 (F-04_SEARCH.md §3.1) =====
 
@@ -37,9 +37,10 @@ export interface PropertyItem {
     lng: number | null;
     grade: string | null;
     roi: number | null;
-    // 2026-08-09 백엔드 배포 완료 후에도 필드 자체는 유지(F-05 RightPanel.tsx "최근 실거래가" 행이 계속 사용) —
-    // 카드(ResultList.tsx) 3번째 줄만 estimatedPrice로 교체(FEATURE_04_SEARCH.md §2.1-h item 5/8).
-    recentTrade: RecentTrade | null;
+    // 2026-08-10 — 백엔드가 이 리스트 응답에서 recentTrade 필드 자체를 제거(매매 가능 건물의 11.5%에만 존재할
+    // 정도로 커버리지가 희박하고, 카드 3번째 줄도 이미 estimatedPrice를 쓰고 있어 리스트에서는 안 쓰이고
+    // 있었다는 근거). F-05 RightPanel.tsx "최근 실거래가" 행은 buildingApi.ts BuildingDetail.recentTrade
+    // (건물 단건 조회, 이 API는 영향 없음)로 소스를 옮겼다 — 아래 참고.
     // 카드 2줄(등급+리모델링 가능여부 배지, 2026-08-1x 3줄 재정리) — F-06 verdict 그대로(실측 확인, 새 계산 없음).
     remodelingVerdict: RemodelingVerdict | null;
     // FEATURE_04_SEARCH.md §2.1-h item 5(2026-08-09 백엔드 구현 완료) — F-08 `.../market` 응답의 estimatedPrice와

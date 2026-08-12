@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearch } from "../../search/context/SearchContext";
 import { formatManwon, GRADE_CLASS } from "../../search/api/searchApi";
-import { buildRemodelingChecklist, remodelingChecklistItems } from "../../search/api/remodelingApi";
+import { buildRemodelingChecklist, remodelingChecklistItems } from "../../remodeling/api/remodelingApi";
 import {
     buildProfitAnalysis,
     buildRiskChecklist,
@@ -13,12 +13,12 @@ import {
     priceConfidenceFromLevel,
     priceConfidenceTone,
     type PropertyAnalysis,
-} from "../../search/api/analysisApi";
+} from "../../investment/api/analysisApi";
 import BasicInfoPage from "./BasicInfoPage";
 import LocationPage from "./LocationPage";
-import MarketAnalysisPage from "./MarketAnalysisPage";
+import MarketAnalysisPage from "../../market/components/MarketAnalysisPage";
+import RemodelingAnalysisPage from "./RemodelingAnalysisPage";
 import BusinessAnalysisPage from "./BusinessAnalysisPage";
-import ProfitAnalysisPage from "./ProfitAnalysisPage";
 import FutureValuePage from "./FutureValuePage";
 import AIOpinionPage from "./AIOpinionPage";
 import ReferencePage from "./ReferencePage";
@@ -378,13 +378,15 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                 <MarketAnalysisPage analysis={analysis} loading={analysisLoading} area={selected.area} />
                             </div>
 
-                            {/* 5. 리모델링 분석 — 구 "사업성 분석"(BusinessAnalysisPage) 개명, 공사비 카드 흡수 */}
+                            {/* 5. 리모델링 분석 — 구 "사업성 분석"(BusinessAnalysisPage) 개명, 공사비 카드 흡수.
+                                2026-08-10 재개명: 파일명이 화면명과 안 맞아 BusinessAnalysisPage.tsx → RemodelingAnalysisPage.tsx로
+                                정정(guide/DIRECTORY_RESTRUCTURE.md §1.4). */}
                             <div id="report-section-remodeling" className="report-section">
                                 <div className="report-section-heading">
                                     <span className="report-section-heading-number">05</span>
                                     <h4 className="report-section-heading-title">리모델링 분석</h4>
                                 </div>
-                                <BusinessAnalysisPage
+                                <RemodelingAnalysisPage
                                     analysis={analysis}
                                     loading={analysisLoading}
                                     buildYear={selected.buildYear}
@@ -393,13 +395,15 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                 />
                             </div>
 
-                            {/* 6. 사업성 분석 — 구 "수익 분석"(ProfitAnalysisPage) 내용 재정의, 공사비는 05로 이동·민감도분석 신규 */}
+                            {/* 6. 사업성 분석 — 구 "수익 분석"(ProfitAnalysisPage) 내용 재정의, 공사비는 05로 이동·민감도분석 신규.
+                                2026-08-10 재개명: ProfitAnalysisPage.tsx → BusinessAnalysisPage.tsx(위 05가 그 이름을 내주고
+                                떠나 재사용 가능해짐, guide/DIRECTORY_RESTRUCTURE.md §1.4). */}
                             <div id="report-section-viability" className="report-section">
                                 <div className="report-section-heading">
                                     <span className="report-section-heading-number">06</span>
                                     <h4 className="report-section-heading-title">사업성 분석</h4>
                                 </div>
-                                <ProfitAnalysisPage
+                                <BusinessAnalysisPage
                                     analysis={analysis}
                                     loading={analysisLoading}
                                     householdCount={selected.householdCount}

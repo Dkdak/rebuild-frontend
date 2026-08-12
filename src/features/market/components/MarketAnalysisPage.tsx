@@ -5,9 +5,9 @@ import {
     MATCH_STAGE_LEVEL,
     type ComparableTrade,
     type ConfidenceLevel,
-} from "../../search/api/marketApi";
+} from "../api/marketApi";
 import { formatManwon } from "../../search/api/searchApi";
-import type { PropertyAnalysis } from "../../search/api/analysisApi";
+import type { PropertyAnalysis } from "../../investment/api/analysisApi";
 import PriceTrendChart from "./PriceTrendChart";
 
 interface MarketAnalysisPageProps {

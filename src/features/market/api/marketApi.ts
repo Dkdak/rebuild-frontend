@@ -1,4 +1,4 @@
-import type { RecentTrade } from "./searchApi";
+import type { RecentTrade } from "../../search/api/searchApi";
 
 // FEATURE_08_MARKET.md §3.6: 백엔드 구현 완료(2026-08-08). 값 단위 전부 만원 — 단 landPrice(개별공시지가)만
 // 예외로 원/㎡ 단가 그대로(총액이 아니라 단가라는 의미 자체가 달라서 환산하지 않음, §3.6 "단위 주의").

@@ -1,4 +1,4 @@
-import RightPanel from "./RightPanel";
+import RightPanel from "../../../shared/components/layout/RightPanel";
 
 interface DetailBottomSheetProps {
     open: boolean;
