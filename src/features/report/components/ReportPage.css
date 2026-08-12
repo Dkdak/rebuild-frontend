@@ -263,6 +263,11 @@
     margin-bottom: 0;
 }
 
+/* "판단 근거" 3카드 하단 출처 캡션(2026-08-10) — right-panel-field-note 기본 마진 위에 카드 본문과의 간격만 추가. */
+.report-basis-caption {
+    margin-top: 8px;
+}
+
 /* "기본 정보" 섹션 3단(§2.1-b 재구성, 레퍼런스 참고) — 좌측 핵심 지표 / 중앙 대지 도면 / 우측 건축물대장 요약 */
 .report-grid-3 {
     display: grid;
@@ -273,6 +278,50 @@
 
 .report-grid-3 > .right-panel-card {
     margin-bottom: 0;
+}
+
+/* 2026-08-10 — "06 사업성 분석" 5카드 문서 확정(FEATURE_10_AI_REPORT.md §2.5, BusinessAnalysisPage.tsx):
+   윗줄 3등분(사업성요약/현금흐름/손익분기 및 목표 수익률), 아랫줄 2등분(비교 거래/민감도 분석). 이전
+   비대칭 레이아웃(report-grid-3-asym)을 대체 — 문서에 명시된 그대로 두 그리드로 분리, span 없음.
+   min-width:0은 그대로 유지(넓은 표를 담은 칸이 min-content로 트랙을 밀어내는 것 방지, 실측으로 확인된
+   문제). 데스크톱 전용 — 모바일(≤768px) 1열 전환은 다음 라운드. */
+.report-grid-3-even {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.report-grid-3-even > .right-panel-card {
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+.report-grid-2-even {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.report-grid-2-even > .right-panel-card {
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+/* 설명 각주 공통 규칙(§2.5) — 행 라벨 옆엔 아이콘만(숫자 매김 없음), 설명 전체는 카드 맨 아래 순서로
+   대응해 모아서 나열. right-panel-info-note(아이콘+accent 박스)를 한 줄씩 이어붙인다. */
+.report-card-footnotes {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.report-row-label-icon {
+    margin-left: 4px;
+    color: var(--accent);
+    font-size: 12px;
+    cursor: default;
 }
 
 /* 대지 도면 — SitePolygonDiagram.tsx가 gis_building.polygonGeojson으로 그린 SVG를 담는 자리(2026-08-1x 구현). */
@@ -293,20 +342,76 @@
 
 /* 예상 공사비 카드 내부 좌(헤드라인)/우(산출 근거 표) 2단 — "지금처럼 캡션 한 줄에 다 욱여넣지 말고 표로
    분리"(사용자 피드백 2026-08-1x). 좁은 화면에서는 위아래로 쌓는다(하단 반응형 규칙). */
+/* 2026-08-10 — flex 좌우배치에서 grid 1fr 1fr로 교체(gap도 24→12px) — 상단 "종합 판정"/"판정 사유 요약"
+   그리드(report-verdict-row)와 같은 비율·간격을 써서, 세로로 봤을 때 두 그리드의 분할선이 같은 x좌표에
+   오게 맞춘다(사용자 지적). */
 .report-cost-split {
-    display: flex;
-    gap: 24px;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
 }
 
+/* 2026-08-10 세 번째 정정 — space-between으로 3개 자식 간격을 24px씩 균등 배분했더니, 이번엔 금액↔㎡당 값처럼
+   원래 붙어있어야 할 두 줄까지 24px나 벌어져 어색하다는 지적(실측: "너무 멀다"). 균등 배분 대신 금액·㎡당 값은
+   자연스러운 간격으로 붙이고, 안내문구(report-cost-note)에만 margin-top:auto를 줘서 그것만 카드 하단까지
+   밀려나게 한다 — 오른쪽 표(space-between 유지, 애초에 행마다 자체 margin이 없어 문제 없었음)와는 다른
+   방식이 필요했다. */
 .report-cost-split-headline {
-    flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 2026-08-10 — right-panel-market-cell-aux는 F-05 좁은 사이드바 dd 정렬 기준(오른쪽 정렬)이 기본값인데,
+   여기(예상 공사비 헤드라인)는 위 큰 숫자(right-panel-market-cell-value, 정렬 지정 없음=왼쪽)와 세로로 붙어
+   있어 오른쪽으로 튀어 보인다 — MarketAnalysisPage.tsx에서 이미 한 번 겪은 것과 같은 원인. 이 카드 안에서만
+   왼쪽 정렬로 되돌린다(원본 클래스는 F-05 쪽 다른 소비처에 영향 없이 그대로 둠). margin은 자연스러운 줄
+   간격(6px)만 — 위 report-cost-amount(10px, 제목과의 간격)보다 좁게, 서로 다른 성격의 간격이라 값도 다르다. */
+.report-cost-split-headline .right-panel-market-cell-aux {
+    margin: 6px 0 0;
+    text-align: left;
 }
 
 .report-cost-split-table {
-    flex: 1;
     min-width: 0;
+    border-left: 0.5px solid var(--border);
+    padding-left: 16px;
+    display: flex;
+    flex-direction: column;
+    /* 2026-08-10 정정 — center로 4행을 뭉쳐놨더니 위아래로 빈 공간이 생겨 "휑해 보인다"는 지적(스크린샷
+       비교) — space-between으로 첫 행(연면적)은 맨 위, 마지막 행(노후도 보정계수)은 맨 아래까지 채운다. */
+    justify-content: space-between;
+}
+
+/* 2026-08-10 버그 수정 — right-panel-market-cell-value(F-05용 소형 클래스, 14px)를 이 카드(종합판정 배너
+   다음으로 중요한 수치)에 그대로 썼던 게 문제였다는 지적. report-stat-value(요약 정보 투자등급 칸)와 같은
+   20px/800으로 전용 클래스 신설 — 그 이상 키우면 투자등급보다 커져 위계가 뒤집힌다. right-panel-market-cell-value
+   자체는 F-05 다른 소비처가 있어 그대로 두고, 이 카드에서만 교체. */
+/* 2026-08-10 — 제목("예상 공사비")과의 간격이 0px였다는 지적. 오른쪽 표 각 행이 padding:4px 0으로 위아래
+   숨쉴 틈을 만드는 것과 비슷한 정도로 맞춘다(margin-top 10px ≈ 행 padding 4+4px보다 조금 넉넉하게). */
+.report-cost-amount {
+    margin: 10px 0 0;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-h);
+}
+
+/* 2026-08-10 추가 — 헤드라인 열 하단 빈 공간을 채우는 안내문구. GaugeBar의 gauge-bar-note(common.css)와 같은
+   시각 언어(ⓘ + accent 톤 박스)를 재사용 — 이 카드는 GaugeBar를 안 써서 별도 클래스로 복제. */
+.report-cost-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    /* margin-top:auto — flex 세로 컨테이너(report-cost-split-headline)에서 이 항목 위의 남는 공간을 전부
+       흡수해 카드 하단까지 밀어낸다. 금액·㎡당 값은 자연스러운 간격(6px)으로 붙어있고 이 줄만 아래로
+       떨어지는 방식(2026-08-10 세 번째 정정, space-between 균등배분 대신). */
+    margin: auto 0 0;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    background: var(--accent-bg);
+    color: var(--accent);
 }
 
 /* 카드 사이에 끼는 소제목(카드 자체가 아니라 report-grid-3 그룹 전체를 소개하는 라벨) — "판단 근거"용.
@@ -595,6 +700,15 @@ dl.right-panel-fact-list.report-fact-grid dd {
     color: var(--text-muted);
 }
 
+/* 2026-08-10 — 축값 옆 편차 %(고정 ±10%/±20% 대신 매물의 실제 축값 기준 동적 계산, SensitivityMatrix.tsx
+   variancePercent). opacity로 더 흐리게 하지 않는다(이 세션에서 막은 패턴, stylelint 게이트 대상) — 폰트
+   크기도 12px 최소 정책 그대로, 색만 var(--text-muted)로 금액(위 줄)과 구분. */
+.report-sensitivity-axis-variance {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
 .report-sensitivity-positive {
     color: #16a34a;
 }
@@ -620,11 +734,20 @@ dl.right-panel-fact-list.report-fact-grid dd {
     flex-direction: column;
 }
 
+/* 2026-08-10 — 행 gap 확대(§2.5 문서 확정, 3px→8px). */
 .report-cashflow-flow-row {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    padding: 3px 0;
+    padding: 8px 0;
+}
+
+/* 2026-08-10 — 아이콘(●) 제거됐지만 space-between이 [좌: 라벨] vs [우: 값] 2단을 유지하려면 좌측을 그룹핑하는
+   wrapper는 그대로 필요(CashFlowFormula.tsx FlowRow 참고). */
+.report-cashflow-flow-row-left {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
 }
 
 .report-cashflow-flow-label {
@@ -648,8 +771,12 @@ dl.right-panel-fact-list.report-fact-grid dd {
 
 .report-cashflow-flow-row-total {
     border-top: 1px dashed var(--border);
+    /* 2026-08-10 — "총 투자금" 행 아래에도 구분선 추가(§2.5 문서 확정) — 아이콘이 빠지며 시각적 무게가
+       줄어든 만큼 위아래 테두리로 "산식의 소계"라는 걸 더 분명히 표시. */
+    border-bottom: 1px solid var(--border);
     margin-top: 2px;
     padding-top: 6px;
+    padding-bottom: 6px;
 }
 
 .report-cashflow-flow-row-total .report-cashflow-flow-value {
@@ -766,7 +893,12 @@ dl.right-panel-fact-list.report-fact-grid dd {
     }
 
     .report-cost-split {
-        flex-direction: column;
+        grid-template-columns: 1fr;
+    }
+
+    .report-cost-split-table {
+        border-left: none;
+        padding-left: 0;
     }
 }
 
