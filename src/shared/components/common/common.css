@@ -259,15 +259,48 @@
 }
 
 .gauge-bar-label {
-    margin: 0 0 4px;
+    margin: 0 0 8px;
     font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* 2026-08-10 목업 반영 — 라벨 아래 큰 강조 숫자("97%"/"628.75%p 여유"). tone별 색상은 아래 게이지 바 색과 맞춘다
+   (neutral은 특별한 강조색이 없어 기본 헤딩색 그대로). */
+.gauge-bar-value {
+    margin: 0 0 6px;
+    font-size: 22px;
+    font-weight: 600;
     color: var(--text-h);
 }
 
+.gauge-bar-value-warning {
+    color: var(--text-warning, #854f0b);
+}
+
+.gauge-bar-value-success {
+    color: #16a34a;
+}
+
+@media (prefers-color-scheme: dark) {
+    .gauge-bar-value-warning {
+        color: #fbbf24;
+    }
+    .gauge-bar-value-success {
+        color: #4ade80;
+    }
+}
+
+/* bigValue에 "여유"처럼 더 작은 보조 단어를 같이 넣을 때(예: <>628.75%p <span className="gauge-bar-value-suffix">여유</span></>) */
+.gauge-bar-value-suffix {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: 4px;
+}
+
 .gauge-bar-track {
-    height: 8px;
+    height: 6px;
     background: var(--code-bg);
-    border: 1px solid var(--border);
     border-radius: 999px;
     overflow: hidden;
 }
@@ -299,8 +332,63 @@
     }
 }
 
-.gauge-bar-caption {
-    margin: 4px 0 0;
+/* invertFill 전용(현재는 용적률 카드만) — 트랙 자체를 tone색으로 꽉 채우고, "사용된" 구간만 배경색으로 덮어써서
+   "채워진 파란 부분 = 여유"로 읽히게 한다(목업 원본 그대로, 일반 fill과 시각 의미가 반대). */
+.gauge-bar-track-filled-neutral {
+    background: var(--accent);
+}
+
+.gauge-bar-fill-inverse {
+    height: 100%;
+    background: var(--code-bg);
+    border-radius: 999px;
+}
+
+/* 노후도 카드 전용 — checklist.aging.text를 tone색 배지로 강조(2026-08-10 목업). 원본은 11px였지만 이 세션
+   초반에 정한 12px 최소 가독성 정책 위반이라 12px로 올림(다른 report-tone-badge류와 동일 조정). */
+.gauge-bar-reason-badge {
+    display: inline-block;
+    margin: 8px 0 0;
+    padding: 4px 8px;
+    border-radius: 6px;
     font-size: 12px;
-    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.gauge-bar-reason-badge-warning {
+    background: var(--bg-warning, #faeeda);
+    color: var(--text-warning, #854f0b);
+}
+
+.gauge-bar-reason-badge-success {
+    background: var(--bg-success, #eaf3de);
+    color: var(--text-success, #27500a);
+}
+
+@media (prefers-color-scheme: dark) {
+    .gauge-bar-reason-badge-warning {
+        background: rgba(251, 191, 36, 0.15);
+        color: #fbbf24;
+    }
+    .gauge-bar-reason-badge-success {
+        background: rgba(74, 222, 128, 0.15);
+        color: #4ade80;
+    }
+}
+
+/* 2026-08-10 추가 — "정보"성 부연설명(용적률 카드의 여유면적 설명 등)을 경고/성공 배지와 같은 박스형 톤으로
+   맞춘다(사용자 지적: 정보인 경우도 아이콘·박스가 있어야 눈에 띈다). 이 프로젝트의 기존 파란 accent 토큰
+   재사용(별도 info 색 새로 안 만듦) — --accent/--accent-bg는 이미 index.css에 실토큰으로 있어 success/warning
+   배지처럼 fallback 리터럴이 필요 없다(다크모드 값도 이미 보유). */
+.gauge-bar-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 8px 0 0;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    background: var(--accent-bg);
+    color: var(--accent);
 }

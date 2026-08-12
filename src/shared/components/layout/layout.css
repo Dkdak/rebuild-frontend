@@ -931,6 +931,22 @@
     color: var(--text-muted);
 }
 
+/* 2026-08-10 추가 — "총 투자금" 등 fact-list 행에 안내문구를 붙일 때, 그냥 right-panel-field-note만 쓰면 그
+   행이 감싸인 부모(.right-panel-fact-list > div)의 flex+border-bottom을 그대로 물려받아 평범한 표 행처럼
+   보인다는 지적(스크린샷) — report-cost-note/gauge-bar-note와 같은 아이콘+accent 톤 박스로 시각적으로
+   구분되게 한다. 셋 다 같은 시각 언어를 쓰지만 위치(F-10 여러 카드)가 달라 공용 이름으로 새로 둠. */
+.right-panel-info-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    background: var(--accent-bg);
+    color: var(--accent);
+}
+
 .right-panel-fact-list {
     margin: 0;
     display: flex;
@@ -949,6 +965,33 @@
 
 .right-panel-fact-list > div:last-child {
     border-bottom: none;
+}
+
+/* 2026-08-10 추가 — fact-list 행 사이에 dt/dd 쌍이 아니라 안내문구(right-panel-info-note)만 끼워 넣는 줄.
+   부모 규칙(위, flex+justify-content:space-between+border-bottom)을 그대로 물려받으면 평범한 표 행처럼
+   보여서(스크린샷 지적) 복합 셀렉터로 걷어낸다 — 특이도를 올려 로드 순서와 무관하게 항상 이긴다. */
+.right-panel-fact-list > div.report-fact-row-note {
+    display: block;
+    padding: 8px 0 0;
+    border-bottom: none;
+}
+
+/* 2026-08-10 — "사업성 요약" 카드가 옆 카드(현금흐름/손익분기)보다 짧아 grid stretch로 세로로 늘어나면,
+   각주 목록이 표 바로 밑에 붙어 카드 하단에 빈 공간이 남는다 — 카드를 세로 flex로, dl을 flex:1로 늘려
+   각주 목록(report-card-footnotes)을 margin-top:auto로 카드 맨 밑까지 붙인다(report-cost-note에 썼던
+   것과 같은 기법). 문서 확정(§2.5)으로 개별 행 각주(report-fact-row-note)는 카드 맨 아래 통합 목록으로
+   바뀌어 이 카드에선 더 안 쓴다. */
+.report-profit-summary-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.report-profit-summary-card .right-panel-fact-list {
+    flex: 1;
+}
+
+.report-profit-summary-card .report-card-footnotes {
+    margin-top: auto;
 }
 
 /* 2026-08-1x 사용자 피드백("이거 글자 보여? 난 잘 안보이는데") — color:var(--text)에 opacity:0.7까지 겹쳐서
@@ -1191,30 +1234,113 @@
     opacity: 0.9;
 }
 
+/* 2026-08-10 확정 목업(widgets/2026-08-10_remodeling_analysis_final.html) 반영 — 진하게 채운 배지(흰 글씨)는
+   이 프로젝트 배지 스타일 전체에서 report-tone-badge-light-* 계열(옅은 배경+짙은 글씨)만 쓰는 규칙과 어긋나
+   같은 톤 공식으로 교체. 이 배지는 RemodelingAnalysisPage.tsx에서만 쓰여(실측 확인) 다른 화면 영향 없음.
+   NOT_POSSIBLE(빨강)은 이 프로젝트에 아직 danger 톤이 없어 success/warning과 같은 공식(옅은 배경 fallback +
+   다크모드 rgba 15% + 밝은 글자)으로 새로 만든다 — report-sensitivity-negative의 #dc2626/#f87171을 기준색으로 재사용. */
 .right-panel-verdict-badge {
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #fff;
+    padding: 10px 18px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 500;
 }
 
 .right-panel-verdict-possible {
-    background: #16a34a;
+    background: var(--bg-success, #eaf3de);
+    color: var(--text-success, #27500a);
 }
 
 .right-panel-verdict-limited {
-    background: #b45309;
+    background: var(--bg-warning, #faeeda);
+    color: var(--text-warning, #854f0b);
 }
 
 .right-panel-verdict-not-possible {
-    background: #475569;
+    background: var(--bg-danger, #fbe4e4);
+    color: var(--text-danger, #7f1d1d);
 }
 
-/* FEATURE_06_REMODELING.md §2.1(2026-08-08 정정) — 배지 아래 구석이 아니라 헤더 구분선 아래 본문 줄로(§2.1 "verdict 배지 부제" 위치 변경) */
+@media (prefers-color-scheme: dark) {
+    .right-panel-verdict-possible {
+        background: rgba(74, 222, 128, 0.15);
+        color: #4ade80;
+    }
+    .right-panel-verdict-limited {
+        background: rgba(251, 191, 36, 0.15);
+        color: #fbbf24;
+    }
+    .right-panel-verdict-not-possible {
+        background: rgba(248, 113, 113, 0.15);
+        color: #f87171;
+    }
+}
+
+/* 2026-08-10 최종 확정 — "종합 판정"·"판정 사유 요약"을 별개 카드 2개로 유지하되 고정 1:1 그리드로 나란히
+   배치(가변폭 아님, 콘텐츠 길이와 무관하게 항상 반반). 모바일(≤768px) 1열 전환은 다음 라운드로 명시적으로
+   미룸 — 지금은 데스크톱 전용, 다른 report-grid-* 처럼 미디어쿼리에 추가하지 않는다. */
+.report-verdict-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: stretch;
+}
+
+.report-verdict-card,
+.report-verdict-summary-card {
+    margin-bottom: 0;
+    padding: 22px 24px;
+    min-height: 170px;
+}
+
+/* 배지+헤드라인 가로 배치 — POSSIBLE은 안내 문단이 없어 오른쪽 열이 짧아지므로 -center 모디파이어로 배지와
+   세로 중앙 정렬, 나머지(LIMITED/NOT_POSSIBLE)는 기본값(위쪽 정렬)을 쓴다. */
+.report-verdict-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-top: 10px;
+}
+
+.report-verdict-content-center {
+    align-items: center;
+}
+
+.report-verdict-badge-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+/* reason(판정 사유)과 VERDICT_REASON_PARAGRAPH(고정 안내 문장)를 같은 오른쪽 열에 세로로 쌓는다 — 예전엔
+   안내 문장을 행 전체 아래(구분선+전체폭)에 뒀더니 배지 열과 어긋나 보였다(2026-08-10 정정). */
+.report-verdict-text-col {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.report-verdict-paragraph {
+    margin-top: 8px;
+}
+
+/* 2026-08-10 정정 — 알약형 배경(pill)으로 넣었더니 "배지 옆에 또 다른 태그"처럼 보인다는 지적. 목업 원본은
+   배경·테두리 없는 순수 텍스트 한 줄(<p style="font-size:11px;color:var(--text-muted)">) — 그대로 맞추되
+   11px는 이 세션 12px 최소 정책 위반이라 12px로 올림. */
+.report-verdict-sublabel {
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+/* FEATURE_06_REMODELING.md §2.1(2026-08-08 정정) — 배지 아래 구석이 아니라 헤더 구분선 아래 본문 줄로(§2.1 "verdict 배지 부제" 위치 변경).
+   2026-08-10 — 배지 옆 헤드라인으로 격상되며 font-weight 500 추가(목업 반영, 굵게). */
 .right-panel-verdict-reason {
     margin: 0;
     font-size: 13px;
+    font-weight: 500;
     color: var(--text);
     text-align: left;
 }

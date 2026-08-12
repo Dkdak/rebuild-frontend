@@ -85,10 +85,47 @@ export const getRecommendation = (grade: InvestmentGrade, priceConfidence: Price
     RECOMMENDATION_MATRIX[grade][priceConfidence ?? "NONE"];
 // 기존 RECOMMENDATION_LABEL(grade 단독 매핑)은 삭제 — 위 매트릭스로 완전히 대체.
 
+// 2026-08-10 — "총 투자금 = 매입가+공사비+부대비용"으로 공식 변경(LAW-003_취득세_중개보수_요율.md). isHousing
+// 분류는 취득세법상 "주택" 특례세율 대상(아파트/연립다세대/단독다가구) 기준 — ESTIMATED_AREA_TYPES(세대 기반
+// 시세추정 대상, 아파트/연립다세대 2종)나 RESIDENTIAL_PRESET_TYPES(검색 필터 프리셋, 오피스텔 포함 4종)와는
+// 목적이 달라 둘 다 그대로 못 쓴다 — 오피스텔은 원칙적으로 업무시설 취득세율(4.6%) 적용 대상이라 여기선 제외.
+// 법적 분류라 확신이 필요한 부분 — 세율 자체(taxRate/brokerageRate 구간)와 함께 확인 요청함.
+const HOUSING_TYPES_FOR_ACQUISITION_TAX = ["아파트", "연립다세대", "단독다가구"];
+
+// 2026-08-10 확정("프론트에 전달할 내용") — 부대비용(취득세+중개보수) 계산. baseValue와 같은 단위(만원).
+// 주택 취득세율은 6억 이하 1%/9억 초과 3%/6~9억 구간 선형 근사, 중개보수는 구간별 고정요율(한도액은 5천만원/
+// 2억 구간만 별도 적용되지만 이번 V1엔 반영 안 함 — 근사치임을 캡션으로 안내). 주택 외 유형은 취득세 4%+
+// 중개보수 0.9% 고정.
+export const calcAcquisitionCost = (baseValue: number, isHousing: boolean): number => {
+    if (isHousing) {
+        const taxRate =
+            baseValue <= 60000
+                ? 0.01
+                : baseValue > 90000
+                  ? 0.03
+                  : 0.01 + ((baseValue - 60000) / 30000) * 0.02; // 6~9억 구간 선형 근사
+        const brokerageRate =
+            baseValue < 5000
+                ? 0.006
+                : baseValue < 20000
+                  ? 0.005
+                  : baseValue < 90000
+                    ? 0.004
+                    : baseValue < 120000
+                      ? 0.005
+                      : baseValue < 150000
+                        ? 0.006
+                        : 0.007;
+        return baseValue * taxRate + baseValue * brokerageRate; // 한도액은 5천만원/2억 구간만 별도 적용(V1 미반영)
+    }
+    return baseValue * 0.04 + baseValue * 0.009; // 주택 외
+};
+
 // FEATURE_08_MARKET.md §3.7 "수익분석" — BusinessAnalysisPage.tsx(구 ProfitAnalysisPage.tsx)와 요약 섹션(예상차익/미래가치 통계)이 공유하는
 // 계산 로직. 같은 데이터를 두 곳에서 각자 다시 계산하지 않기 위해 여기 한 곳에만 둔다.
 export interface ProfitAnalysisResult {
     baseValue: number; // 매입가(공사비 제외) — CashFlowFormula/민감도분석(§2.6)이 공유
+    acquisitionCost: number; // 2026-08-10 추가 — 취득세+중개보수 추정치, investMin/Max에 이미 포함됨
     investMin: number;
     investMax: number;
     value: number;
@@ -147,13 +184,19 @@ export const buildProfitAnalysis = (
         return null;
     }
 
-    const investMin = baseValue + costMinManwon;
-    const investMax = baseValue + costMaxManwon;
+    // 2026-08-10 — 총 투자금 = 매입가+공사비+부대비용(취득세+중개보수). isHousing은 propertyType 원본 기준
+    // (isHouseholdBased와는 다른 분류, 위 HOUSING_TYPES_FOR_ACQUISITION_TAX 주석 참고).
+    const isHousing = propertyType != null && HOUSING_TYPES_FOR_ACQUISITION_TAX.includes(propertyType);
+    const acquisitionCost = Math.round(calcAcquisitionCost(baseValue, isHousing));
+
+    const investMin = baseValue + costMinManwon + acquisitionCost;
+    const investMax = baseValue + costMaxManwon + acquisitionCost;
     const value = postRemodel.value;
     const gainMin = value - investMax; // 최대 공사비 적용 → 차익 최소
     const gainMax = value - investMin; // 최소 공사비 적용 → 차익 최대
     return {
         baseValue,
+        acquisitionCost,
         investMin,
         investMax,
         value,
