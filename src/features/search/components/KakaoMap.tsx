@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Config } from "../../config/config";
+import { Config } from "../../../shared/config/config";
 
 declare global {
     interface Window {

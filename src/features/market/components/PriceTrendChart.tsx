@@ -1,4 +1,4 @@
-import type { PriceTrendPoint } from "../../search/api/marketApi";
+import type { PriceTrendPoint } from "../api/marketApi";
 
 // FEATURE_10_AI_REPORT.md §2.4 "시세 추이" 꺾은선 그래프 — SitePolygonDiagram.tsx와 같은 원칙(차트 라이브러리
 // 없이 순수 SVG). x축은 매물이 있는 달만 촘촘히 이어붙인다(결측월 포함 등간격이 아니라 "거래가 있었던 달"만).

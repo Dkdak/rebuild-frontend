@@ -1,5 +1,5 @@
 import { formatManwon } from "../../search/api/searchApi";
-import type { PropertyAnalysis } from "../../search/api/analysisApi";
+import type { PropertyAnalysis } from "../../investment/api/analysisApi";
 
 interface FutureValuePageProps {
     analysis: PropertyAnalysis | null;

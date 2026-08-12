@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { formatSeismicDesign, formatUseApprovalDate, getBuildingDetail, type BuildingDetail } from "../../search/api/buildingApi";
-import { getBuildingSummary, type BuildingSummary } from "../../search/api/buildingSummaryApi";
-import SitePolygonDiagram, { SitePolygonMeta } from "./SitePolygonDiagram";
+import { formatSeismicDesign, formatUseApprovalDate, getBuildingDetail, type BuildingDetail } from "../../property/api/buildingApi";
+import { getBuildingSummary, type BuildingSummary } from "../../property/api/buildingSummaryApi";
+import SitePolygonDiagram, { SitePolygonMeta } from "../../property/components/SitePolygonDiagram";
 
 interface BasicInfoPageProps {
     buildingId: string;

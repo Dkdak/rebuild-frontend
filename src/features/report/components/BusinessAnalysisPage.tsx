@@ -1,10 +1,10 @@
 import { formatManwon } from "../../search/api/searchApi";
-import { CONFIDENCE_LABEL_SHORT, CONFIDENCE_TONE } from "../../search/api/marketApi";
-import { buildProfitAnalysis, type PropertyAnalysis } from "../../search/api/analysisApi";
-import CashFlowFormula from "./CashFlowFormula";
-import SensitivityMatrix from "./SensitivityMatrix";
+import { CONFIDENCE_LABEL_SHORT, CONFIDENCE_TONE } from "../../market/api/marketApi";
+import { buildProfitAnalysis, type PropertyAnalysis } from "../../investment/api/analysisApi";
+import CashFlowFormula from "../../cost/components/CashFlowFormula";
+import SensitivityMatrix from "../../investment/components/SensitivityMatrix";
 
-interface ProfitAnalysisPageProps {
+interface BusinessAnalysisPageProps {
     analysis: PropertyAnalysis | null;
     loading: boolean;
     householdCount: number | null;
@@ -15,7 +15,7 @@ interface ProfitAnalysisPageProps {
 // FEATURE_10_AI_REPORT.md §2.5(2026-08-1x 재편, 구 "수익 분석"): analysis.market.postRemodelEstimatedPrice(F-08 §3.7)만
 // 사용 — 재무 숫자만 다룬다. 공사비 카드는 "05 리모델링 분석"으로 이동, 여기선 이미 계산된 cost.min/maxCost만 참조.
 // 2026-08-1x: 세로 스택 4카드 → report-grid-3 가로 3열(좌 사업성 요약/중 현금흐름/우 민감도분석)로 재구성.
-const ProfitAnalysisPage = ({ analysis, loading, householdCount, propertyType, totalBuildingArea }: ProfitAnalysisPageProps) => {
+const BusinessAnalysisPage = ({ analysis, loading, householdCount, propertyType, totalBuildingArea }: BusinessAnalysisPageProps) => {
     if (loading) {
         return <p className="right-panel-field-note">조회 중...</p>;
     }
@@ -149,4 +149,4 @@ const ProfitAnalysisPage = ({ analysis, loading, householdCount, propertyType, t
     );
 };
 
-export default ProfitAnalysisPage;
+export default BusinessAnalysisPage;

@@ -30,15 +30,29 @@ rebuild-engine(API 서버)와 연동되는 구조입니다.
 
 ## 3. 아키텍처 구조
 
+기능(F-번호)별로 `features/`를 분리하고, 여러 기능이 공유하는 것만 `shared/`에 둡니다(2026-08-10 재구성) — 패널(`LeftPanel`/`CenterPanel`/`RightPanel`)은 레이아웃 슬롯일 뿐, 실제 내용은 각 기능 폴더의 `*Content.tsx`가 담당합니다.
+
 ```text id="arch"
-rebuild-frontend
-├── pages          # 화면 단위 (Login, Dashboard, Result)
-├── components     # 재사용 UI
-├── features       # 기능 단위 모듈 (auth, analysis 등)
-├── api            # backend API 호출
-├── mock           # Mock 데이터
-├── store          # 상태 관리
-└── utils          # 공통 유틸
+rebuild-frontend/src
+├── features/
+│   ├── auth/          # F-02(인증) — api, components
+│   ├── board/          # F-03(대시보드) — components
+│   ├── cost/            # F-07(공사비) — api, components
+│   ├── game/             # 범위 밖 추정, 정리 대상 검토 중
+│   ├── investment/        # F-09(투자분석) — api, components
+│   ├── market/              # F-08(시세) — api, components
+│   ├── property/              # F-05(매물 상세) — api, components(PropertyDetailContent 등)
+│   ├── remodeling/              # F-06(리모델링) — api
+│   ├── report/                    # F-10(AI 리포트) — components(9개 섹션 페이지)
+│   └── search/                      # F-04(검색) — api, components, context
+│       └── components/filters/        # 검색 필터 UI
+└── shared/
+    ├── api/            # 공통 API 클라이언트
+    ├── config/          # 공통 설정
+    ├── context/          # 전역 상태(AuthContext 등)
+    └── components/
+        ├── common/         # 범용 UI(GaugeBar·Popover·RangeSlider 등)
+        └── layout/          # F-01(레이아웃) — MainLayout·TopBar·패널 껍데기 등
 ```
 
 ---

@@ -1,8 +1,8 @@
 import { apiClient } from "../../../shared/api/apiClient";
-import { buildRemodelingChecklist, type RemodelingAnalysis, type RemodelingChecklistItem } from "./remodelingApi";
-import { CONFIDENCE_LABEL, type ConfidenceLevel, type MarketAnalysis } from "./marketApi";
-import type { CostEstimation } from "./costApi";
-import { ESTIMATED_AREA_TYPES, PARTIAL_TRADE_AREA_RATIO } from "./searchApi";
+import { buildRemodelingChecklist, type RemodelingAnalysis, type RemodelingChecklistItem } from "../../remodeling/api/remodelingApi";
+import { CONFIDENCE_LABEL, type ConfidenceLevel, type MarketAnalysis } from "../../market/api/marketApi";
+import type { CostEstimation } from "../../cost/api/costApi";
+import { ESTIMATED_AREA_TYPES, PARTIAL_TRADE_AREA_RATIO } from "../../search/api/searchApi";
 
 // FEATURE_05_PROPERTY_INFO.md §2.1: remodeling/market/grade/roi 통합 조회 — 기존에 따로 부르던
 // getRemodelingAnalysis/getMarketAnalysis를 이 API 하나로 대체(2026-08-1x, 백엔드 구현 완료).
@@ -85,7 +85,7 @@ export const getRecommendation = (grade: InvestmentGrade, priceConfidence: Price
     RECOMMENDATION_MATRIX[grade][priceConfidence ?? "NONE"];
 // 기존 RECOMMENDATION_LABEL(grade 단독 매핑)은 삭제 — 위 매트릭스로 완전히 대체.
 
-// FEATURE_08_MARKET.md §3.7 "수익분석" — ProfitAnalysisPage.tsx와 요약 섹션(예상차익/미래가치 통계)이 공유하는
+// FEATURE_08_MARKET.md §3.7 "수익분석" — BusinessAnalysisPage.tsx(구 ProfitAnalysisPage.tsx)와 요약 섹션(예상차익/미래가치 통계)이 공유하는
 // 계산 로직. 같은 데이터를 두 곳에서 각자 다시 계산하지 않기 위해 여기 한 곳에만 둔다.
 export interface ProfitAnalysisResult {
     baseValue: number; // 매입가(공사비 제외) — CashFlowFormula/민감도분석(§2.6)이 공유

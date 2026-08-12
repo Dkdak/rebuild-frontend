@@ -1,5 +1,5 @@
 import { useState } from "react";
-import KakaoMap from "../../../shared/components/map/KakaoMap";
+import KakaoMap from "./KakaoMap";
 import { useSearch } from "../context/SearchContext";
 
 // F-04 소관: SearchContext의 검색 결과를 shared/components/map의 범용 KakaoMap에 props로 연결한다.

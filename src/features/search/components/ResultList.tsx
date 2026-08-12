@@ -9,7 +9,7 @@ import {
     sortGradeSummary,
     sortPropertyItems,
 } from "../api/searchApi";
-import { priceConfidenceFromLevel, priceConfidenceTone } from "../api/analysisApi";
+import { priceConfidenceFromLevel, priceConfidenceTone } from "../../investment/api/analysisApi";
 import Pagination from "./Pagination";
 
 // .grade-A 등(layout.css)과 동일한 색상 — 선택된 배지 강조에 재사용(인라인 CSS 변수로 전달).

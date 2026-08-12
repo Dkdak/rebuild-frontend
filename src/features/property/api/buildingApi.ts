@@ -1,4 +1,5 @@
 import { apiClient } from "../../../shared/api/apiClient";
+import type { RecentTrade } from "../../search/api/searchApi";
 
 // FEATURE_05_PROPERTY_INFO.md §2.1 "건물정보" 카드 전용 상세 재조회 — 리스트 검색(PropertyItem) 캐시를 재사용하지
 // 않고 매물 선택 시 market/remodeling과 같은 방식으로 별도 호출한다(2026-08-08, 백엔드 신규 API).
@@ -30,6 +31,10 @@ export interface BuildingDetail {
     // 포맷이지만 별도 매칭 배치 결과라 독립적으로 null일 수 있다(실측 확인). SitePolygonDiagram.tsx가
     // sitePolygon과 겹쳐 그린다.
     siteBoundaryPolygon: string | null;
+    // 2026-08-10 — 백엔드가 목록 검색(PropertyItem) 응답에서 recentTrade를 뺐다(커버리지 11.5%로 희박,
+    // 카드에서도 안 쓰임). 이 건물 단건 조회 API는 영향 없이 그대로 내려준다 — F-05 RightPanel.tsx "최근
+    // 실거래가" 행이 여기로 소스를 옮겨왔다(기존 PropertyItem.recentTrade는 삭제됨, searchApi.ts 참고).
+    recentTrade: RecentTrade | null;
 }
 
 // buildingId(=bdrg_sn)가 building 테이블에 없으면 백엔드가 404 — apiClient 호출부에서 catch해 null 처리(market/remodelingApi.ts와 동일 패턴).

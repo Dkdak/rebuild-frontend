@@ -1,19 +1,13 @@
-import SearchMap from "../../../features/search/components/SearchMap";
-import ResultList from "../../../features/search/components/ResultList";
+import CenterPanelContent from "../../../features/search/components/CenterPanelContent";
 
 interface CenterPanelProps {
-    // 모바일 전용 — 카드의 "상세보기" 버튼이 호출(`FEATURE_01_LAYOUT.md` §2.2, 2026-08-04). FilterDrawer 트리거는 TopBar로 이동해 여기선 더 이상 필요 없음.
     onOpenDetail: () => void;
 }
 
-// F-01 소관: 레이아웃 셸(지도/리스트 세로 비율)만 담당. 실제 렌더링은 F-04 소관 컴포넌트에 위임.
+// 2026-08-10 — guide/DIRECTORY_RESTRUCTURE.md §1 "핵심 원칙": 패널은 레이아웃 슬롯일 뿐, 실제 컨텐츠는
+// features/search/components/CenterPanelContent.tsx(F-04)로 옮겼다. 이 파일은 배치만 하는 얇은 껍데기.
 const CenterPanel = ({ onOpenDetail }: CenterPanelProps) => {
-    return (
-        <section className="center-panel">
-            <SearchMap />
-            <ResultList onOpenDetail={onOpenDetail} />
-        </section>
-    );
+    return <CenterPanelContent onOpenDetail={onOpenDetail} />;
 };
 
 export default CenterPanel;

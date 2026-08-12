@@ -1,9 +1,9 @@
-import { buildRemodelingChecklist, buildVerdictReason, VERDICT_LABEL } from "../../search/api/remodelingApi";
+import { buildRemodelingChecklist, buildVerdictReason, VERDICT_LABEL } from "../../remodeling/api/remodelingApi";
 import { ESTIMATED_AREA_TYPES, formatCurrency } from "../../search/api/searchApi";
-import type { PropertyAnalysis } from "../../search/api/analysisApi";
+import type { PropertyAnalysis } from "../../investment/api/analysisApi";
 import GaugeBar from "../../../shared/components/common/GaugeBar";
 
-interface BusinessAnalysisPageProps {
+interface RemodelingAnalysisPageProps {
     analysis: PropertyAnalysis | null;
     loading: boolean;
     buildYear: number | null;
@@ -24,7 +24,7 @@ const COST_STATUS_MESSAGE: Record<string, string> = {
 // FEATURE_10_AI_REPORT.md §2.3(2026-08-1x 재편, 구 "사업성 분석"): analysis.remodeling(F-06) + 공사비 카드
 // (구 "수익 분석"에서 이동, F-07) — 새 API 없음. 2026-08-1x: 5카드 균등 스택 → 위계형 배치(종합판정 배너 →
 // 예상 공사비 강조 카드 → "판단 근거" 소제목 아래 report-grid-3(게이지×2 + 세부 근거 표)).
-const BusinessAnalysisPage = ({ analysis, loading, buildYear, propertyType, householdCount }: BusinessAnalysisPageProps) => {
+const RemodelingAnalysisPage = ({ analysis, loading, buildYear, propertyType, householdCount }: RemodelingAnalysisPageProps) => {
     if (loading) {
         return <p className="right-panel-field-note">조회 중...</p>;
     }
@@ -188,4 +188,4 @@ const BusinessAnalysisPage = ({ analysis, loading, buildYear, propertyType, hous
     );
 };
 
-export default BusinessAnalysisPage;
+export default RemodelingAnalysisPage;
