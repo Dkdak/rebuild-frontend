@@ -101,32 +101,107 @@
     flex-shrink: 0;
 }
 
-/* §2.2 요약 섹션 — 투자등급/현재가/미래가치/예상차익/ROI/추천여부 6칸 통계 밴드(planning/rebuild/레포트.png
-   레퍼런스 그대로, 2026-08-08 확장). 라벨은 작고 흐리게, 값은 크고 진하게 — 리포트 표지 톤. 예상차익은 범위
-   문자열이라 22px가 넘치기 쉬워 18px로 낮추고 줄바꿈을 허용한다(등급 한 칸만 20px로 살짝 키워 시각 앵커 유지).
-   2026-08-09: "시세 신뢰도" 별도 칸(6칸)을 시도했다가 취소, 투자등급 칸 캡션으로 병합해 5칸으로 되돌림 →
-   2026-08-10: "현재가" 칸이 새로 추가되며 다시 6칸(신뢰도 스티커와는 별개 칸). */
-.report-stat-band {
+/* §2.2 요약 섹션 — 2026-08-17 밴드(report-summary-band, head/band/foot 3단, 오른쪽 3칸 cell-tint) 구현 폐기,
+   카드 2개(report-summary-cards)로 최종 확정(§확정분). "평가" 카드(투자등급→검토 우선순위→현재가)와
+   "리모델링 후 추정" 카드(미래가치→예상차익→ROI, 기존 report-card-emphasis accent 강조 재사용 — 05 "예상
+   공사비" 카드와 같은 클래스, 새 스타일 안 만듦)를 나란히. 두 카드의 card-title이 같은 폰트/마진이라 좌우
+   카드가 같은 줄에서 시작한다. */
+.report-summary-cards {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 0;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
     margin: 16px 0 20px;
-    padding: 16px 0;
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
 }
 
-.report-stat {
-    padding: 0 14px;
-    border-left: 1px solid var(--border);
+/* 2026-08-17 버그 수정 — report-grid-2/report-grid-3/report-grid-3-even 등 다른 카드 그리드는 전부 이 오버라이드가
+   있는데 이 규칙만 빠져 있었다. .right-panel-card의 자체 margin-bottom:12px(layout.css, 세로 나열용)가 grid
+   stretch 계산에 끼어들어, 짧은 카드가 트랙 높이에서 자기 margin만큼 더 빠지면서 두 카드 높이가 어긋나 보였다
+   (실측: 12px 차이, margin-bottom 값과 정확히 일치) — 간격은 위 gap이 담당하므로 카드 자체 margin은 0으로. */
+.report-summary-cards > .right-panel-card {
+    margin-bottom: 0;
+}
+
+.report-summary-cards .card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 0 0 14px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-h);
+}
+
+.report-summary-cards .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.report-summary-cards .grid-3 > div {
     /* 2026-08-09 — 등급 칸에 신뢰도 스티커가 옆에 붙으면서 라벨/값이 셀 폭 안에서 좌측에 치우쳐 보인다는 지적
-       — 스탯밴드 5칸 전체를 가운데 정렬로 통일(칸마다 따로따로 정렬이 다르면 더 어색하다). */
+       — 3칸 전체를 가운데 정렬로 통일(칸마다 따로따로 정렬이 다르면 더 어색하다). */
     text-align: center;
 }
 
-.report-stat:first-child {
-    border-left: none;
-    padding-left: 0;
+/* 2026-08-17 신규 — "01 요약 정보" 섹션 공통 면책. 05(리모델링 분석)의 면책(right-panel-field-note, 박스 없는
+   평문)과 같은 톤이되, 이건 "정의"라 아이콘(ⓘ)이 붙는다 — GaugeBar.tsx의 note류처럼 색 박스로 강조하지 않는다
+   (02에서 파란 박스 2개를 걷어낸 것과 같은 방향: 판정 없이 사실만 나열하는 자리엔 강조 박스를 안 쓴다). */
+.report-summary-disclaimer {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 12px 0 0;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* 신뢰도 배지 — 이전 밴드의 right-panel-estimate-tag(절대배치, 값 오른쪽에 겹쳐 배치)와 달리 "값 바로 아래
+   줄바꿈"이 요구사항이라 재사용 불가, 새 tag 계열을 둔다. 카드 제목(리모델링 후 추정) 옆에서는 인라인
+   그대로, grid-3 값 칸 안에서는(아래 규칙) 다음 줄로 떨어뜨린다 — 같은 클래스, 위치에 따라 배치만 다름. */
+.report-summary-cards .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.report-summary-cards .grid-3 .tag {
+    display: block;
+    width: fit-content;
+    margin: 4px auto 0;
+}
+
+/* tag-ok/tag-warn — priceConfidenceTone(success/warning)을 그대로 매핑, 색값은 right-panel-estimate-tag-
+   success/-warning(layout.css)과 동일 팔레트 재사용(새 색 체계 안 만듦). tag-note는 톤 무관 고정 accent —
+   "리모델링 후 추정" 카드 제목의 "시세 신뢰도 N" 배지 전용(이전 group-tag/head-right tag와 같은 스타일). */
+.report-summary-cards .tag-ok {
+    background: #e6f4ea;
+    color: #1e7e34;
+}
+
+.report-summary-cards .tag-warn {
+    background: #fdf0e0;
+    color: #a05a00;
+}
+
+.report-summary-cards .tag-note {
+    background: var(--accent);
+    color: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+    .report-summary-cards .tag-ok {
+        background: rgba(74, 222, 128, 0.15);
+        color: #4ade80;
+    }
+
+    .report-summary-cards .tag-warn {
+        background: rgba(251, 191, 36, 0.15);
+        color: #fbbf24;
+    }
 }
 
 .report-stat-label {
@@ -141,10 +216,6 @@
     font-weight: 800;
     color: var(--text-h);
     line-height: 1.25;
-}
-
-.report-stat:first-child .report-stat-value {
-    font-size: 20px;
 }
 
 /* 2026-08-09 — "투자등급" 칸 값에 등급색 적용(등급 박스 전면 폐지 후속, ResultList.tsx grade-text와 같은 색값
@@ -170,13 +241,8 @@
     color: #9ca3af;
 }
 
-.report-stat-caption {
-    margin: 4px 0 0;
-    font-size: 12px;
-    color: var(--text-muted);
-}
-
-/* 핵심 요약 — 장점/주의사항 2단 그리드(레퍼런스의 "핵심 요약/주의사항/리포트 정보" 밴드와 같은 결) */
+/* 핵심 요약 — 유리한 조건/확인이 필요한 사항 2단 그리드(2026-08-12 개명, 구 "장점/주의사항". 레퍼런스의
+   "핵심 요약/주의사항/리포트 정보" 밴드와 같은 결, 클래스명은 유지). */
 .report-summary-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
@@ -268,6 +334,48 @@
     margin-top: 8px;
 }
 
+/* 2026-08-17 — "결과" 카드 1문단(VERDICT_REASON_PARAGRAPH)이 right-panel-field-note(12px 회색)를 그대로 써서
+   아래 부가 정보 목록(report-result-notes, 역시 회색)과 위계가 안 나뉘어 보였다는 지적. 처음엔 이전에 폐기한
+   right-panel-verdict-reason과 같은 값(13px/500/var(--text))을 재사용했으나, var(--text)(#6b6375)가
+   var(--text-muted)(#756e7f)와 거의 같은 밝기라 육안으로 구분이 안 됐다(실측 확인) — 실제로 진한 색인
+   var(--text-h)(라이트 #08060d 거의 검정, report-stat-value 등 수치 강조에 쓰는 값)로 교체. */
+.report-result-headline {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-h);
+}
+
+/* 2026-08-17 5차 재정정(최종) — 4차의 "뭉친 문단 하나"를 다시 "·" 4줄 목록으로 분리(노후도/개발행위/용적률·
+   세부근거/면책이 서로 다른 내용이라 문장으로 뭉치니 구분이 안 됐다는 피드백). ⓘ 아이콘 없음 — 목록 형태
+   자체가 위 1문단(진한 결과)과 부가 정보(옅은 목록)를 구분해준다. right-panel-checklist(✓/△ 목록)와 같은
+   결이되 글머리표만 "·" — li 텍스트에 직접 타이핑하지 않고 CSS list-style로. 11px 요청이었으나 세션 전체
+   가독성 정책(폰트 12px 이상)에 맞춰 12px 적용. */
+.report-result-notes {
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.report-result-notes li {
+    position: relative;
+    margin-top: 6px;
+    padding-left: 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.report-result-notes li:first-child {
+    margin-top: 0;
+}
+
+.report-result-notes li::before {
+    content: "·";
+    position: absolute;
+    left: 0;
+}
+
 /* "기본 정보" 섹션 3단(§2.1-b 재구성, 레퍼런스 참고) — 좌측 핵심 지표 / 중앙 대지 도면 / 우측 건축물대장 요약 */
 .report-grid-3 {
     display: grid;
@@ -308,20 +416,20 @@
     margin-bottom: 0;
 }
 
-/* 설명 각주 공통 규칙(§2.5) — 행 라벨 옆엔 아이콘만(숫자 매김 없음), 설명 전체는 카드 맨 아래 순서로
-   대응해 모아서 나열. right-panel-info-note(아이콘+accent 박스)를 한 줄씩 이어붙인다. */
-.report-card-footnotes {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-top: 10px;
-}
-
 .report-row-label-icon {
     margin-left: 4px;
     color: var(--accent);
     font-size: 12px;
     cursor: default;
+}
+
+/* 2026-08-17 추가 — "투자금 대비 손실" 등 값 옆 3단계 인라인 보조(docs/CONTENT_TAXONOMY.md §2 "A. 값 보조",
+   2~8자, 값 옆 또는 바로 아래). 결론색(빨강 등)을 새로 만들지 않고 톤을 낮춘 문구로만 — 이미 옆 숫자 자체가
+   음수라 결론은 값이 말하고 있다. */
+.report-row-aux {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-muted);
 }
 
 /* 대지 도면 — SitePolygonDiagram.tsx가 gis_building.polygonGeojson으로 그린 SVG를 담는 자리(2026-08-1x 구현). */
@@ -349,6 +457,10 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
+    /* 2026-08-17 — report-cost-note(안내문구, margin-top:auto로 헤드라인 칸을 카드 하단까지 채우던 요소) 삭제
+       이후, 왼쪽(금액 2줄)이 오른쪽(표 4행)보다 짧아 grid 기본 align-items:stretch로 인해 왼쪽 칸 하단에
+       빈 공간이 남았다 — 두 칸을 각자의 내용 높이만큼만 차지하게 하고 세로 중앙으로 맞춰 상쇄. */
+    align-items: center;
 }
 
 /* 2026-08-10 세 번째 정정 — space-between으로 3개 자식 간격을 24px씩 균등 배분했더니, 이번엔 금액↔㎡당 값처럼
@@ -394,24 +506,6 @@
     font-size: 20px;
     font-weight: 800;
     color: var(--text-h);
-}
-
-/* 2026-08-10 추가 — 헤드라인 열 하단 빈 공간을 채우는 안내문구. GaugeBar의 gauge-bar-note(common.css)와 같은
-   시각 언어(ⓘ + accent 톤 박스)를 재사용 — 이 카드는 GaugeBar를 안 써서 별도 클래스로 복제. */
-.report-cost-note {
-    display: flex;
-    align-items: flex-start;
-    gap: 6px;
-    /* margin-top:auto — flex 세로 컨테이너(report-cost-split-headline)에서 이 항목 위의 남는 공간을 전부
-       흡수해 카드 하단까지 밀어낸다. 금액·㎡당 값은 자연스러운 간격(6px)으로 붙어있고 이 줄만 아래로
-       떨어지는 방식(2026-08-10 세 번째 정정, space-between 균등배분 대신). */
-    margin: auto 0 0;
-    padding: 6px 8px;
-    border-radius: 6px;
-    font-size: 12px;
-    line-height: 1.5;
-    background: var(--accent-bg);
-    color: var(--accent);
 }
 
 /* 카드 사이에 끼는 소제목(카드 자체가 아니라 report-grid-3 그룹 전체를 소개하는 라벨) — "판단 근거"용.
@@ -598,6 +692,20 @@ dl.right-panel-fact-list.report-fact-grid dd {
     }
 }
 
+/* 2026-08-17 — "시세 산정 근거" 카드 범례. 배지 행 + 압축 문장 2줄로 나뉘어 있던 걸 "배지 옆에 그 배지의
+   정의"로 합쳤다(같은 정보 중복 서술 제거). line-height를 넉넉히 줘서 인라인 배지(display:inline-block)가
+   좁은 카드 폭에서 다음 줄로 넘어갈 때 배지의 padding이 윗줄 텍스트와 겹치지 않게 한다. */
+.market-basis-legend {
+    margin: 8px 0 0;
+    font-size: 12px;
+    line-height: 2.1;
+    color: var(--text-muted);
+}
+
+.market-basis-legend .report-tone-badge {
+    margin-right: 2px;
+}
+
 /* 2026-08-10 — "시장 내 가격 위치" 백분위 게이지(디자인 mockup 참고, pricePosition 배포). 라이브러리 없는
    순수 CSS(SitePolygonDiagram/PriceTrendChart와 같은 원칙) — 트랙 위에 이 매물 위치(marker)를 left%로
    절대배치한다. 마커 라벨이 카드 좌우 경계를 넘지 않도록 0/100% 근처에서는 자기 정렬을 살짝 당긴다. */
@@ -691,6 +799,16 @@ dl.right-panel-fact-list.report-fact-grid dd {
 .report-grid-3 .report-sensitivity-table td {
     padding: 4px 6px;
     font-size: 12px;
+}
+
+/* 2026-08-17 — "손익분기 및 목표 수익률" 표 전용. report-trade-table 계열 공용 규칙(th/td white-space:nowrap)은
+   SensitivityMatrix.tsx와 공유해서 그대로 두고, 이 표의 긴 헤더("필요 매도가(최소/최대 투자금 기준)")만
+   두 줄로 줄바꿈 허용 — 표 폭이 카드 밖으로 밀려 생기던 가로 스크롤 제거. .report-trade-table th(아래,
+   white-space:nowrap)와 특이도가 같아(클래스 1개+태그 1개) 파일 뒷쪽에 있는 그 규칙이 로드 순서상 이겼다
+   — .report-trade-table.report-breakeven-table th로 특이도를 올려 순서와 무관하게 항상 이기게 한다. */
+.report-trade-table.report-breakeven-table th {
+    white-space: normal;
+    line-height: 1.4;
 }
 
 /* 축 라벨("최소"/"보수적" 등) 아래 실제 금액(formatManwon) — 라벨만으로는 몰랐던 구간을 보여준다(2026-08-1x). */
@@ -875,14 +993,12 @@ dl.right-panel-fact-list.report-fact-grid dd {
 }
 
 @media (max-width: 900px) {
-    .report-stat-band {
+    /* 2026-08-17 — report-summary-band(6칸 밴드) 폐기, report-summary-cards(카드 2개)로 교체. 카드 자체는
+       report-grid-2 등 나머지 다단 그리드와 같은 기준으로 1열 스택, 카드 내부 grid-3(투자등급/검토
+       우선순위/현재가 등 3칸)은 좁은 화면에서도 3칸 유지가 가능해 그대로 둔다(칸 안 텍스트 길이가 짧아
+       report-grid-3류와 달리 접을 필요가 없음, 실측 확인). */
+    .report-summary-cards {
         grid-template-columns: 1fr;
-        gap: 12px;
-    }
-
-    .report-stat {
-        border-left: none;
-        padding-left: 0;
     }
 
     .report-summary-grid,
@@ -900,6 +1016,16 @@ dl.right-panel-fact-list.report-fact-grid dd {
         border-left: none;
         padding-left: 0;
     }
+
+    /* 2026-08-12 추가 — "06 사업성 분석"(report-grid-3-even/report-grid-2-even, 5카드)은 그동안 라운드마다
+       명시적으로 데스크톱 전용으로 미뤄뒀던 것 — 이번에 나머지 report-grid-* 계열과 같은 기준(900px 이하
+       1열)으로 맞춘다. report-verdict-row(05 종합판정)는 base 규칙이 layout.css에 있어 같은 파일 안에서
+       처리한다(파일 순서상 이 파일의 media 규칙이 layout.css의 non-media base 규칙에 밀려 안 먹히는 문제
+       실측 확인 — layout.css 쪽 참고). */
+    .report-grid-3-even,
+    .report-grid-2-even {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 768px) {
@@ -914,4 +1040,5 @@ dl.right-panel-fact-list.report-fact-grid dd {
         gap: 4px;
         position: static;
     }
+
 }

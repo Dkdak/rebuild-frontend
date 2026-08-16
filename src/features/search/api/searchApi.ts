@@ -164,13 +164,15 @@ export const formatHouseholdCount = (householdCount: number | null): string | nu
 // ("N억 M,MMM만원", 만원 입력)과 formatEok("N.NN억", 만원 입력, F-10 좁은 칸 전용)가 서로 다른 규칙을 써서
 // 화면마다 표기가 갈렸다("검색카드/F-05/F-08/F-10 전체를 공용 포맷터 하나로 통일" 요청) — formatCurrency(원
 // 입력) 하나를 단일 출처로 두고, 만원 단위 값을 쓰는 기존 소비처를 위해 formatManwon을 그 위의 얇은 래퍼로만
-// 남긴다. 규칙: 1억 이상이면 소수 둘째자리 억("17.20억"), 미만이면 반올림 정수 만원("601만원"). 예시:
-// 1,720,000,000원 → "17.20억", 6,009,000원 → "601만원". 음수(예상 차익 손실 케이스)는 절댓값 기준으로
-// 억/만원 분기하되 부호는 그대로 살린다(toFixed/toLocaleString이 음수 부호를 자동으로 유지) — 사용자가 준
-// 스니펫엔 없던 처리지만, 리포트에서 음수 금액이 실제로 나오므로("-4.54억" 등) 반드시 필요하다.
+// 남긴다. 2026-08-17 표기 정정(`docs/CONTENT_TAXONOMY.md` §2 "A. 값" 규칙 — 금액=억 소수1자리+천단위) —
+// 억 단위에 자릿수 구분 쉼표가 없고 소수 둘째자리("1317.84억")까지 나오던 것을 소수 첫째자리+쉼표
+// ("1,317.8억")로 통일. 규칙: 1억 이상이면 소수 첫째자리+천단위 쉼표 억, 미만이면 반올림 정수 만원("601만원").
+// 예시: 131,784,000,000원 → "1,317.8억", 6,009,000원 → "601만원". 음수(예상 차익 손실 케이스)는 절댓값
+// 기준으로 억/만원 분기하되 부호는 그대로 살린다(toLocaleString이 음수 부호를 자동으로 유지) — 사용자가 준
+// 스니펫엔 없던 처리지만, 리포트에서 음수 금액이 실제로 나오므로("-4.5억" 등) 반드시 필요하다.
 export const formatCurrency = (won: number): string => {
     const eok = won / 100_000_000;
-    if (Math.abs(eok) >= 1) return `${eok.toFixed(2)}억`;
+    if (Math.abs(eok) >= 1) return `${eok.toLocaleString("ko-KR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}억`;
     return `${Math.round(won / 10_000).toLocaleString()}만원`;
 };
 

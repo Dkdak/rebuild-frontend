@@ -967,20 +967,11 @@
     border-bottom: none;
 }
 
-/* 2026-08-10 추가 — fact-list 행 사이에 dt/dd 쌍이 아니라 안내문구(right-panel-info-note)만 끼워 넣는 줄.
-   부모 규칙(위, flex+justify-content:space-between+border-bottom)을 그대로 물려받으면 평범한 표 행처럼
-   보여서(스크린샷 지적) 복합 셀렉터로 걷어낸다 — 특이도를 올려 로드 순서와 무관하게 항상 이긴다. */
-.right-panel-fact-list > div.report-fact-row-note {
-    display: block;
-    padding: 8px 0 0;
-    border-bottom: none;
-}
-
 /* 2026-08-10 — "사업성 요약" 카드가 옆 카드(현금흐름/손익분기)보다 짧아 grid stretch로 세로로 늘어나면,
    각주 목록이 표 바로 밑에 붙어 카드 하단에 빈 공간이 남는다 — 카드를 세로 flex로, dl을 flex:1로 늘려
-   각주 목록(report-card-footnotes)을 margin-top:auto로 카드 맨 밑까지 붙인다(report-cost-note에 썼던
-   것과 같은 기법). 문서 확정(§2.5)으로 개별 행 각주(report-fact-row-note)는 카드 맨 아래 통합 목록으로
-   바뀌어 이 카드에선 더 안 쓴다. */
+   각주 목록을 margin-top:auto로 카드 맨 밑까지 붙인다(report-cost-note에 썼던 것과 같은 기법). 2026-08-17
+   — 각주가 파란 박스(구 report-card-footnotes)에서 01/05와 같은 "·" 목록(report-result-notes)으로
+   바뀌면서 셀렉터만 교체, 밀어내기 기법 자체는 그대로. */
 .report-profit-summary-card {
     display: flex;
     flex-direction: column;
@@ -990,7 +981,7 @@
     flex: 1;
 }
 
-.report-profit-summary-card .report-card-footnotes {
+.report-profit-summary-card .report-result-notes {
     margin-top: auto;
 }
 
@@ -999,6 +990,10 @@
    원래 값(라이트 모드 약 5.7:1)만 쓰도록 정정 — 다크 모드도 더 밝아지는 방향이라 함께 개선된다. */
 .right-panel-fact-list dt {
     color: var(--text);
+    /* 2026-08-17 — 좁은 칸(F-10 "리포트 정보" 3열 카드 등)에서 dd 쪽 문구가 길면 flex 자식인 dt가 자기 폭을
+       줄이며 "데이터 출처"가 "데이터"/"출처"로 줄바꿈되는 버그가 있었다 — 라벨은 원래 한 줄로 짧게 디자인된
+       값이라 줄바꿈을 막는다. */
+    white-space: nowrap;
 }
 
 .right-panel-fact-list dd {
@@ -1277,8 +1272,7 @@
 }
 
 /* 2026-08-10 최종 확정 — "종합 판정"·"판정 사유 요약"을 별개 카드 2개로 유지하되 고정 1:1 그리드로 나란히
-   배치(가변폭 아님, 콘텐츠 길이와 무관하게 항상 반반). 모바일(≤768px) 1열 전환은 다음 라운드로 명시적으로
-   미룸 — 지금은 데스크톱 전용, 다른 report-grid-* 처럼 미디어쿼리에 추가하지 않는다. */
+   배치(가변폭 아님, 콘텐츠 길이와 무관하게 항상 반반). */
 .report-verdict-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1293,17 +1287,23 @@
     min-height: 170px;
 }
 
-/* 배지+헤드라인 가로 배치 — POSSIBLE은 안내 문단이 없어 오른쪽 열이 짧아지므로 -center 모디파이어로 배지와
-   세로 중앙 정렬, 나머지(LIMITED/NOT_POSSIBLE)는 기본값(위쪽 정렬)을 쓴다. */
+/* 2026-08-12 추가 — 모바일 1열 전환. ReportPage.css의 900px 미디어쿼리에 넣었더니 이 파일(layout.css)이
+   번들 순서상 더 나중에 로드돼(document.styleSheets 실측 확인) 동일 특이도의 non-media 규칙(위)이 media
+   규칙을 덮어쓰는 문제가 있었다 — base 규칙과 같은 파일 안에 둬서 소스 순서로 확실히 이기게 한다. */
+@media (max-width: 900px) {
+    .report-verdict-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 배지+헤드라인 가로 배치 — 2026-08-10: verdict 3종 전부 [배지+헤드라인+문단] 구조로 통일되며(POSSIBLE도
+   이제 문단 있음) 위쪽 정렬로 고정. POSSIBLE만 짧아 세로 중앙 정렬하던 -center 모디파이어는 더 이상
+   필요 없어 제거(report-verdict-content-center, 미사용). */
 .report-verdict-content {
     display: flex;
     align-items: flex-start;
     gap: 16px;
     margin-top: 10px;
-}
-
-.report-verdict-content-center {
-    align-items: center;
 }
 
 .report-verdict-badge-col {
@@ -1313,16 +1313,26 @@
     flex-shrink: 0;
 }
 
+/* 2026-08-12 추가 — 모바일 카드 폭(약 327px)에서 배지 옆에 헤드라인+문단을 나란히 두면 텍스트 칸이 너무
+   좁아져(실측 스크린샷: 8줄 가까이 줄바꿈) 읽기 힘들다는 지적 — 배지 열을 문단 위로 올려 전체 폭을 쓰게
+   세로로 쌓는다. 배지 열 내부(배지 위/서브라벨 아래) 배치는 그대로 유지. */
+@media (max-width: 768px) {
+    .report-verdict-content {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .report-verdict-badge-col {
+        align-items: flex-start;
+    }
+}
+
 /* reason(판정 사유)과 VERDICT_REASON_PARAGRAPH(고정 안내 문장)를 같은 오른쪽 열에 세로로 쌓는다 — 예전엔
    안내 문장을 행 전체 아래(구분선+전체폭)에 뒀더니 배지 열과 어긋나 보였다(2026-08-10 정정). */
 .report-verdict-text-col {
     display: flex;
     flex-direction: column;
     min-width: 0;
-}
-
-.report-verdict-paragraph {
-    margin-top: 8px;
 }
 
 /* 2026-08-10 정정 — 알약형 배경(pill)으로 넣었더니 "배지 옆에 또 다른 태그"처럼 보인다는 지적. 목업 원본은
@@ -1335,14 +1345,22 @@
     white-space: nowrap;
 }
 
-/* FEATURE_06_REMODELING.md §2.1(2026-08-08 정정) — 배지 아래 구석이 아니라 헤더 구분선 아래 본문 줄로(§2.1 "verdict 배지 부제" 위치 변경).
-   2026-08-10 — 배지 옆 헤드라인으로 격상되며 font-weight 500 추가(목업 반영, 굵게). */
-.right-panel-verdict-reason {
+/* 2026-08-17 재구성(§확정분) — 판정 카드가 문단+한계박스 대신 헤드라인+짧은 부연 한 줄만 갖는다. headline은
+   기존 right-panel-verdict-reason(폐기)과 같은 값(FEATURE_06_REMODELING.md §2.1 "verdict 배지 부제" 위치
+   변경, 2026-08-10 헤드라인 격상 시 font-weight 500 추가). short-note는 verdict별 고정 짧은 문구
+   (VERDICT_SHORT_NOTE, remodelingApi.ts) — 판단 근거 캡션류보다 한 단계 더 낮은 톤. */
+.verdict-headline .headline {
     margin: 0;
     font-size: 13px;
     font-weight: 500;
     color: var(--text);
     text-align: left;
+}
+
+.verdict-headline .short-note {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--text-muted);
 }
 
 /* FEATURE_06_REMODELING.md §2.1(2026-08-08) "판정 근거 체크리스트" — ✓/△ 항목 나열, reason-list를 대체 */

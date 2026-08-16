@@ -63,14 +63,20 @@ export const priceConfidenceFromLevel = (confidenceLevel: ConfidenceLevel): Pric
 export const priceConfidenceTone = (grade: PriceConfidenceGrade): "success" | "warning" =>
     grade === "A" || grade === "B" ? "success" : "warning";
 
-// 핵심 요약 "주의사항" item 3(§2.1) — priceConfidence가 이 맵에서 null이 아닌 문구를 반환할 때만 목록에 추가.
-// A는 항목 자체 생략(주의할 게 없음), UNAVAILABLE(priceConfidence===null)은 애초에 예상차익/미래가치/ROI가
-// 전부 "산출 불가"라 별도 문구가 불필요.
-export const PRICE_CONFIDENCE_CAUTION: Record<PriceConfidenceGrade, string | null> = {
-    A: null,
-    B: "동일 법정동 유사거래 기반 추정 시세입니다",
-    C: "비교 범위를 넓힌 유사거래 기반 추정 시세입니다(구 단위 확장 또는 면적·연식 조건 완화)",
-    D: "지역·유형 평균 기반 추정 시세입니다(면적·연식 미반영, 참고용)",
+// 2026-08-17 삭제(§확정분) — 구 핵심 요약 "확인이 필요한 사항" item(리모델링 후 추정 시세 신뢰도 주의 문구)이
+// 목록에서 빠지고 "리모델링 후 추정" 카드 캡션(ReportPage.tsx의 postRemodelPriceMatchCaption,
+// CONFIDENCE_MATCH_STAGE_LABEL 기반)으로 대체되며 이 상수의 유일한 소비처가 사라졌다. PRICE_CONFIDENCE_CAUTION
+// 자체는 삭제 — 필요해지면 git 이력에서 복구 가능.
+
+// 2026-08-12 확정 — "추천여부"→"검토 우선순위"로 칸 자체가 개명되면서 값도 "추천/비추천" 계열(투자 확정 뉘앙스)
+// 대신 "검토 우선순위" 뉘앙스(적극 검토/검토/추가 확인/보류)로 전면 교체. 매트릭스 구조(등급×신뢰도)와 각 셀이
+// 가리키는 판정 자체는 그대로 — 라벨 문구만 LABEL_MAP으로 치환.
+const LABEL_MAP: Record<string, string> = {
+    "적극 추천": "적극 검토",
+    추천: "검토",
+    검토: "추가 확인",
+    비추천: "보류",
+    "판단 불가": "판단 불가",
 };
 
 const RECOMMENDATION_MATRIX: Record<InvestmentGrade, Record<PriceConfidenceGrade | "NONE", string>> = {
@@ -82,7 +88,7 @@ const RECOMMENDATION_MATRIX: Record<InvestmentGrade, Record<PriceConfidenceGrade
 };
 
 export const getRecommendation = (grade: InvestmentGrade, priceConfidence: PriceConfidenceGrade | null): string =>
-    RECOMMENDATION_MATRIX[grade][priceConfidence ?? "NONE"];
+    LABEL_MAP[RECOMMENDATION_MATRIX[grade][priceConfidence ?? "NONE"]];
 // 기존 RECOMMENDATION_LABEL(grade 단독 매핑)은 삭제 — 위 매트릭스로 완전히 대체.
 
 // 2026-08-10 — "총 투자금 = 매입가+공사비+부대비용"으로 공식 변경(LAW-003_취득세_중개보수_요율.md). isHousing
@@ -134,6 +140,34 @@ export interface ProfitAnalysisResult {
     roiMin: number;
     roiMax: number;
 }
+
+// 2026-08-17 신규(docs/CONTENT_TAXONOMY.md 금지규칙 2 "라벨과 값의 부호를 어긋내지 않는다" — "예상차익 -68.17억"처럼
+// 라벨은 "차익"인데 값에 마이너스가 붙으면 부호와 라벨이 어긋난다. 부호는 값이 아니라 라벨이 말한다). "01 요약
+// 정보"/"06 사업성 분석"(사업성 요약·현금흐름) 셋이 전부 같은 gainMin/gainMax(profitAnalysis)를 공유하므로 라벨
+// 판정도 한 곳에서 계산한다 — CashFlowFormula.tsx가 이미 쓰던 positive/negative/neutral 3분기(부호 스타일링용)와
+// 같은 경계값을 그대로 재사용, 라벨 매핑만 추가.
+export type GainSign = "positive" | "negative" | "neutral";
+
+export const gainSign = (gainMin: number, gainMax: number): GainSign =>
+    gainMin >= 0 && gainMax >= 0 ? "positive" : gainMin < 0 && gainMax < 0 ? "negative" : "neutral";
+
+// positive="예상 차익"(값>0) · negative="예상 손실"(값<0, 절댓값만 표시 — 마이너스 기호 없이) · neutral="예상 손익"
+// (범위가 0을 가로지름).
+export const GAIN_LABEL: Record<GainSign, string> = {
+    positive: "예상 차익",
+    negative: "예상 손실",
+    neutral: "예상 손익",
+};
+
+// "예상 손실"일 때만 절댓값(마이너스 기호 제거) — 차익/손익은 부호를 그대로 보여준다(손익은 0을 가로지르는
+// 범위라 부호 자체가 "어느 쪽으로도 갈 수 있다"는 정보라 지우면 안 됨).
+export const displayGain = (value: number, sign: GainSign): number => (sign === "negative" ? Math.abs(value) : value);
+
+// gainMin~gainMax 범위를 화면에 표시할 [저, 고] 순서쌍으로. "예상 손실"이면 절댓값으로 바꾸면서 대소가
+// 뒤집힌다(원래 gainMin<=gainMax인데 abs(gainMin)>=abs(gainMax)) — 그대로 이어붙이면 "68.17억 ~ 54억"처럼
+// 내림차순으로 보여 어색하다. 절댓값 기준으로 다시 오름차순 정렬해서 반환.
+export const displayGainRange = (gainMin: number, gainMax: number, sign: GainSign): [number, number] =>
+    sign === "negative" ? [displayGain(gainMax, sign), displayGain(gainMin, sign)] : [gainMin, gainMax];
 
 export const buildProfitAnalysis = (
     analysis: PropertyAnalysis,
@@ -211,7 +245,18 @@ export const buildProfitAnalysis = (
 // 그대로 옮겨왔다(2026-08-1x, 카테고리 재편 — 판정 로직은 변경 없음, 위치만 이동). 새 계산 로직·API 없이 analysis
 // 응답 필드를 "리스크 관점"으로 재구성만 한다(DOMAIN.md §4 "AI는 해석 단계에서만" — 이건 해석도 아니고 조건 재배치).
 // 4/5번 임계값(30%/5년)은 backend V1 정책값(FEATURE_07_COST.md §5.1의 aging_factor.k와 같은 성격).
-export const buildRiskChecklist = (analysis: PropertyAnalysis): RemodelingChecklistItem[] => {
+export interface RiskChecklist {
+    permitRisk: RemodelingChecklistItem;
+    districtRisk: RemodelingChecklistItem;
+    confidenceRisk: RemodelingChecklistItem;
+    costRangeRisk: RemodelingChecklistItem;
+    agingMarginRisk: RemodelingChecklistItem;
+}
+
+// 2026-08-17 — 배열 반환에서 이름 있는 객체 반환으로 변경(§확정분). ReportPage.tsx가 "확인이 필요한 사항"
+// 목록에서 confidenceRisk만 골라 빼고("평가"/"리모델링 후 추정" 카드 캡션으로 이동) 나머지만 나열해야 하는데,
+// 배열+filter(ok)만으로는 특정 항목만 선택적으로 제외할 방법이 없었다(순서/개수가 데이터에 따라 달라짐).
+export const buildRiskChecklist = (analysis: PropertyAnalysis): RiskChecklist => {
     const { basis } = analysis.remodeling;
     const checklist = buildRemodelingChecklist(basis);
     const { cost, market } = analysis;
@@ -220,15 +265,33 @@ export const buildRiskChecklist = (analysis: PropertyAnalysis): RemodelingCheckl
         ? { ok: true, text: "진행 중인 인허가 없음" }
         : { ok: false, text: `최근 인허가 진행 중(${basis.recentPermitType ?? "종류 미상"}) — 사업 지연 가능` };
 
+    // 2026-08-12 정정 — "01 요약 정보" 확인이 필요한 사항 목록에서 구역명이 전부 나열돼 문장이 너무 길어졌다는
+    // 지적 — 처음 2개만 보여주고 나머지는 "외 N곳"으로 축약(전체 목록은 "05 리모델링 분석" 세부 근거 표에서
+    // 그대로 확인 가능, 여긴 요약이라 축약해도 정보 손실 아님).
+    // 2026-08-17 — ✓ 텍스트를 remodelingApi.ts의 district 항목과 같은 문구로 통일("확인된 지구/구역 지정
+    // 없음") — landuse_district 매칭률이 49.1%라 빈 배열이 "규제가 실제로 없다"가 아니라 "매칭 실패"일 수도
+    // 있어 "없음"이라고 단정하면 안 된다(F-06 §2.1과 동일 근거). F-06 체크리스트를 이 목록 소스에서 제외한
+    // 뒤로(위 buildRiskChecklist 호출부 참고) 이 ✓ 문구가 화면에 뜨는 유일한 지구/구역 항목이 됐다.
     const districtRisk: RemodelingChecklistItem =
         basis.districtNames.length === 0
-            ? { ok: true, text: "지구/구역 규제 없음" }
-            : { ok: false, text: `${basis.districtNames.join(", ")} 지정 — 추가 규제 확인 필요` };
+            ? { ok: true, text: "확인된 지구/구역 지정 없음" }
+            : {
+                  ok: false,
+                  text: `${
+                      basis.districtNames.length > 2
+                          ? `${basis.districtNames.slice(0, 2).join(", ")} 외 ${basis.districtNames.length - 2}곳`
+                          : basis.districtNames.join(", ")
+                  } 지정 — 추가 규제 확인 필요`,
+              };
 
+    // 2026-08-12 정정 — (a) 이 항목은 market.estimatedPrice(현재 시세) 기준이라 "현재 시세"로 대상 명시(리모델링
+    // 후 시세와 구분). (b) CONFIDENCE_LABEL 값 자체가 이미 "중간(같은 구 비교)"처럼 등급 단어를 포함하는데 앞에
+    // 고정 "낮음"을 또 붙여 "낮음(중간(같은 구 비교))"처럼 이중으로 겹치고 실제 등급과도 안 맞았다 — 고정
+    // "낮음" 접두 제거.
     const confidenceRisk: RemodelingChecklistItem =
         market.estimatedPrice.confidenceLevel === "SAME_DONG"
-            ? { ok: true, text: "시세 추정 신뢰도 높음" }
-            : { ok: false, text: `시세 추정 신뢰도 낮음(${CONFIDENCE_LABEL[market.estimatedPrice.confidenceLevel]})` };
+            ? { ok: true, text: "현재 시세 추정 신뢰도 높음" }
+            : { ok: false, text: `현재 시세 추정 신뢰도 ${CONFIDENCE_LABEL[market.estimatedPrice.confidenceLevel]}` };
 
     const costRangeRisk: RemodelingChecklistItem =
         cost.status !== "AVAILABLE" || cost.minCost == null || cost.maxCost == null
@@ -252,7 +315,7 @@ export const buildRiskChecklist = (analysis: PropertyAnalysis): RemodelingCheckl
                   }
                 : { ok: false, text: checklist.aging.text };
 
-    return [permitRisk, districtRisk, confidenceRisk, costRangeRisk, agingMarginRisk];
+    return { permitRisk, districtRisk, confidenceRisk, costRangeRisk, agingMarginRisk };
 };
 
 // buildingId(=bdrg_sn)가 building 테이블에 없으면 백엔드가 404 — apiClient 호출부에서 catch해 null 처리(market/remodelingApi.ts와 동일 패턴).

@@ -1,6 +1,6 @@
 import { formatManwon } from "../../search/api/searchApi";
 import { CONFIDENCE_LABEL_SHORT } from "../../market/api/marketApi";
-import { buildProfitAnalysis, type PropertyAnalysis } from "../../investment/api/analysisApi";
+import { buildProfitAnalysis, displayGainRange, GAIN_LABEL, gainSign, type PropertyAnalysis } from "../../investment/api/analysisApi";
 import CashFlowFormula from "../../cost/components/CashFlowFormula";
 import SensitivityMatrix from "../../investment/components/SensitivityMatrix";
 import BreakEvenTable from "../../investment/components/BreakEvenTable";
@@ -18,7 +18,8 @@ interface BusinessAnalysisPageProps {
 // 사용 — 재무 숫자만 다룬다. 공사비 카드는 "05 리모델링 분석"으로 이동, 여기선 이미 계산된 cost.min/maxCost만 참조.
 // 5카드, 3+2행(report-grid-3-even/report-grid-2-even, ReportPage.css) — 윗줄: 사업성 요약/현금흐름/손익분기 및
 // 목표 수익률. 아랫줄: 비교 거래(신규)/민감도 분석(ROI 변화). 설명 각주 공통 규칙: 행 라벨 옆엔 아이콘만(숫자
-// 매김 없음), 설명 전체는 카드 맨 아래 순서로 대응해 모아서 나열(report-card-footnotes).
+// 매김 없음), 설명 전체는 카드 맨 아래 "·" 목록(report-result-notes, 2026-08-17 재구성 — 구 report-card-
+// footnotes 파란 박스 폐기)으로 순서 대응해 모아서 나열.
 const BusinessAnalysisPage = ({ analysis, loading, householdCount, propertyType, totalBuildingArea }: BusinessAnalysisPageProps) => {
     if (loading) {
         return <p className="right-panel-field-note">조회 중...</p>;
@@ -32,6 +33,12 @@ const BusinessAnalysisPage = ({ analysis, loading, householdCount, propertyType,
 
     // §3.7 "사업성 요약"·현금흐름·민감도분석이 공유하는 계산(analysisApi.ts의 buildProfitAnalysis, 재계산 안 함).
     const profitAnalysis = buildProfitAnalysis(analysis, householdCount, propertyType, totalBuildingArea);
+    // 2026-08-17 — 라벨-부호 어긋남 정정(docs/CONTENT_TAXONOMY.md 금지규칙 2). CashFlowFormula.tsx와 같은
+    // gainSign() 재사용 — 같은 profitAnalysis.gainMin/Max를 두 컴포넌트가 각자 판정하면 라벨이 어긋날 수 있음.
+    const gainDisplaySign = profitAnalysis ? gainSign(profitAnalysis.gainMin, profitAnalysis.gainMax) : "positive";
+    const [gainLo, gainHi] = profitAnalysis
+        ? displayGainRange(profitAnalysis.gainMin, profitAnalysis.gainMax, gainDisplaySign)
+        : [0, 0];
 
     // "예상 리모델링 비용(적정)" — 기준 공사비는 API에 없어 연면적×기준단가×agingFactorDefault로 직접 계산
     // (F-07 §3.2 산식 그대로). 사업성 요약 표 2행과 민감도분석 "기준" 열이 같은 값을 공유(재계산 안 함).
@@ -125,9 +132,9 @@ const BusinessAnalysisPage = ({ analysis, loading, householdCount, propertyType,
                                     <dd>{formatManwon(profitAnalysis.value)}</dd>
                                 </div>
                                 <div>
-                                    <dt>예상 차익</dt>
+                                    <dt>{GAIN_LABEL[gainDisplaySign]}</dt>
                                     <dd>
-                                        {formatManwon(profitAnalysis.gainMin)} ~ {formatManwon(profitAnalysis.gainMax)}
+                                        {formatManwon(gainLo)} ~ {formatManwon(gainHi)}
                                     </dd>
                                 </div>
                                 {/* 각주 목록 3번째 — 반영/미반영 비용 구분. */}
@@ -137,22 +144,27 @@ const BusinessAnalysisPage = ({ analysis, loading, householdCount, propertyType,
                                     </dt>
                                     <dd>
                                         {profitAnalysis.roiMin.toFixed(1)}% ~ {profitAnalysis.roiMax.toFixed(1)}%
+                                        {/* 2026-08-17 추가 — ROI 범위가 전부 음수(투자원금도 못 건짐)일 때만 3단계
+                                            인라인 보조 문구. "약 -1%"만 있으면 거의 0에 가까운 것처럼 읽히지만
+                                            실제로는 큰 손실일 수 있다(docs/CONTENT_TAXONOMY.md §2 "A. 값 보조"). */}
+                                        {profitAnalysis.roiMax < 0 && (
+                                            <span className="report-row-aux"> 투자금 대비 손실</span>
+                                        )}
                                     </dd>
                                 </div>
                             </dl>
-                            <div className="report-card-footnotes">
-                                <p className="right-panel-info-note">
-                                    <span aria-hidden="true">ⓘ</span> 개인 1주택자·표준세율 기준 추정치 — 법인·다주택자는
-                                    다를 수 있습니다.
-                                </p>
-                                <p className="right-panel-info-note">
-                                    <span aria-hidden="true">ⓘ</span>{" "}
-                                    {futureValueUnitPrice != null && futureValueTargetArea != null && cost.basis != null ? (
+                            {/* 2026-08-17 재구성(§확정분) — 파란 배경 박스(right-panel-info-note) 제거, 01/05가
+                                쓰는 "·" 플레인 텍스트 목록(report-result-notes)으로 통일. 항목명을 주어로 앞에
+                                명시해 "항목명 — 내용" 형식으로 압축 — 삭제된 내용(법인·다주택자 예외, 산출식
+                                구성 요소, 취득·공사·부대비용 반영 문구)은 각각 주어에 이미 함의되거나 바로
+                                위/다른 섹션에 이미 보이는 값이라 중복이었다. */}
+                            <ul className="report-result-notes">
+                                <li>부대비용 — 개인 1주택자·표준세율 기준</li>
+                                <li>
+                                    미래가치 —{" "}
+                                    {futureValueUnitPrice != null ? (
                                         <>
-                                            추정시세 {futureValueUnitPrice.toLocaleString()}만원/㎡ × 대상면적{" "}
-                                            {futureValueTargetArea.toLocaleString()}㎡(연면적 {cost.basis.grossFloorArea}+증축가능{" "}
-                                            {remodeling.basis.additionalBuildableAreaSqm})
-                                            {postRemodel?.comparableCount != null && `, 비교 거래 ${postRemodel.comparableCount}건`}
+                                            추정시세 {futureValueUnitPrice.toLocaleString()}만원/㎡
                                             {postRemodel?.confidenceLevel != null &&
                                                 postRemodel.confidenceLevel !== "UNAVAILABLE" &&
                                                 `, 신뢰도 ${CONFIDENCE_LABEL_SHORT[postRemodel.confidenceLevel]}`}
@@ -160,12 +172,9 @@ const BusinessAnalysisPage = ({ analysis, loading, householdCount, propertyType,
                                     ) : (
                                         "산출근거 정보 없음"
                                     )}
-                                </p>
-                                <p className="right-panel-info-note">
-                                    <span aria-hidden="true">ⓘ</span> ROI는 취득·공사·부대비용을 반영한 총 투자금 대비
-                                    수익률이며, 양도소득세·대출이자는 반영되지 않았습니다.
-                                </p>
-                            </div>
+                                </li>
+                                <li>ROI — 양도소득세·대출이자는 반영되지 않음</li>
+                            </ul>
                         </>
                     )}
                 </section>

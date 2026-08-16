@@ -205,7 +205,10 @@ const PropertyDetailContent = ({ onOpenReport }: PropertyDetailContentProps) => 
                         </p>
                     </div>
                     <div className="right-panel-mini-stat">
-                        <p className="right-panel-mini-stat-label">추천여부</p>
+                        {/* 2026-08-17 라벨 변경(F-10과 공유하는 값, analysisApi.ts getRecommendation) — "추천여부"
+                            (추천/비추천 뉘앙스)는 이미 F-10에서 "검토 우선순위"로 개명됐는데 이 미니 스탯밴드만
+                            누락돼 있었다. 값 자체는 그대로(같은 LABEL_MAP), 라벨만 맞춘다. */}
+                        <p className="right-panel-mini-stat-label">검토 우선순위</p>
                         <p className="right-panel-mini-stat-value">{recommendation}</p>
                     </div>
                 </div>

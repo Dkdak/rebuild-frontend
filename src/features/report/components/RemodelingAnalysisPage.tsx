@@ -4,6 +4,7 @@ import {
     VERDICT_HEADLINE_FALLBACK,
     VERDICT_LABEL,
     VERDICT_REASON_PARAGRAPH,
+    VERDICT_SHORT_NOTE,
     VERDICT_SUBLABEL,
 } from "../../remodeling/api/remodelingApi";
 import { ESTIMATED_AREA_TYPES, formatCurrency } from "../../search/api/searchApi";
@@ -71,16 +72,15 @@ const RemodelingAnalysisPage = ({ analysis, loading, buildYear, propertyType, ho
                 않고 더 구체적인 라벨을 쓴다. */}
             <div className="report-verdict-row">
                 <section className="right-panel-card report-verdict-card">
-                    <h5 className="right-panel-card-title">종합 판정</h5>
-                    {/* 2026-08-10 확정 — POSSIBLE도 예외 없이 배지+헤드라인 표시(verdictHeadline, 위에서 계산 —
-                        POSSIBLE은 VERDICT_HEADLINE_FALLBACK 고정문구, 나머지는 reason 그대로). reason은
-                        remodelingApi.ts에 필드로 없는 값이라(전달받은 diff의 remodeling.basis.reason은 실제
-                        타입에 없음) 이미 계산해 둔 로컬 reason/verdictHeadline을 재사용 — 새로 계산 안 함.
-                        POSSIBLE은 안내 문단이 없어 오른쪽 열이 짧아지므로 배지와 세로 중앙 정렬, 나머지는
-                        위쪽 정렬. */}
-                    <div
-                        className={`report-verdict-content${remodeling.verdict === "POSSIBLE" ? " report-verdict-content-center" : ""}`}
-                    >
+                    <h5 className="right-panel-card-title">리모델링 추진 요건 판정</h5>
+                    {/* 2026-08-10 추가 — 제목 아래 판정 기준 캡션(F-06 문구 확정분). */}
+                    <p className="right-panel-field-note">노후연한과 진행 중 개발행위 두 가지를 기준으로 판정합니다.</p>
+                    {/* 2026-08-17 재구성(§확정분) — 판정 카드는 헤드라인+짧은 부연 한 줄만 남긴다. 기존
+                        VERDICT_REASON_PARAGRAPH(전체 문단)와 판정에 영향을 주는 한계 2줄은 전부 아래 신규
+                        "결론" 카드로 이동(문장 삭제 없음, 위치만 이동) — 판정 카드는 "무엇인지"만, 근거·한계는
+                        "결론" 카드에서 한 번에. verdictHeadline은 remodelingApi.ts에 필드로 없는 값이라(전달받은
+                        diff의 remodeling.basis.reason은 실제 타입에 없음) 이미 계산해 둔 로컬 값을 재사용. */}
+                    <div className="report-verdict-content">
                         <div className="report-verdict-badge-col">
                             <span
                                 className={`right-panel-verdict-badge right-panel-verdict-${remodeling.verdict.toLowerCase().replace("_", "-")}`}
@@ -92,11 +92,11 @@ const RemodelingAnalysisPage = ({ analysis, loading, buildYear, propertyType, ho
                             )}
                         </div>
                         <div className="report-verdict-text-col">
-                            {verdictHeadline && <p className="right-panel-verdict-reason">{verdictHeadline}</p>}
-                            {VERDICT_REASON_PARAGRAPH[remodeling.verdict] && (
-                                <p className="right-panel-field-note report-verdict-paragraph">
-                                    {VERDICT_REASON_PARAGRAPH[remodeling.verdict]}
-                                </p>
+                            {verdictHeadline && (
+                                <div className="verdict-headline">
+                                    <p className="headline">{verdictHeadline}</p>
+                                    <p className="short-note">{VERDICT_SHORT_NOTE[remodeling.verdict]}</p>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -116,12 +116,20 @@ const RemodelingAnalysisPage = ({ analysis, loading, buildYear, propertyType, ho
                             <dt>용적률 여유</dt>
                             {/* 원본 diff는 (floorAreaRatioLimit - floorAreaRatio)였지만 RemodelingBasis에 floorAreaRatio
                                 필드가 없다 — "용적률 여유"는 이미 basis.floorAreaRatioSurplus로 직접 내려온다(아래
-                                "용적률 활용도" 게이지 캡션과 같은 값, 재계산 아님). */}
-                            <dd>{basis.floorAreaRatioSurplus != null ? `${basis.floorAreaRatioSurplus.toFixed(2)}%p` : "정보 없음"}</dd>
+                                "용적률 활용도" 게이지 캡션과 같은 값, 재계산 아님).
+                                2026-08-12 표기 정정 — toFixed(2)로 "505.17%p"처럼 소수점이 그대로 보이던 것을
+                                반올림+"약" 접두로 통일(remodelingApi.ts의 farSurplus.text와 같은 표기 규칙). */}
+                            <dd>{basis.floorAreaRatioSurplus != null ? `약 ${Math.round(basis.floorAreaRatioSurplus)}%p` : "정보 없음"}</dd>
                         </div>
                         <div>
                             <dt>증축 여력</dt>
-                            <dd>{basis.additionalBuildableAreaSqm != null ? `약 ${basis.additionalBuildableAreaSqm}㎡` : "정보 없음"}</dd>
+                            {/* 2026-08-12 표기 정정 — 천단위 쉼표 추가. 2026-08-17 추가 정정 — toLocaleString()만으론
+                                소수점이 그대로 남는다(remodelingApi.ts의 buildable.text와 같은 문제) — Math.round까지. */}
+                            <dd>
+                                {basis.additionalBuildableAreaSqm != null
+                                    ? `약 ${Math.round(basis.additionalBuildableAreaSqm).toLocaleString()}㎡`
+                                    : "정보 없음"}
+                            </dd>
                         </div>
                         <div>
                             <dt>입지/용도지역</dt>
@@ -134,37 +142,47 @@ const RemodelingAnalysisPage = ({ analysis, loading, buildYear, propertyType, ho
             {/* 2. 판단 근거 — 게이지 2개(상대적으로 작은 카드) + 세부 근거 표, report-grid-3(기본정보와 같은 클래스 재사용).
                 2026-08-10 — 예상 공사비보다 위로 순서 변경(판정 → 판단 근거 → 공사비). */}
             <p className="report-subsection-title">판단 근거</p>
+            {/* 2026-08-10 추가 — 소제목 아래 캡션: 판정에 실제로 반영된 값 vs 참고용 지표를 구분(F-06 문구 확정분). */}
+            <p className="right-panel-field-note">
+                노후도 달성률은 위 판정에 직접 반영된 값입니다. 용적률·증축 여력·용도지역·지구/구역 지정은 판정에
+                반영되지 않은 사업 검토용 참고 지표입니다.
+            </p>
             <div className="report-grid-3">
                 <section className="right-panel-card">
                     <h5 className="right-panel-card-title">노후도 달성률</h5>
                     {/* 2026-08-10 목업 반영 — "달성률 97% · 용도지역 기준 필요연수 충족/미달" 한 줄 텍스트는 폐기.
                         "OO지역 기준 필요연수 미달"이라는 문구는 API 필드가 아니라 프론트가 임의로 붙인
                         설명이었다는 지적 확인 — checklist.aging.text(실제 계산값, "노후·불량 기준까지 N년
-                        부족"/"충족")만 tone 배지로 보여주고 그 외 창작 문구는 전부 제거. */}
-                    {basis.buildingAgeYears != null && basis.requiredYears != null ? (
+                        부족"/"충족")만 tone 배지로 보여주고 그 외 창작 문구는 전부 제거.
+                        2026-08-10 추가 — score가 null이면(buildingAgeYears/requiredYears는 있어도) 게이지 자체를
+                        그리지 않고 "산출 불가"로 표시(기존 `remodeling.score ?? 0`은 null을 0%로 렌더링해버려
+                        "노후도 0%"처럼 잘못 읽혔다 — F-06 문구 확정분). */}
+                    {basis.buildingAgeYears != null && basis.requiredYears != null && remodeling.score != null ? (
                         <GaugeBar
                             label={`건축연수 ${basis.buildingAgeYears}년 / 필요연수 ${basis.requiredYears}년`}
-                            bigValue={`${remodeling.score ?? 0}%`}
-                            percent={remodeling.score ?? 0}
+                            bigValue={`${remodeling.score}%`}
+                            percent={remodeling.score}
                             tone={checklist.aging.ok ? "success" : "warning"}
                             reasonBadge={checklist.aging.text}
                         />
                     ) : (
-                        <p className="right-panel-field-note">정보 없음</p>
+                        <p className="right-panel-field-note">산출 불가</p>
                     )}
-                    <p className="right-panel-field-note report-basis-caption">건축물대장 사용승인일 기준</p>
                 </section>
 
                 <section className="right-panel-card">
                     <h5 className="right-panel-card-title">용적률 활용도</h5>
                     {/* "법정상한 기준(완화 전)"도 위와 같은 이유로 제거 — additionalBuildableAreaSqm은 실측값 그대로,
                         "이론상 여유면적... 추가 검토 필요"는 목업 원문 그대로(창작 아님, 확정 지시분). */}
+                    {/* 2026-08-12 표기 정정 — toFixed(2)/comma 없는 raw 숫자 전부 정리(analysisApi.ts·
+                        remodelingApi.ts와 같은 규칙: %p는 반올림+"약", ㎡는 천단위 쉼표). 문구 자체는
+                        그대로(이전 라운드에서 목업 원문대로 확정한 부분 — 숫자 표기만 수정). */}
                     {currentFar != null && basis.floorAreaRatioLimit != null ? (
                         <GaugeBar
                             label={`사용 ${currentFar.toFixed(2)}% / 법정상한 ${basis.floorAreaRatioLimit}%`}
                             bigValue={
                                 <>
-                                    {basis.floorAreaRatioSurplus?.toFixed(2)}%p{" "}
+                                    약 {basis.floorAreaRatioSurplus != null ? Math.round(basis.floorAreaRatioSurplus) : "?"}%p{" "}
                                     <span className="gauge-bar-value-suffix">여유</span>
                                 </>
                             }
@@ -172,15 +190,15 @@ const RemodelingAnalysisPage = ({ analysis, loading, buildYear, propertyType, ho
                             tone="neutral"
                             invertFill
                             note={
+                                // 2026-08-17 정정 — 위 "증축 여력" dd와 같은 표기 규칙(Math.round+toLocaleString)으로 통일.
                                 basis.additionalBuildableAreaSqm != null
-                                    ? `이론상 여유면적 약 ${basis.additionalBuildableAreaSqm}㎡ — 실제 증축 가능 면적은 추가 검토 필요`
+                                    ? `이론상 여유면적 약 ${Math.round(basis.additionalBuildableAreaSqm).toLocaleString()}㎡ — 실제 증축 가능 면적은 추가 검토 필요`
                                     : undefined
                             }
                         />
                     ) : (
                         <p className="right-panel-field-note">정보 없음</p>
                     )}
-                    <p className="right-panel-field-note report-basis-caption">건축물대장 + 법정 용적률 상한 기준</p>
                 </section>
 
                 <section className="right-panel-card">
@@ -195,7 +213,7 @@ const RemodelingAnalysisPage = ({ analysis, loading, buildYear, propertyType, ho
                             <dd>
                                 {basis.recentPermitType
                                     ? `${basis.recentPermitType}${basis.recentPermitDate ? ` (${basis.recentPermitDate})` : ""}`
-                                    : "없음"}
+                                    : "확인된 이력 없음"}
                             </dd>
                         </div>
                         <div>
@@ -212,21 +230,31 @@ const RemodelingAnalysisPage = ({ analysis, loading, buildYear, propertyType, ho
                                 {!isHouseholdBased
                                     ? "해당 없음"
                                     : basis.estimatedAdditionalHouseholds != null
-                                      ? `${basis.estimatedAdditionalHouseholds}세대`
+                                      ? `이론상 약 ${basis.estimatedAdditionalHouseholds}세대`
                                       : "정보 없음"}
                             </dd>
                         </div>
+                        {/* 2026-08-10 추가 — 지구/구역 지정 전부 나열(개수 제한 없음, F-06 문구 확정분). */}
+                        <div>
+                            <dt>지구/구역 지정</dt>
+                            <dd>{basis.districtNames.length > 0 ? basis.districtNames.join(", ") : "확인된 지정 없음"}</dd>
+                        </div>
                     </dl>
-                    <p className="right-panel-field-note report-basis-caption">건축물대장·인허가 정보 기준</p>
                 </section>
             </div>
 
             {/* 3. 예상 공사비 — 강조 카드, 좌(헤드라인)/우(산출 근거 표) 2단. 구 "수익 분석"(F-07)에서 이동.
-                2026-08-10 — 판단 근거 아래·면책 문구 바로 위(맨 아래에서 두 번째)로 순서 변경. */}
+                2026-08-17 3차 재정정 — 판단 근거 3카드 바로 다음(맨 아래에서 세 번째)으로 순서 변경, 카드
+                내부 구조는 변경 없음. */}
             <section className="right-panel-card report-card-emphasis">
                 <h5 className="right-panel-card-title">
                     <span className="right-panel-estimate-anchor">
-                        예상 공사비<span className="right-panel-estimate-tag">추정치 — 실측 견적 아님</span>
+                        {/* 2026-08-17 표기 정정 — docs/CONTENT_TAXONOMY.md §2 "A. 값 보조"(2~8자) 예산 초과였다
+                            ("추정치 — 실측 견적 아님" 11자). "추정치"만으로도 실측 견적이 아니라는 뜻은 이미
+                            전달되고, 상세 한계는 아래 "결과" 카드 문단에서 다룬다(중복 아님, layout.css의
+                            right-panel-estimate-tag 주석이 이미 "추정치"(2자) 짧은 형태를 소비처 예시로 들고
+                            있었음). */}
+                        예상 공사비<span className="right-panel-estimate-tag">추정치</span>
                     </span>
                 </h5>
                 {costDetail == null ? (
@@ -246,17 +274,15 @@ const RemodelingAnalysisPage = ({ analysis, loading, buildYear, propertyType, ho
                                 ㎡당 약 {formatWon(costDetail.minCost / costDetail.basis.grossFloorArea)} ~{" "}
                                 {formatWon(costDetail.maxCost / costDetail.basis.grossFloorArea)}
                             </p>
-                            {/* 2026-08-10 추가 — 오른쪽 표를 space-between으로 꽉 채운 뒤에도 왼쪽 헤드라인 쪽에
-                                85px 빈 공간이 남는다는 지적(스크린샷 비교) — 목업의 안내문구로 채운다.
-                                GaugeBar note와 같은 시각 언어(ⓘ + accent 톤 박스) 재사용. */}
-                            <p className="report-cost-note">
-                                <span aria-hidden="true">ⓘ</span> 개략 추정치이며 실제 견적과 차이가 발생할 수 있습니다.
-                            </p>
+                            {/* 2026-08-17 삭제(§확정분) — "개략 추정치이며..." 박스가 카드 제목 옆 "추정치 —
+                                실측 견적 아님" 배지와 같은 말을 중복 전달하고 있었다. */}
                         </div>
                         <dl className="right-panel-fact-list report-cost-split-table">
                             <div>
                                 <dt>연면적</dt>
-                                <dd>{costDetail.basis.grossFloorArea}㎡</dd>
+                                {/* 2026-08-17 표기 정정(docs/CONTENT_TAXONOMY.md §2 "A. 값") — 쉼표 없이 원본
+                                    그대로 나오던 것(예: "23658.32㎡") → 반올림+천단위 쉼표. */}
+                                <dd>{Math.round(costDetail.basis.grossFloorArea).toLocaleString()}㎡</dd>
                             </div>
                             <div>
                                 <dt>기준단가</dt>
@@ -284,10 +310,26 @@ const RemodelingAnalysisPage = ({ analysis, loading, buildYear, propertyType, ho
                 )}
             </section>
 
-            {/* 4. 면책 문구 — 섹션 맨 아래. */}
-            <p className="right-panel-field-note">
-                본 분석은 제공된 데이터와 관련 법규를 기반으로 산정한 결과이며, 실제 사업 추진 시에는 인허가·설계·구조·시공 등 추가 검토가 필요합니다.
-            </p>
+            {/* 2026-08-17 6차 재정정(§확정분, 최종) — 4줄 중 3번째("용적률·세부 근거 — ...")가 서로 다른 두
+                출처(용적률 여유/지구·구역 제한)를 한 줄에 욱여넣어 출처명만 나열되고 의미가 안 통한다는 지적
+                — 그 한 줄만 "용적률 여유" 항목과 "세부 근거의 지구/구역 제한" 항목으로 분리(총 4줄→5줄).
+                1·2·5번째 줄(구 4번째, 면책)은 문구 그대로. "행정기관 확인" 문구는 새 4번째 줄(지구/구역
+                제한)로 옮겨가고, 5번째(면책)는 그만큼 간결해짐 — 내용 삭제가 아니라 재배치. 1문단·카드
+                위치·구조는 변경 없음. */}
+            <section className="right-panel-card">
+                <h5 className="right-panel-card-title">결과</h5>
+                {/* 판정 결과 자체는 아래 부가 정보 목록(옅은 회색)과 위계가 달라야 하는데 right-panel-field-note
+                    (12px 회색)를 그대로 써서 구분이 안 됐다 — 진한 본문색(text-primary급)·13px 전용 클래스로. */}
+                <p className="report-result-headline">{VERDICT_REASON_PARAGRAPH[remodeling.verdict]}</p>
+                {/* 세션 전체 가독성 정책(폰트 12px 이상)에 맞춰 11px 대신 12px 적용 — 그 외 문구·구조는 그대로. */}
+                <ul className="report-result-notes">
+                    <li>노후도 — 사용승인일 기준 경과연수, 실제 노후 상태(배관·설비 등)는 반영되지 않음</li>
+                    <li>진행 중 개발행위 — 인허가 매칭률 86.6% 한계로 미확인 사례 있을 수 있음</li>
+                    <li>용적률 여유 — 법정 상한 완화 전 기준으로 계산(임대주택 공급 등 완화 시 실제 여유는 더 클 수 있음)</li>
+                    <li>세부 근거의 지구/구역 제한 — 구체적 내용은 관할 행정기관 확인 필요</li>
+                    <li>이 분석은 공공데이터 기반 참고 자료로, 사업 추진 가능성이나 투자 수익을 보장하지 않음</li>
+                </ul>
+            </section>
         </>
     );
 };

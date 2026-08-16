@@ -112,13 +112,15 @@ export interface MarketAnalysis {
 // FEATURE_08_MARKET.md §5.1 확정본 — 신뢰도 배지 한글 라벨. UNAVAILABLE은 배지 자체를 안 띄우고 "추정 불가" 텍스트만
 // 쓰는 게 원칙(§2.2)이라 CONFIDENCE_TONE에서 제외한 소비처(F-05)도 있었지만, F-10은 근거를 자세히 보여주는 화면이라
 // UNAVAILABLE도 라벨을 그대로 노출한다(§2.9 "완화 단계 배지"와 같은 맥락).
+// 2026-08-17 표기 정정(docs/CONTENT_TAXONOMY.md §3) — "추정 불가"는 결측 4종에 없는 표현("추정 불가"는 "산출
+// 불가"에 합친다, 사용자가 둘의 차이를 알 필요가 없음) — "산출 불가"로 통일.
 export const CONFIDENCE_LABEL: Record<ConfidenceLevel, string> = {
     SAME_DONG: "높음(같은 법정동 비교)",
     SAME_GU: "중간(같은 구 비교)",
     WIDENED_RANGE: "낮음(면적·연식 범위 확대)",
     DONG_TYPE_AVERAGE: "매우 낮음(법정동·유형 평균, 면적·연식 미반영)",
     GU_TYPE_AVERAGE: "매우 낮음(구·유형 평균, 면적·연식 미반영)",
-    UNAVAILABLE: "추정 불가(비교 가능한 유사 거래 없음)",
+    UNAVAILABLE: "산출 불가(비교 가능한 유사 거래 없음)",
 };
 
 // 좁은 fact-list 행(사업성 요약의 "미래가치" 등)에서는 괄호 설명이 값 텍스트를 밀어내 줄바꿈을 깨뜨린다(2026-08-1x).
@@ -133,7 +135,19 @@ export const CONFIDENCE_LABEL_SHORT: Record<ConfidenceLevel, string> = {
     WIDENED_RANGE: "낮음",
     DONG_TYPE_AVERAGE: "매우 낮음",
     GU_TYPE_AVERAGE: "매우 낮음",
-    UNAVAILABLE: "추정 불가",
+    UNAVAILABLE: "산출 불가",
+};
+
+// 2026-08-12 추가 — "01 요약 정보" "현재 확인된 값" 그룹 각주("현재 시세 신뢰도 {등급} — {매칭단계}")용. 등급
+// 단어(높음/중간/...)는 이미 currentPriceConfidence(A~D 문자 등급)로 따로 표시하니, 여기선 CONFIDENCE_LABEL의
+// 괄호 안 매칭 근거만 짧게 뽑아 별도 상수로 둔다(등급 단어와 중복 없이).
+export const CONFIDENCE_MATCH_STAGE_LABEL: Record<ConfidenceLevel, string> = {
+    SAME_DONG: "같은 법정동 비교",
+    SAME_GU: "같은 구 비교",
+    WIDENED_RANGE: "면적·연식 범위 확대",
+    DONG_TYPE_AVERAGE: "법정동·유형 평균",
+    GU_TYPE_AVERAGE: "구·유형 평균",
+    UNAVAILABLE: "비교 가능한 유사 거래 없음",
 };
 
 // §2.2 "신뢰도 배지 색상": SAME_DONG=success·SAME_GU=warning·WIDENED_RANGE/DONG_TYPE_AVERAGE/GU_TYPE_AVERAGE

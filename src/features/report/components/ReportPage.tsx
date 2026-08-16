@@ -2,14 +2,17 @@ import { useEffect, useState } from "react";
 import { useSearch } from "../../search/context/SearchContext";
 import { formatManwon, GRADE_CLASS } from "../../search/api/searchApi";
 import { buildRemodelingChecklist, remodelingChecklistItems } from "../../remodeling/api/remodelingApi";
+import { CONFIDENCE_MATCH_STAGE_LABEL, type ConfidenceLevel } from "../../market/api/marketApi";
 import {
     buildProfitAnalysis,
     buildRiskChecklist,
+    displayGainRange,
     formatUpdatedAt,
+    GAIN_LABEL,
+    gainSign,
     getPropertyAnalysis,
     getRecommendation,
     GRADE_LABEL,
-    PRICE_CONFIDENCE_CAUTION,
     priceConfidenceFromLevel,
     priceConfidenceTone,
     type PropertyAnalysis,
@@ -101,25 +104,61 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
     // 기준 신뢰도를 따로 계산한다(재사용하면 안 됨).
     const currentPriceConfidence = analysis ? priceConfidenceFromLevel(analysis.market.estimatedPrice.confidenceLevel) : null;
 
-    // 핵심 요약(장점/주의사항) — 장점은 F-06 체크리스트, 주의사항은 F-06 체크리스트 + 구 "리스크 분석" 5항목 +
-    // 시세 신뢰도 주의 문구를 합친다(2026-08-1x 카테고리 재편 — 판정 로직은 그대로, buildRiskChecklist를 여기로
-    // 옮겨왔을 뿐 / 2026-08-09 시세 신뢰도 문구 추가). PRICE_CONFIDENCE_CAUTION이 null이면(A등급, 또는
-    // UNAVAILABLE이라 priceConfidence 자체가 null) 항목을 아예 추가하지 않는다.
+    // 핵심 요약(유리한 조건/확인이 필요한 사항) — 유리한 조건은 F-06 체크리스트, 확인이 필요한 사항은 리스크
+    // 흡수 5항목만 사용한다(2026-08-1x 카테고리 재편 — 판정 로직은 그대로, buildRiskChecklist를 여기로
+    // 옮겨왔을 뿐).
     const remodelingChecklist = analysis?.remodeling ? buildRemodelingChecklist(analysis.remodeling.basis) : null;
     const remodelingItems = remodelingChecklist ? remodelingChecklistItems(remodelingChecklist) : [];
-    const riskCautions = analysis ? buildRiskChecklist(analysis).filter((item) => !item.ok) : [];
-    const priceConfidenceCaution = priceConfidence != null ? PRICE_CONFIDENCE_CAUTION[priceConfidence] : null;
+    const riskChecklist = analysis ? buildRiskChecklist(analysis) : null;
     const strengths = remodelingItems.filter((item) => item.ok);
+    // 2026-08-17 근본 수정(FEATURE_10_AI_REPORT.md §2.2, 1차 패치가 불완전했음이 실측으로 확인) — F-06
+    // 체크리스트와 리스크 흡수 5항목이 노후도/지구·구역 규제/진행중 개발행위 3개 카테고리를 둘 다 갖고 있어서,
+    // 각 카테고리가 두 소스에서 각자 한 줄씩 만들어져 화면에 그대로 두 번 나온다("노후·불량 기준까지 N년
+    // 부족"도, "지구/구역 지정"도 둘 다 실측으로 중복 확인됨). 카테고리별로 패치(district만 빼기, aging 텍스트
+    // 비교로 빼기)하지 않고 **F-06 체크리스트(remodelingItems)를 이 목록의 소스에서 완전히 제외** — 리스크
+    // 흡수 5항목만 사용해 3개 카테고리 전부 한 번에 해결한다(F-06 체크리스트 자체는 05 리모델링 분석에서
+    // 그대로 노출되니 데이터 손실 아님). confidenceRisk는 여전히 제외(위 §확정분 — 카드 캡션으로 이동).
+    const riskCautions = riskChecklist
+        ? [riskChecklist.permitRisk, riskChecklist.districtRisk, riskChecklist.costRangeRisk, riskChecklist.agingMarginRisk].filter(
+              (item) => !item.ok
+          )
+        : [];
+
+    // 2026-08-17 재배치(§확정분) — "평가"/"리모델링 후 추정" 카드 하단 캡션을 전부 없애고(숫자만 남김), 그
+    // 캡션 3개(시세 매칭단계 2건 + 금융비용 등 미반영 고지 1건)를 전부 "확인이 필요한 사항" 목록으로 이동.
+    // CONFIDENCE_LABEL이 DONG_TYPE_AVERAGE/GU_TYPE_AVERAGE 2단계에서만 "면적·연식 미반영" 설명을 포함하던
+    // 것(marketApi.ts)과 같은 기준 — 이 2단계일 때만 문구에 그 단서를 덧붙인다(SAME_DONG/SAME_GU/
+    // WIDENED_RANGE는 완화된 범위라도 면적·연식을 반영하므로 붙이면 부정확). 목록 항목이라 카드 캡션 때와
+    // 달리 끝에 마침표를 안 붙인다(다른 목록 항목들과 같은 문체).
+    const isAreaAgeAgnosticLevel = (level: ConfidenceLevel) => level === "DONG_TYPE_AVERAGE" || level === "GU_TYPE_AVERAGE";
+    const currentPriceMatchCaption =
+        analysis && currentPriceConfidence != null
+            ? `현재가는 ${CONFIDENCE_MATCH_STAGE_LABEL[analysis.market.estimatedPrice.confidenceLevel]} 기준입니다${
+                  isAreaAgeAgnosticLevel(analysis.market.estimatedPrice.confidenceLevel) ? "(면적·연식 미반영)" : ""
+              }`
+            : "현재가 산출 근거는 확인할 수 없습니다";
+    const postRemodelPriceMatchCaption =
+        analysis?.market.postRemodelEstimatedPrice?.confidenceLevel != null
+            ? `리모델링 후 시세도 ${CONFIDENCE_MATCH_STAGE_LABEL[analysis.market.postRemodelEstimatedPrice.confidenceLevel]} 기준입니다${
+                  isAreaAgeAgnosticLevel(analysis.market.postRemodelEstimatedPrice.confidenceLevel) ? "(면적·연식 미반영)" : ""
+              }`
+            : null;
     const cautions = [
-        ...remodelingItems.filter((item) => !item.ok),
         ...riskCautions,
-        ...(priceConfidenceCaution != null ? [{ ok: false as const, text: priceConfidenceCaution }] : []),
+        { ok: false as const, text: currentPriceMatchCaption },
+        ...(postRemodelPriceMatchCaption != null ? [{ ok: false as const, text: postRemodelPriceMatchCaption }] : []),
+        { ok: false as const, text: "금융비용·양도소득세·보유비용은 반영되지 않았습니다" },
     ];
 
     // 요약 통계 밴드의 예상차익/미래가치 — "사업성 분석" 섹션과 같은 계산(analysisApi.ts의 buildProfitAnalysis, 재계산 안 함).
     const profitAnalysis = analysis
         ? buildProfitAnalysis(analysis, selected?.householdCount ?? null, selected?.propertyType ?? null, selected?.totalBuildingArea ?? null)
         : null;
+    // 2026-08-17 — 라벨-부호 어긋남 정정, "06 사업성 분석"과 같은 gainSign() 재사용(analysisApi.ts).
+    const gainDisplaySign = profitAnalysis ? gainSign(profitAnalysis.gainMin, profitAnalysis.gainMax) : "positive";
+    const [gainLo, gainHi] = profitAnalysis
+        ? displayGainRange(profitAnalysis.gainMin, profitAnalysis.gainMax, gainDisplaySign)
+        : [0, 0];
 
     // "핵심 데이터 n/4 확보" — 폐지된 구 "종합 평가"(EvaluationPage.tsx) 로직 그대로 이동(2026-08-1x, 헤더 캡션으로 흡수,
     // 판정 로직 변경 없음, 새 API 없음).
@@ -191,104 +230,119 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                     <span className="report-section-heading-number">01</span>
                                     <h4 className="report-section-heading-title">요약 정보</h4>
                                 </div>
-                                <div className="report-stat-band">
-                                    {/* 2026-08-09 — 별도 "시세 신뢰도" 칸(6칸)은 취소, 투자등급 칸 안에 등급 크게 +
-                                        바로 옆 신뢰도 스티커(RightPanel.tsx 미니스탯과 같은 패턴 — right-panel-estimate-anchor/-tag
-                                        재사용, 캡션에서 스티커로 위치 변경) — priceConfidence는 추천여부(getRecommendation)와
-                                        같은 출처(postRemodelEstimatedPrice 기준, 재계산 안 함). */}
-                                    <div className="report-stat">
-                                        <p className="report-stat-label">투자등급</p>
-                                        {/* report-stat-value가 이미 자체 font-size/weight(18~20px/800)를 쓰고 있어
-                                            grade-text(폰트 크기까지 같이 바꾸는 올인원 클래스) 대신 색상만 얹는
-                                            grade-color-{grade} 전용 클래스를 쓴다(등급 박스 폐지 후속). */}
-                                        <p className="report-stat-value">
-                                            {analysis?.grade ? (
-                                                <span className="right-panel-estimate-anchor">
-                                                    <span className={`grade-color-${analysis.grade}`}>{GRADE_LABEL[analysis.grade]}</span>
-                                                    {priceConfidence != null && (
-                                                        <span
-                                                            className={`right-panel-estimate-tag right-panel-estimate-tag-${priceConfidenceTone(priceConfidence)}`}
-                                                        >
-                                                            신뢰도 {priceConfidence}
-                                                        </span>
+                                {/* 2026-08-17 — 밴드(report-summary-band, head/band/foot 3단) 구현 폐기, 카드 2개로
+                                    최종 확정(§확정분). "평가"(투자등급→검토 우선순위→현재가) / "리모델링 후 추정"
+                                    (미래가치→예상차익→ROI, report-card-emphasis로 accent 강조) 각각 독립 right-panel-
+                                    card. 현재가 신뢰도 배지는 삭제가 아니라 값 바로 아래 줄바꿈(.grid-3 .tag는
+                                    display:block, ReportPage.css)해서 보조 설명처럼 배치 — 이전 밴드의 절대배치
+                                    right-panel-estimate-tag 대신 새 tag/tag-ok/tag-warn 클래스 사용(레이아웃이 달라
+                                    기존 컴포넌트 재사용 불가). 두 카드의 card-title이 같은 스타일이라 좌우 카드가
+                                    같은 줄에서 시작한다. */}
+                                <div className="report-summary-cards">
+                                    <section className="right-panel-card">
+                                        <p className="card-title">평가</p>
+                                        <div className="grid-3">
+                                            <div>
+                                                {/* report-stat-value가 이미 자체 font-size/weight(18~20px/800)를 쓰고
+                                                    있어 grade-color-{grade} 전용 클래스로 색상만 얹는다(등급 박스 폐지
+                                                    후속). */}
+                                                <p className="report-stat-label">투자등급</p>
+                                                <p className="report-stat-value">
+                                                    {analysis?.grade ? (
+                                                        <span className={`grade-color-${analysis.grade}`}>{GRADE_LABEL[analysis.grade]}</span>
+                                                    ) : analysisLoading ? (
+                                                        "분석 중..."
+                                                    ) : (
+                                                        "-"
                                                     )}
-                                                </span>
-                                            ) : (
-                                                "-"
-                                            )}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                {/* "추천여부"(추천/비추천 뉘앙스) → "검토 우선순위"(적극 검토/검토/추가
+                                                    확인/보류 뉘앙스)로 라벨·값 둘 다 개명. 값 자체는 getRecommendation이
+                                                    이미 LABEL_MAP으로 치환해서 내려준다(analysisApi.ts, 재계산 안 함). */}
+                                                <p className="report-stat-label">검토 우선순위</p>
+                                                <p className="report-stat-value">{recommendation}</p>
+                                            </div>
+                                            <div>
+                                                {/* baseValue는 06 "사업성 요약" 카드가 이미 쓰는 값(ProfitAnalysisResult.
+                                                    baseValue, 매입가/공사비 제외) 그대로 재사용 — F-05 "시세"
+                                                    (estimatedPrice.value)를 직접 쓰면 안 됨(세대 기반 유형은 세대당 vs
+                                                    건물 전체로 스케일이 다름, 사용자 지적). */}
+                                                <p className="report-stat-label">현재가</p>
+                                                <p className="report-stat-value">
+                                                    {profitAnalysis ? formatManwon(profitAnalysis.baseValue) : "산출 불가"}
+                                                </p>
+                                                {currentPriceConfidence != null && (
+                                                    <span className={`tag tag-${priceConfidenceTone(currentPriceConfidence) === "warning" ? "warn" : "ok"}`}>
+                                                        신뢰도 {currentPriceConfidence}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {/* 2026-08-17 — 카드 하단 캡션 전면 삭제(§확정분, 숫자만 남긴다). "투자등급은
+                                            개발 여력·입지·리스크 지표를..." 문장은 섹션 맨 아래 report-summary-
+                                            disclaimer로 승격, "현재가는 {매칭단계}..." 문장은 확인이 필요한 사항
+                                            목록으로 이동(위 cautions 참고) — 삭제가 아니라 재배치. */}
+                                    </section>
+
+                                    <section className="right-panel-card report-card-emphasis">
+                                        <p className="card-title">
+                                            리모델링 후 추정
+                                            {priceConfidence != null && <span className="tag tag-note">시세 신뢰도 {priceConfidence}</span>}
                                         </p>
-                                        <p className="report-stat-caption">
-                                            {analysisLoading ? "분석 중..." : analysis == null ? "정보 없음" : " "}
-                                        </p>
-                                    </div>
-                                    <div className="report-stat">
-                                        <p className="report-stat-label">현재가</p>
-                                        {/* 2026-08-10 — baseValue는 06 "사업성 요약" 카드가 이미 쓰는 값(ProfitAnalysisResult.baseValue,
-                                            매입가/공사비 제외) 그대로 재사용 — F-05 "시세"(estimatedPrice.value)를 직접 쓰면 안 됨(세대
-                                            기반 유형은 세대당 vs 건물 전체로 스케일이 다름, 사용자 지적). */}
-                                        <p className="report-stat-value">
-                                            {profitAnalysis ? formatManwon(profitAnalysis.baseValue) : "산출 불가"}
-                                        </p>
-                                        {/* 캡션 <p>는 값 유무와 무관하게 항상 렌더링 — 다른 칸들과 같은 3줄 구조를 유지해야
-                                            report-stat-band 안에서 칸별 높이가 어긋나지 않는다(캡션 자체를 조건부로 통째로
-                                            빼면 이 칸만 짧아짐). */}
-                                        <p className="report-stat-caption">
-                                            {profitAnalysis && currentPriceConfidence ? (
-                                                <span
-                                                    className={`report-tone-badge report-tone-badge-light-${priceConfidenceTone(currentPriceConfidence)}`}
-                                                >
-                                                    신뢰도 {currentPriceConfidence}
-                                                </span>
-                                            ) : (
-                                                " "
-                                            )}
-                                        </p>
-                                    </div>
-                                    <div className="report-stat">
-                                        <p className="report-stat-label">미래가치</p>
-                                        <p className="report-stat-value">
-                                            {profitAnalysis
-                                                ? `${isLowConfidence ? "약 " : ""}${formatManwon(profitAnalysis.value)}`
-                                                : "산출 불가"}
-                                        </p>
-                                        <p className="report-stat-caption"> </p>
-                                    </div>
-                                    <div className="report-stat">
-                                        <p className="report-stat-label">예상차익</p>
-                                        {/* 2026-08-09: "추정치" 태그 제거, 대신 isLowConfidence(시세 신뢰도 D)면 범위
-                                            대신 중앙값 하나만 "약 N.N억"로 — 낮은 신뢰도로 산출한 넓은 범위를 그대로
-                                            보여주면 오히려 정밀해 보이는 착시가 있었다는 지적. */}
-                                        <p className="report-stat-value">
-                                            {profitAnalysis
-                                                ? isLowConfidence
-                                                    ? `약 ${formatManwon((profitAnalysis.gainMin + profitAnalysis.gainMax) / 2)}`
-                                                    : `${formatManwon(profitAnalysis.gainMin)} ~ ${formatManwon(profitAnalysis.gainMax)}`
-                                                : "산출 불가"}
-                                        </p>
-                                        <p className="report-stat-caption"> </p>
-                                    </div>
-                                    <div className="report-stat">
-                                        <p className="report-stat-label">ROI</p>
-                                        {/* roi==null이면 backend stage != FULL(실측 확인) — "산정 중"은 곧 채워질 것처럼
-                                            오해를 줘서 "산출 불가"로 정정(§2.2, 2026-08-1x). 소수점 제거(2026-08-09,
-                                            ResultList/RightPanel과 동일 패턴) + isLowConfidence면 "약 " 접두. */}
-                                        <p className="report-stat-value">
-                                            {analysisLoading
-                                                ? "분석 중..."
-                                                : analysis?.roi != null
-                                                  ? `${isLowConfidence ? "약 " : ""}${Math.round(analysis.roi)}%`
-                                                  : "산출 불가"}
-                                        </p>
-                                        <p className="report-stat-caption"> </p>
-                                    </div>
-                                    <div className="report-stat">
-                                        <p className="report-stat-label">추천여부</p>
-                                        <p className="report-stat-value">{recommendation}</p>
-                                        <p className="report-stat-caption"> </p>
-                                    </div>
+                                        <div className="grid-3">
+                                            <div>
+                                                <p className="report-stat-label">미래가치</p>
+                                                <p className="report-stat-value">
+                                                    {profitAnalysis
+                                                        ? `${isLowConfidence ? "약 " : ""}${formatManwon(profitAnalysis.value)}`
+                                                        : "산출 불가"}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                {/* "추정치" 태그 제거, 대신 isLowConfidence(시세 신뢰도 D)면 범위 대신
+                                                    중앙값 하나만 "약 N.N억"로 — 낮은 신뢰도로 산출한 넓은 범위를 그대로
+                                                    보여주면 오히려 정밀해 보이는 착시가 있었다는 지적. 2026-08-17 —
+                                                    라벨-부호 어긋남 정정: gainLo/gainHi가 이미 "예상 손실"이면
+                                                    절댓값+오름차순으로 정리된 값이라 중앙값도 그대로 재사용. */}
+                                                <p className="report-stat-label">{GAIN_LABEL[gainDisplaySign]}</p>
+                                                <p className="report-stat-value">
+                                                    {profitAnalysis
+                                                        ? isLowConfidence
+                                                            ? `약 ${formatManwon((gainLo + gainHi) / 2)}`
+                                                            : `${formatManwon(gainLo)} ~ ${formatManwon(gainHi)}`
+                                                        : "산출 불가"}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                {/* roi==null이면 backend stage != FULL(실측 확인) — "산정 중"은 곧 채워질
+                                                    것처럼 오해를 줘서 "산출 불가"로 정정(§2.2). 소수점 제거(ResultList/
+                                                    RightPanel과 동일 패턴) + isLowConfidence면 "약 " 접두. */}
+                                                <p className="report-stat-label">ROI</p>
+                                                <p className="report-stat-value">
+                                                    {analysisLoading
+                                                        ? "분석 중..."
+                                                        : analysis?.roi != null
+                                                          ? `${isLowConfidence ? "약 " : ""}${Math.round(analysis.roi)}%`
+                                                          : "산출 불가"}
+                                                    {/* 2026-08-17 추가 — ROI 음수면 3단계 인라인 보조(§2.2, 06과 공유 규칙). */}
+                                                    {analysis?.roi != null && analysis.roi < 0 && (
+                                                        <span className="report-row-aux"> 투자금 대비 손실</span>
+                                                    )}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        {/* 2026-08-17 — 카드 하단 캡션 전면 삭제(§확정분, 숫자만 남긴다). "매입가·
+                                            공사비·부대비용을 반영한 추정값입니다"는 폐기, "금융비용·양도소득세·
+                                            보유비용은 반영되지 않았습니다"와 "리모델링 후 시세도 {매칭단계}..."는
+                                            확인이 필요한 사항 목록으로 이동(위 cautions 참고). */}
+                                    </section>
                                 </div>
 
-                                {/* 핵심 요약 — 장점(F-06)/주의사항(F-06+구 리스크 분석) 2단 */}
+                                {/* 핵심 요약 — 유리한 조건(F-06, 구 "장점")/확인이 필요한 사항(F-06+구 리스크 분석,
+                                    구 "주의사항") 2단. 2026-08-12 개명(§확정분) — "장점/주의사항"이 투자 조언처럼
+                                    읽혀 개발 여력 지표라는 성격을 명확히 하는 이름으로 교체, 판정 로직은 그대로. */}
                                 {analysisLoading ? (
                                     <p className="right-panel-field-note">조회 중...</p>
                                 ) : analysis?.remodeling == null ? (
@@ -296,7 +350,7 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                 ) : (
                                     <div className="report-summary-grid">
                                         <div className="report-summary-col">
-                                            <p className="right-panel-ai-summary-label">장점</p>
+                                            <p className="right-panel-ai-summary-label">유리한 조건</p>
                                             <ul className="right-panel-checklist">
                                                 {strengths.length > 0 ? (
                                                     strengths.map((item, index) => (
@@ -311,9 +365,16 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                                     <li>해당 없음</li>
                                                 )}
                                             </ul>
+                                            {/* 2026-08-17 추가 — 목록과 캡션을 시각적으로 구분하는 구분선(다른 카드들이
+                                                이미 쓰는 right-panel-card-divider 재사용, 예: MarketAnalysisPage.tsx). */}
+                                            <hr className="right-panel-card-divider" />
+                                            {/* 2026-08-12 추가 — 용적률·증축 여력 항목이 사업성/수익성으로 오독되지 않게 명시. */}
+                                            <p className="right-panel-field-note report-basis-caption">
+                                                용적률·증축은 개발 여력 지표이며, 사업성이나 수익성을 의미하지 않습니다.
+                                            </p>
                                         </div>
                                         <div className="report-summary-col">
-                                            <p className="right-panel-ai-summary-label">주의사항</p>
+                                            <p className="right-panel-ai-summary-label">확인이 필요한 사항</p>
                                             <ul className="right-panel-checklist">
                                                 {cautions.length > 0 ? (
                                                     cautions.map((item, index) => (
@@ -326,9 +387,10 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                                 )}
                                             </ul>
                                         </div>
-                                        {/* 2026-08-09 — "리포트 정보" 3번째 칸. 분석일자는 헤더 "최근 갱신"과 같은 값(analysis.updatedAt)을
-                                            새 계산 없이 그대로 재사용 — right-panel-fact-list 재사용이라 구분선·볼드체(2026-08-09
-                                            F-05 정정분)도 그대로 따라온다. */}
+                                        {/* 2026-08-17 삭제 후 재추가 — 문서 §확정분("헤더 최근 갱신과 중복")대로 한 번
+                                            뺐다가, 사용자가 이 카드만 보고도 분석일자를 바로 확인하고 싶어해 다시
+                                            추가(2026-08-17 재확정). 헤더 캡션과 값·포매터가 같아 중복이라는 사실
+                                            자체는 맞지만, 이 카드 단독으로도 확인 가능해야 한다는 우선순위로 결론. */}
                                         <div className="report-summary-col">
                                             <p className="right-panel-ai-summary-label">리포트 정보</p>
                                             <dl className="right-panel-fact-list">
@@ -344,6 +406,15 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                         </div>
                                     </div>
                                 )}
+                                {/* 2026-08-17 신규 — 섹션 공통 면책(05와 같은 위치·성격, docs/CONTENT_TAXONOMY.md
+                                    §2 "E. 면책"). 원래 "평가" 카드 하단 캡션의 첫 문장이었으나 카드에서 캡션을
+                                    전부 없애면서 섹션 슬롯으로 승격 — 문장 삭제 없음, 위치만 이동. "정의"이지
+                                    "경고"가 아니라 ⚠이 아니라 ⓘ(GaugeBar.tsx의 기존 아이콘 세트 재사용, 새
+                                    아이콘 세트 안 만듦). */}
+                                <p className="report-summary-disclaimer">
+                                    <span aria-hidden="true">ⓘ</span> 투자등급은 개발 여력·입지·리스크 지표를 종합한
+                                    평가이며, 투자 수익을 보장하지 않습니다.
+                                </p>
                             </div>
 
                             {/* 2. 기본 정보 */}
@@ -354,9 +425,9 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                 </div>
                                 <BasicInfoPage
                                     buildingId={selected.id}
-                                    address={selected.address}
                                     zoneName={analysis?.remodeling.basis.zoneName ?? null}
                                     floorAreaRatioLimit={analysis?.remodeling.basis.floorAreaRatioLimit ?? null}
+                                    propertyType={selected.propertyType}
                                 />
                             </div>
 

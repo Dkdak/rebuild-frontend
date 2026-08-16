@@ -87,7 +87,9 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
         return <p className="right-panel-field-note">조회 중...</p>;
     }
     if (analysis == null) {
-        return <p className="right-panel-field-note">정보 없음</p>;
+        // 2026-08-17 표기 정정(docs/CONTENT_TAXONOMY.md §3 결측 4종) — "정보 없음"은 4종에 없는 표현. 여기는
+        // 계산 자체가 안 되는(analysis 자체가 없는) 상태라 "산출 불가".
+        return <p className="right-panel-field-note">산출 불가</p>;
     }
 
     const { market } = analysis;
@@ -128,14 +130,19 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
                                 되돌림. 단위 표기 방식(공백/생략 등) 자체는 나중에 한꺼번에 정리 — 지금은 이전
                                 형태만 복원. */}
                             <p className="report-price-level-label">최근 실거래</p>
+                            {/* 2026-08-17 표기 정정(docs/CONTENT_TAXONOMY.md §3) — "최근 실거래"는 이 매물에도
+                                적용되는 개념인데 매칭된 거래가 없는 경우라 "해당 없음"(개념 자체가 안 맞을 때)이
+                                아니라 "확인되지 않음"(개념은 있는데 값만 없음)이 맞다. */}
                             <p className="report-price-level-value">
-                                {recentTradePerSqm != null ? `${recentTradePerSqm.toLocaleString()} 만원/㎡` : "해당 없음"}
+                                {recentTradePerSqm != null ? `${recentTradePerSqm.toLocaleString()} 만원/㎡` : "확인되지 않음"}
                             </p>
                         </div>
                         <div className="report-price-level-item">
                             <p className="report-price-level-label">추정 시세</p>
+                            {/* 2026-08-17 표기 정정 — "추정 불가"는 §3 4종에 없는 표현("추정 불가"는 "산출 불가"에
+                                합친다). */}
                             <p className="report-price-level-value">
-                                {estimatedPricePerSqm != null ? `${estimatedPricePerSqm.toLocaleString()} 만원/㎡` : "추정 불가"}
+                                {estimatedPricePerSqm != null ? `${estimatedPricePerSqm.toLocaleString()} 만원/㎡` : "산출 불가"}
                             </p>
                         </div>
                     </div>
@@ -174,8 +181,17 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
                     percentile이라 눈금 자리(25%/50%/75%)와 값이 서로 어긋나지 않는다. */}
                 <section className="right-panel-card">
                     <h5 className="right-panel-card-title">시장 내 가격 위치</h5>
-                    {market.pricePosition == null ? (
-                        <p className="right-panel-field-note">정보 없음</p>
+                    {/* 2026-08-17 정정(docs/CONTENT_TAXONOMY.md 금지규칙 5 "계산되지 않은 값에 결론을 붙이지
+                        않는다") — thisPropertyPercentile===50을 "이례적 값"으로 취급해 게이지+결론을 그대로
+                        그리고 그 아래에 뒤늦게 "사실 중앙값 대체였다"고 해명하던 것이 바로 이 금지 규칙이 지목한
+                        패턴이었다. DONG_TYPE_AVERAGE/GU_TYPE_AVERAGE(대표 가격이 실제 비교거래가 아니라 평균·
+                        중앙값 대체로 resolve된 단계)면 percentile 자체가 "계산되지 않은 값"이라 게이지를 아예
+                        그리지 않고 "산출 불가"만 표시 — 50 여부로 판단하지 않는다(진짜 SAME_DONG 단계에서
+                        중앙값에 위치한 매물은 50이 정상값이라 걸러지면 안 됨). */}
+                    {market.pricePosition == null ||
+                    market.estimatedPrice.confidenceLevel === "DONG_TYPE_AVERAGE" ||
+                    market.estimatedPrice.confidenceLevel === "GU_TYPE_AVERAGE" ? (
+                        <p className="right-panel-field-note">산출 불가</p>
                     ) : (
                         <>
                             <div className="report-price-position-gauge">
@@ -193,17 +209,13 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
                                 <span>상위25% {Math.round(market.pricePosition.p75).toLocaleString()}</span>
                             </div>
                             <hr className="right-panel-card-divider" />
+                            {/* 2026-08-17 정정(금지규칙 3 "방향을 결론에 명시한다") — "상위 20%"만 있으면 "좋다"는
+                                뜻으로 오독될 수 있어(비싼 쪽이라는 뜻) 방향을 문장으로 먼저 말한다. */}
                             <p className="right-panel-field-note">
-                                이 매물(추정시세)은 비교거래 중{" "}
-                                <strong>상위 {(100 - market.pricePosition.thisPropertyPercentile).toFixed(0)}%</strong>
+                                {market.pricePosition.thisPropertyPercentile >= 50
+                                    ? `가격이 높은 편입니다(상위 ${(100 - market.pricePosition.thisPropertyPercentile).toFixed(0)}% 수준)`
+                                    : `가격이 낮은 편입니다(하위 ${market.pricePosition.thisPropertyPercentile.toFixed(0)}% 수준)`}
                             </p>
-                            {/* thisPropertyPercentile===50.0은 이례적인 값이 아니라 recentTrade가 없거나 지분(구분소유
-                                일부) 거래로 판정돼 중앙값으로 대체됐다는 신호(§8.16 판정 재사용, 백엔드 확인). */}
-                            {market.pricePosition.thisPropertyPercentile === 50 && (
-                                <p className="right-panel-field-note">
-                                    실거래가 없거나 대표성이 낮아 중앙값 기준으로 계산됐습니다
-                                </p>
-                            )}
                         </>
                     )}
                 </section>
@@ -214,7 +226,7 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
                 <section className="right-panel-card">
                     <h5 className="right-panel-card-title">거래 활성도</h5>
                     {market.tradeActivity == null ? (
-                        <p className="right-panel-field-note">정보 없음</p>
+                        <p className="right-panel-field-note">산출 불가</p>
                     ) : (
                         <>
                             <dl className="right-panel-fact-list">
@@ -244,7 +256,7 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
             <section className="right-panel-card">
                 <h5 className="right-panel-card-title">시세 추이</h5>
                 {market.priceTrend == null || market.priceTrend.points.length === 0 ? (
-                    <p className="right-panel-field-note">정보 없음</p>
+                    <p className="right-panel-field-note">산출 불가</p>
                 ) : (
                     <PriceTrendChart points={market.priceTrend.points} />
                 )}
@@ -253,15 +265,24 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
             {/* 5~6. 비교 거래 표 — 구 "유사 사례" 페이지 흡수(2026-08-1x). 2026-08-10: 카드 상단 경고 배너 추가
                 (디자인 mockup 참고) — DONG_TYPE_AVERAGE/GU_TYPE_AVERAGE(matchStage 3/4)는 면적을 반영 못 하는
                 평균 기반이라 "현재"/"리모델링 후" 두 표가 같은 원본 거래로 나올 수 있다(§2.2, TradeTable의
-                기존 행별 보조문구를 카드 단위 배너로 승격 — 표 안 배지는 여전히 report-tone-badge-light-*). */}
+                기존 행별 보조문구를 카드 단위 배너로 승격 — 표 안 배지는 여전히 report-tone-badge-light-*).
+                2026-08-17 재정정(FEATURE_08_MARKET.md §2.2, docs/CONTENT_TAXONOMY.md 적용) — (a) 문구를
+                "두 표가 같은 거래로 나올 수 있습니다"(현상 설명뿐)에서 "이 값이 이어지는 예상차익·ROI 결과에
+                어떤 영향을 주는지"까지 명시하는 문장으로 교체. (b) 카드마다 반복하지 않고 두 표를 감싸는
+                report-grid-2 위에 한 번만(문서 "행마다 반복하지 않고 두 표를 감싸는 자리에 한 번만") —
+                estimatedPrice/postRemodelEstimatedPrice 둘 중 하나라도 해당 단계면 노출. */}
+            {(market.estimatedPrice.confidenceLevel === "DONG_TYPE_AVERAGE" ||
+                market.estimatedPrice.confidenceLevel === "GU_TYPE_AVERAGE" ||
+                market.postRemodelEstimatedPrice?.confidenceLevel === "DONG_TYPE_AVERAGE" ||
+                market.postRemodelEstimatedPrice?.confidenceLevel === "GU_TYPE_AVERAGE") && (
+                <p className="report-warning-note">
+                    이 단계는 면적을 반영하지 않아 현재 시세와 리모델링 후 시세의 차이가 실제와 다를 수 있습니다.
+                </p>
+            )}
             <div className="report-grid-2">
                 <section className="right-panel-card">
                     <h5 className="right-panel-card-title">현재 추정 시세 근거</h5>
                     <p className="right-panel-card-subtitle">추정 시세 계산에 사용된 비교 거래</p>
-                    {(market.estimatedPrice.confidenceLevel === "DONG_TYPE_AVERAGE" ||
-                        market.estimatedPrice.confidenceLevel === "GU_TYPE_AVERAGE") && (
-                        <p className="report-warning-note">이 단계는 면적을 반영하지 않아 두 표가 같은 거래로 나올 수 있습니다</p>
-                    )}
                     <TradeTable trades={market.estimatedPrice.comparableTrades} />
                 </section>
 
@@ -271,13 +292,7 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
                     {market.postRemodelEstimatedPrice == null ? (
                         <p className="right-panel-field-note">산출 불가</p>
                     ) : (
-                        <>
-                            {(market.postRemodelEstimatedPrice.confidenceLevel === "DONG_TYPE_AVERAGE" ||
-                                market.postRemodelEstimatedPrice.confidenceLevel === "GU_TYPE_AVERAGE") && (
-                                <p className="report-warning-note">이 단계는 면적을 반영하지 않아 두 표가 같은 거래로 나올 수 있습니다</p>
-                            )}
-                            <TradeTable trades={market.postRemodelEstimatedPrice.comparableTrades} />
-                        </>
+                        <TradeTable trades={market.postRemodelEstimatedPrice.comparableTrades} />
                     )}
                 </section>
             </div>
@@ -290,15 +305,17 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
                 <p className="right-panel-field-note">
                     이 매물은 <strong>{MATCH_STAGE_TEXT[market.estimatedPrice.confidenceLevel]}</strong> 기준으로 산정됐습니다
                 </p>
-                <p className="right-panel-field-note" style={{ marginTop: 4 }}>
-                    단계별 기준: 법정동/구 비교 = 면적±10%·연식±5년 · 범위 확대 = 면적±20%·연식±10년 · 유형 평균 = 면적·연식 무관
+                {/* 2026-08-17 재구성 — 배지 행 + 압축 문장 2줄이 같은 정보(단계별 기준)를 중복 설명하고 있어서
+                    하나로 합친다: 배지 바로 옆에 그 배지의 정의를 붙여 한 줄씩(docs/CONTENT_TAXONOMY.md §2
+                    "E. 범례" — "배지와 글자가 완전히 같아야 함" 원칙 그대로, 배지 텍스트는 CONFIDENCE_LABEL_SHORT와
+                    동일 문자열 "매우 낮음"(공백 포함) 유지). line-height를 넉넉히 줘서 배지가 줄바꿈될 때 다음
+                    줄과 안 겹치게 한다. */}
+                <p className="market-basis-legend">
+                    <span className="report-tone-badge report-tone-badge-light-success">높음</span> 같은 법정동 비교(면적±10%·연식±5년),{" "}
+                    <span className="report-tone-badge report-tone-badge-light-warning">중간</span> 같은 구 비교(면적±10%·연식±5년),{" "}
+                    <span className="report-tone-badge report-tone-badge-light-neutral">낮음</span> 범위 확대(면적±20%·연식±10년),{" "}
+                    <span className="report-tone-badge report-tone-badge-light-neutral">매우 낮음</span> 법정동·구 유형 평균(면적·연식 무관)
                 </p>
-                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                    <span className="report-tone-badge report-tone-badge-light-success">높음</span>
-                    <span className="report-tone-badge report-tone-badge-light-warning">중간</span>
-                    <span className="report-tone-badge report-tone-badge-light-neutral">낮음</span>
-                    <span className="report-tone-badge report-tone-badge-light-neutral">매우낮음</span>
-                </div>
             </section>
         </>
     );
