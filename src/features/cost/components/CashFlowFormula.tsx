@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { formatManwon } from "../../search/api/searchApi";
+import { displayGainRange, GAIN_LABEL, gainSign } from "../../investment/api/analysisApi";
 
 // FEATURE_10_AI_REPORT.md §2.5 — 매입가+부대비용+공사비=총투자금, 매도가-총투자금=예상차익을 산식 그대로 나열한다.
 // 2026-08-1x: 세로 막대 비교(구 CashFlowWaterfall)는 매도가(수십억)가 공사비·예상차익(한 자릿수 억)을
@@ -44,7 +45,10 @@ const CashFlowFormula = ({
     gainMin,
     gainMax,
 }: CashFlowFormulaProps) => {
-    const gainSign = gainMin >= 0 && gainMax >= 0 ? "positive" : gainMin < 0 && gainMax < 0 ? "negative" : "neutral";
+    // 2026-08-17 — positive/negative/neutral 3분기 자체는 그대로(CSS 톤 클래스용), analysisApi.ts의 공유
+    // gainSign()으로 옮기고 라벨·부호 표시까지 같은 판정을 재사용(중복 정의 금지).
+    const sign = gainSign(gainMin, gainMax);
+    const [gainLo, gainHi] = displayGainRange(gainMin, gainMax, sign);
 
     return (
         <div className="report-cashflow-flow">
@@ -77,9 +81,9 @@ const CashFlowFormula = ({
                 =
             </div>
             <FlowRow
-                className={`report-cashflow-flow-row-result report-cashflow-flow-${gainSign}`}
-                label="예상 차익"
-                value={`${formatManwon(gainMin)} ~ ${formatManwon(gainMax)}`}
+                className={`report-cashflow-flow-row-result report-cashflow-flow-${sign}`}
+                label={GAIN_LABEL[sign]}
+                value={`${formatManwon(gainLo)} ~ ${formatManwon(gainHi)}`}
             />
         </div>
     );

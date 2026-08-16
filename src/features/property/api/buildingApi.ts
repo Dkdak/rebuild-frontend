@@ -60,4 +60,6 @@ export const formatUseApprovalDate = (dateStr: string | null): string | null => 
 
 // seismicDesignYn 원본 코드값 → 표시 문구. 실측으로 "1"(적용) 확인됨 — 그 외 값(0/null 등)은 전부 "미확인" 취급하고
 // "미적용"으로 단정하지 않는다(DOMAIN.md §4, "0"에 해당하는 실제 응답을 아직 확인 못 함).
-export const formatSeismicDesign = (yn: string | null): string => (yn === "1" ? "적용" : "정보 없음");
+// 2026-08-17 — BasicInfoPage.tsx 결측 표기 통일("정보 준비 중"/"정보 없음" 전부 "확인되지 않음")에 맞춰 교체.
+// 현재 이 함수의 유일한 소비처가 BasicInfoPage.tsx라 다른 화면에 영향 없음(F-05 RightPanel은 미사용).
+export const formatSeismicDesign = (yn: string | null): string => (yn === "1" ? "적용" : "확인되지 않음");
