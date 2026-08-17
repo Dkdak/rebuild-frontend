@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import { useSearch } from "../../search/context/SearchContext";
 import { formatManwon, GRADE_CLASS } from "../../search/api/searchApi";
 import { buildRemodelingChecklist, remodelingChecklistItems } from "../../remodeling/api/remodelingApi";
-import { CONFIDENCE_MATCH_STAGE_LABEL, type ConfidenceLevel } from "../../market/api/marketApi";
+import {
+    CONFIDENCE_MATCH_STAGE_LABEL,
+    hasPriceConfidenceBadge,
+    PRICE_DISPLAY_TONE,
+    resolvePriceDisplayLabel,
+    type ConfidenceLevel,
+} from "../../market/api/marketApi";
 import {
     buildProfitAnalysis,
     buildRiskChecklist,
@@ -13,8 +19,6 @@ import {
     getPropertyAnalysis,
     getRecommendation,
     GRADE_LABEL,
-    priceConfidenceFromLevel,
-    priceConfidenceTone,
     type PropertyAnalysis,
 } from "../../investment/api/analysisApi";
 import BasicInfoPage from "./BasicInfoPage";
@@ -90,19 +94,29 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
     }, [selected?.id]);
 
     // 추천여부(2026-08-09 재편) — grade 단독 매핑에서 grade×시세 신뢰도 매트릭스로 확장(analysisApi.ts
-    // getRecommendation). priceConfidence는 요약 통계 밴드 "시세 신뢰도" 칸·예상차익/미래가치/ROI 정밀도
-    // 조정(isLowConfidence)·핵심 요약 주의사항 문구까지 공유하는 단일 출처(같은 값 재계산 안 함).
-    const priceConfidence =
-        analysis?.market.postRemodelEstimatedPrice?.confidenceLevel != null
-            ? priceConfidenceFromLevel(analysis.market.postRemodelEstimatedPrice.confidenceLevel)
-            : null;
-    const recommendation = analysis?.grade != null ? getRecommendation(analysis.grade, priceConfidence) : "-";
-    const isLowConfidence = priceConfidence === "D";
+    // getRecommendation). postRemodelConfidenceLevel은 요약 통계 밴드 "시세 신뢰도" 칸·예상차익/미래가치/ROI
+    // 정밀도 조정(isLowConfidence)·핵심 요약 주의사항 문구까지 공유하는 단일 출처(같은 값 재계산 안 함).
+    // 2026-08-17 — A/B/C/D 등급 폐지, marketApi.ts resolvePriceDisplayLabel 라벨 체계로 통일. postRemodel은
+    // 미래 추정값이라 recentTrade 개념이 없어(아직 일어나지 않은 거래) hasRecentTrade 인자는 항상 false.
+    const postRemodelConfidenceLevel = analysis?.market.postRemodelEstimatedPrice?.confidenceLevel ?? null;
+    const priceConfidenceLabel = postRemodelConfidenceLevel != null ? resolvePriceDisplayLabel(postRemodelConfidenceLevel, false) : null;
+    const recommendation = analysis?.grade != null ? getRecommendation(analysis.grade, postRemodelConfidenceLevel) : "-";
+    const isLowConfidence = priceConfidenceLabel === "매우 낮음";
+    // "리모델링 후 추정" 헤더 배지 노출 여부만 별도 — priceConfidenceLabel 자체(isLowConfidence/recommendation이
+    // 쓰는 값)는 그대로 두고, UNAVAILABLE이면 배지만 숨긴다(hasPriceConfidenceBadge, 신뢰도 스티커 통일 §확정분).
+    const postRemodelHasBadge = postRemodelConfidenceLevel != null && hasPriceConfidenceBadge(postRemodelConfidenceLevel, false);
 
-    // 2026-08-10 — 요약 통계 밴드 "현재가" 칸용. 위 priceConfidence(postRemodelEstimatedPrice 기준, 등급/추천여부/
-    // 예상차익·미래가치·ROI 정밀도에 공유)와는 다른 출처 — "현재가"는 리모델링 전 현재 시세라 estimatedPrice
-    // 기준 신뢰도를 따로 계산한다(재사용하면 안 됨).
-    const currentPriceConfidence = analysis ? priceConfidenceFromLevel(analysis.market.estimatedPrice.confidenceLevel) : null;
+    // 2026-08-10 — 요약 통계 밴드 "현재가" 칸용. 위 postRemodelConfidenceLevel(postRemodelEstimatedPrice 기준,
+    // 등급/추천여부/예상차익·미래가치·ROI 정밀도에 공유)와는 다른 출처 — "현재가"는 리모델링 전 현재 시세라
+    // estimatedPrice 기준 신뢰도를 따로 계산한다(재사용하면 안 됨). 2026-08-17 — recentTrade(실제 성사된
+    // 거래) 있으면 confidenceLevel과 무관하게 "실거래"가 최우선(신뢰도 체계 정리 §확정분). 같은 날 재정정
+    // (신뢰도 스티커 통일) — UNAVAILABLE(& !hasRecentTrade)이면 hasPriceConfidenceBadge가 false를 반환해
+    // 배지 자체를 안 띄운다(구 시스템의 "grade null이면 숨김"과 결과적으로 같은 동작, 확정본 재확인).
+    const currentPriceHasRecentTrade = analysis?.market.recentTrade?.price != null;
+    const currentPriceLabel =
+        analysis && hasPriceConfidenceBadge(analysis.market.estimatedPrice.confidenceLevel, currentPriceHasRecentTrade)
+            ? resolvePriceDisplayLabel(analysis.market.estimatedPrice.confidenceLevel, currentPriceHasRecentTrade)
+            : null;
 
     // 핵심 요약(유리한 조건/확인이 필요한 사항) — 유리한 조건은 F-06 체크리스트, 확인이 필요한 사항은 리스크
     // 흡수 5항목만 사용한다(2026-08-1x 카테고리 재편 — 판정 로직은 그대로, buildRiskChecklist를 여기로
@@ -132,7 +146,7 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
     // 달리 끝에 마침표를 안 붙인다(다른 목록 항목들과 같은 문체).
     const isAreaAgeAgnosticLevel = (level: ConfidenceLevel) => level === "DONG_TYPE_AVERAGE" || level === "GU_TYPE_AVERAGE";
     const currentPriceMatchCaption =
-        analysis && currentPriceConfidence != null
+        analysis && analysis.market.estimatedPrice.confidenceLevel !== "UNAVAILABLE"
             ? `현재가는 ${CONFIDENCE_MATCH_STAGE_LABEL[analysis.market.estimatedPrice.confidenceLevel]} 기준입니다${
                   isAreaAgeAgnosticLevel(analysis.market.estimatedPrice.confidenceLevel) ? "(면적·연식 미반영)" : ""
               }`
@@ -273,9 +287,15 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                                 <p className="report-stat-value">
                                                     {profitAnalysis ? formatManwon(profitAnalysis.baseValue) : "산출 불가"}
                                                 </p>
-                                                {currentPriceConfidence != null && (
-                                                    <span className={`tag tag-${priceConfidenceTone(currentPriceConfidence) === "warning" ? "warn" : "ok"}`}>
-                                                        신뢰도 {currentPriceConfidence}
+                                                {/* 2026-08-17 — A/B/C/D→라벨 전환, 같은 날 재정정(신뢰도 스티커 통일,
+                                                    planning/rebuild/widgets/2026-08-17_report_full_confidence_context.html
+                                                    확정본) — 999px 완전 pill(구 tag/tag-ok/tag-warn)에서 04/06과
+                                                    같은 4px 라운드 칩(report-chip)으로 스타일 통일. currentPriceLabel이
+                                                    이미 hasPriceConfidenceBadge로 걸러져 있어(위) null이면 UNAVAILABLE
+                                                    이라 배지 자체를 안 띄운다. */}
+                                                {currentPriceLabel != null && (
+                                                    <span className={`report-chip report-chip-${PRICE_DISPLAY_TONE[currentPriceLabel]}`}>
+                                                        신뢰도 {currentPriceLabel}
                                                     </span>
                                                 )}
                                             </div>
@@ -289,7 +309,20 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                     <section className="right-panel-card report-card-emphasis">
                                         <p className="card-title">
                                             리모델링 후 추정
-                                            {priceConfidence != null && <span className="tag tag-note">시세 신뢰도 {priceConfidence}</span>}
+                                            {/* postRemodel은 미래 추정값이라 "실거래" 라벨이 나올 일이 없다(위 §확정분).
+                                                2026-08-17 재정정(신뢰도 스티커 통일) — 톤 무관 고정 accent(구 tag-note)
+                                                였던 걸 04/06과 같은 톤 기반 칩(report-chip-{tone})으로 교체하고,
+                                                postRemodelConfidenceLevel이 UNAVAILABLE이면(hasPriceConfidenceBadge)
+                                                배지 자체를 숨긴다 — priceConfidenceLabel은 isLowConfidence 계산에도
+                                                쓰여 그대로 두고, 배지 노출 여부만 별도로 판단(postRemodelHasBadge). */}
+                                            {/* 2026-08-17 재정정 — "시세 신뢰도 {라벨}"에서 "시세" 삭제. 카드
+                                                제목이 이미 "리모델링 후 추정"이라 이 배지가 그 시세에 대한
+                                                신뢰도라는 건 문맥상 분명함(중복). */}
+                                            {postRemodelHasBadge && priceConfidenceLabel != null && (
+                                                <span className={`report-chip report-chip-${PRICE_DISPLAY_TONE[priceConfidenceLabel]}`}>
+                                                    신뢰도 {priceConfidenceLabel}
+                                                </span>
+                                            )}
                                         </p>
                                         <div className="grid-3">
                                             <div>

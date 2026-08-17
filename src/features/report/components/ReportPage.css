@@ -156,52 +156,16 @@
     color: var(--text-muted);
 }
 
-/* 신뢰도 배지 — 이전 밴드의 right-panel-estimate-tag(절대배치, 값 오른쪽에 겹쳐 배치)와 달리 "값 바로 아래
-   줄바꿈"이 요구사항이라 재사용 불가, 새 tag 계열을 둔다. 카드 제목(리모델링 후 추정) 옆에서는 인라인
-   그대로, grid-3 값 칸 안에서는(아래 규칙) 다음 줄로 떨어뜨린다 — 같은 클래스, 위치에 따라 배치만 다름. */
-.report-summary-cards .tag {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
-.report-summary-cards .grid-3 .tag {
+/* 2026-08-17 재정정(신뢰도 스티커 통일, planning/rebuild/widgets/2026-08-17_report_full_confidence_context.html
+   확정본) — 이 카드 전용 999px pill 계열(.tag/.tag-ok/.tag-warn/.tag-neutral/.tag-note)을 폐기하고 04/06과
+   같은 report-chip/report-chip-{success|warning|neutral}(4px 라운드, ReportPage.css 위쪽 06 섹션에서 정의)로
+   통일 — 리포트 전체에서 신뢰도 배지 모양이 하나로 보이게. 카드 제목(리모델링 후 추정) 옆에서는 report-chip
+   기본값(inline-block) 그대로, grid-3 값 칸 안(아래 규칙)에서는 "값 바로 아래 줄바꿈"이 필요해 block으로
+   덮어쓴다 — 같은 클래스, 위치에 따라 배치만 다름(구 tag 계열과 같은 원리, 클래스만 report-chip으로 교체). */
+.report-summary-cards .grid-3 .report-chip {
     display: block;
     width: fit-content;
     margin: 4px auto 0;
-}
-
-/* tag-ok/tag-warn — priceConfidenceTone(success/warning)을 그대로 매핑, 색값은 right-panel-estimate-tag-
-   success/-warning(layout.css)과 동일 팔레트 재사용(새 색 체계 안 만듦). tag-note는 톤 무관 고정 accent —
-   "리모델링 후 추정" 카드 제목의 "시세 신뢰도 N" 배지 전용(이전 group-tag/head-right tag와 같은 스타일). */
-.report-summary-cards .tag-ok {
-    background: #e6f4ea;
-    color: #1e7e34;
-}
-
-.report-summary-cards .tag-warn {
-    background: #fdf0e0;
-    color: #a05a00;
-}
-
-.report-summary-cards .tag-note {
-    background: var(--accent);
-    color: #fff;
-}
-
-@media (prefers-color-scheme: dark) {
-    .report-summary-cards .tag-ok {
-        background: rgba(74, 222, 128, 0.15);
-        color: #4ade80;
-    }
-
-    .report-summary-cards .tag-warn {
-        background: rgba(251, 191, 36, 0.15);
-        color: #fbbf24;
-    }
 }
 
 .report-stat-label {
@@ -388,22 +352,12 @@
     margin-bottom: 0;
 }
 
-/* 2026-08-10 — "06 사업성 분석" 5카드 문서 확정(FEATURE_10_AI_REPORT.md §2.5, BusinessAnalysisPage.tsx):
-   윗줄 3등분(사업성요약/현금흐름/손익분기 및 목표 수익률), 아랫줄 2등분(비교 거래/민감도 분석). 이전
-   비대칭 레이아웃(report-grid-3-asym)을 대체 — 문서에 명시된 그대로 두 그리드로 분리, span 없음.
-   min-width:0은 그대로 유지(넓은 표를 담은 칸이 min-content로 트랙을 밀어내는 것 방지, 실측으로 확인된
-   문제). 데스크톱 전용 — 모바일(≤768px) 1열 전환은 다음 라운드. */
-.report-grid-3-even {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-}
-
-.report-grid-3-even > .right-panel-card {
-    min-width: 0;
-    margin-bottom: 0;
-}
-
+/* 2026-08-17 구조 전면 개편(§확정분, BusinessAnalysisPage.tsx) — 구 5카드(3+2행: 사업성요약/현금흐름/손익분기
+   + 비교거래/민감도)를 폐기. "사업성 요약" 카드는 풀폭 밴드(report-investment-band)로 대체돼 3등분 그리드
+   (구 report-grid-3-even) 자체가 더 이상 필요 없어졌고, 나머지 4카드(투자금 흐름/손익분기/미래가치 산정
+   근거/민감도 분석)는 report-grid-2-even을 두 번(위/아래) 써서 2×2로 배치한다. min-width:0은 그대로 유지
+   (넓은 표를 담은 칸이 min-content로 트랙을 밀어내는 것 방지, 실측으로 확인된 문제). 데스크톱 전용 —
+   모바일(≤768px) 1열 전환은 다음 라운드. */
 .report-grid-2-even {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -414,6 +368,271 @@
 .report-grid-2-even > .right-panel-card {
     min-width: 0;
     margin-bottom: 0;
+}
+
+/* 2026-08-17 재정정(planning/rebuild/widgets/2026-08-17_business_analysis_confirmed_final.html 확정본) —
+   "06 사업성 분석" 섹션 맨 위 경고 배너(풀폭). 애초 accent(파랑) 톤으로 만들었던 걸 확정본대로 warning(주황)
+   톤으로 정정 — "정보/강조"가 아니라 "추정값·변동 가능성 경고"라는 성격상 04/05가 이미 쓰는 warning 톤
+   (report-tone-badge-light-warning과 같은 fallback 리터럴, 새 토큰 아님)이 맞다. */
+.report-business-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 0 0 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--bg-warning, #faeeda);
+    color: var(--text-warning, #854f0b);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+/* 2026-08-17 재정정 — "투자 결과 한눈에 보기" 풀폭 밴드(구 "사업성 요약" 표 대체, right-panel-card로 감싸는
+   건 BusinessAnalysisPage.tsx에서 다른 06 카드들과 같은 틀을 재사용). 5칸을 화살표로 이어 흐름을 보여준다.
+   확정본은 칸마다 자체 테두리(0.5px)를 두고 밴드 자체엔 별도 테두리가 없다 — right-panel-card가 이미
+   바깥 테두리를 그려주므로 이중 테두리가 되지 않게 밴드 자체 border/padding/background는 제거했다. */
+.report-investment-band {
+    display: grid;
+    /* DOM 순서가 셀-화살표-셀-화살표...(5칸+화살표 4개=9개)라 트랙도 그 순서 그대로 번갈아 선언 —
+       repeat(5,1fr) repeat(4,auto)처럼 종류별로 묶으면 화살표가 전부 뒤로 몰려 순서가 깨진다. */
+    grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr auto 1fr;
+    align-items: stretch;
+}
+
+.report-investment-band-cell {
+    padding: 12px 6px;
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    text-align: center;
+}
+
+/* 예상 차익/예상 ROI 2칸 — 확정본대로 success 톤(값 색까지 success). 나머지 3칸(매입가/총투자금/미래가치)과
+   달리 이 2칸엔 확정본에 테두리가 없다(배경 자체가 구분선 역할). */
+.report-investment-band-cell-emphasis {
+    border: none;
+    background: var(--bg-success, #eaf3de);
+}
+
+.report-investment-band-value-success {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text-success, #27500a);
+}
+
+/* 매입가/총투자금/미래가치 칸의 보조 캡션("시세 추정"/"부대비용 + 공사비 포함"/"미래 시세 추정") — 값과
+   신뢰도 칩 사이. */
+.report-investment-band-note {
+    margin: 7px 0 3px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.report-investment-band-arrow {
+    padding: 0 4px;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+/* 2026-08-17 신규 — 06 전용 신뢰도 칩. 01/04의 report-tone-badge 계열(완전 pill, border-radius:999px)과
+   달리 확정본은 4px 라운드의 작은 칩이라 별도 클래스로 분리(같은 success/warning fallback 리터럴 재사용,
+   새 색 추가 없음). neutral은 report-tone-badge-light-neutral과 같은 근거로 var(--border) 재사용(아래
+   그 클래스 주석 참고 — 같은 대비 버그라 동시 정정). */
+.report-chip {
+    display: inline-block;
+    /* 2026-08-17 재정정(사용자 스크린샷 지적 — "시장 가격 수준" 카드의 report-tone-badge 높이로 다른 모든
+       스티커를 맞춰달라) — line-height를 명시하지 않아 주변 문단의 line-height(예: report-comparable-
+       value-badge 안 26px)를 그대로 상속해 report-tone-badge(20.4px)보다 훨씬 크게 렌더링되고 있었다.
+       padding 3px 8px + line-height 1.2(= 14.4px, 12px 폰트 기준) → 높이 20.4px로 report-tone-badge와
+       정확히 일치(3+3+14.4=20.4, 그쪽은 padding 3px 10px + line-height 1.2). 가로 폭(padding-inline)은
+       그대로 8px 유지 — "높이"만 맞추라는 지적이라 모양(4px 라운드)까지 pill로 바꾸지 않는다. */
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.report-chip-success {
+    background: var(--bg-success, #eaf3de);
+    color: var(--text-success, #27500a);
+}
+
+.report-chip-warning {
+    background: var(--bg-warning, #faeeda);
+    color: var(--text-warning, #854f0b);
+}
+
+.report-chip-neutral {
+    background: var(--border);
+    color: var(--text-muted);
+}
+
+/* 2026-08-17 삭제(§확정분, planning/rebuild/widgets/2026-08-17_breakeven_card_final.html 확정본) — "손익분기
+   매도가" 강조 박스(구 .report-breakeven-highlight/-label/-value) 자체를 없앤다. 값이 표의 "0%(손익분기)"
+   행과 완전히 중복이었다는 지적 — 그 행을 대신 강조하는 쪽으로 대체(아래 .report-breakeven-highlight-row).
+   카드 제목 아래 캡션("총 투자금 이상으로...")만 남고 박스는 BreakEvenTable.tsx에서 삭제. */
+
+/* 2026-08-17 신규 — "손익분기 및 목표 수익률" 표의 "0%(손익분기)" 행 강조. 배경(var(--code-bg), 확정본
+   --surface-1과 같은 값)만으로는 구분이 약해 테두리도 추가 — 확정본의 --border-strong(프로젝트에 없는
+   토큰, 기존 --border보다 진한 리터럴)을 그대로 값만 가져온다. .report-trade-table th/td(뒤쪽, ReportPage.css
+   하단)와 특이도가 같은 (클래스1+태그1) 셀렉터라 로드 순서상 그쪽이 이겨 배경·테두리가 안 먹는 버그가 이
+   세션에서 반복된 유형이라 — .report-sensitivity-table(BreakEvenTable.tsx 테이블에 이미 있는 클래스)을 겹쳐
+   특이도를 (클래스2+태그1)로 올려 순서와 무관하게 항상 이기게 한다. */
+.report-sensitivity-table .report-breakeven-highlight-row th,
+.report-sensitivity-table .report-breakeven-highlight-row td {
+    background: var(--code-bg);
+    color: var(--text-h);
+    font-weight: 700;
+    border-top: 1px solid rgba(0, 0, 0, 0.22);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.22);
+}
+
+.report-sensitivity-table .report-breakeven-highlight-row th {
+    border-left: 1px solid rgba(0, 0, 0, 0.22);
+    border-radius: 6px 0 0 6px;
+}
+
+.report-sensitivity-table .report-breakeven-highlight-row td:last-child {
+    border-right: 1px solid rgba(0, 0, 0, 0.22);
+    border-radius: 0 6px 6px 0;
+}
+
+@media (prefers-color-scheme: dark) {
+    .report-sensitivity-table .report-breakeven-highlight-row th,
+    .report-sensitivity-table .report-breakeven-highlight-row td {
+        border-top-color: rgba(255, 255, 255, 0.32);
+        border-bottom-color: rgba(255, 255, 255, 0.32);
+    }
+
+    .report-sensitivity-table .report-breakeven-highlight-row th {
+        border-left-color: rgba(255, 255, 255, 0.32);
+    }
+
+    .report-sensitivity-table .report-breakeven-highlight-row td:last-child {
+        border-right-color: rgba(255, 255, 255, 0.32);
+    }
+}
+
+/* 2026-08-17 신규 — "손익분기 및 목표 수익률" 표 안 "현재 추정 미래가치" 강조줄(3열 병합). accent 톤 유지
+   (경고·성공이 아니라 "지금 위치를 표 안에서 짚어주는" 안내 성격이라 04/01과 같은 accent가 맞다 — 위 회색
+   "0%(손익분기)" 행은 시작점, 이 파란 줄은 지금 예상되는 실제 위치로 색을 다르게 써서 두 지점을 구분).
+   2026-08-17 같은 날 발견 — .report-trade-table td(뒤쪽)와 특이도가 같아 color가 실제로 안 먹고 있던 버그를
+   위와 같은 이유로 함께 정정(.report-sensitivity-table 겹침). */
+.report-sensitivity-table .report-breakeven-current-row td {
+    background: var(--accent-bg);
+    color: var(--accent);
+    font-weight: 700;
+    text-align: center;
+    white-space: normal;
+}
+
+/* 2026-08-17 재정정 — "미래가치 산정 근거"(구 비교 거래) 표 하단 강조 배지. 확정본은 좌측 라벨/우측 값+칩을
+   양끝 정렬하는 flex 레이아웃 — 기존엔 가운데 정렬 텍스트 한 줄이었다.
+   2026-08-17 재구성(FEATURE_10_AI_REPORT.md §2.3) — "04 시장 분석" 결과박스에 계산식 2줄(report-comparable-
+   value-badge-calc)이 추가되면서 라벨/값 한 줄(report-comparable-value-badge-row)과 계산식 줄들을 세로로
+   쌓아야 해서 flex-direction:column으로 변경 — 라벨/값 줄 자체의 좌우 배치(justify-content:space-between)는
+   새 -row 클래스로 옮겼다. 06 ComparableTradesCard.tsx는 계산식 줄이 없지만(이번 요청 대상 아님) 같은 구조를
+   공유하도록 -row로 감싸(구조만 맞춤, 시각 결과는 이전과 동일 — 자식이 1줄뿐이라 column/row 차이가 안 보임). */
+.report-comparable-value-badge {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 12px 0 0;
+    padding: 11px 14px;
+    border-radius: 9px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    font-size: 12px;
+}
+
+.report-comparable-value-badge-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.report-comparable-value-badge-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+/* 계산식 2줄("추정 {현재/리모델링 후} 시세 = 비교거래 전체 N건의 ㎡당가 중앙값" / "{㎡당가} × 연면적 {N}㎡ ≈
+   {결과}") — 첫 줄만 위 라벨/값 줄과 구분선으로 분리, 색은 박스 자체 색(var(--accent))을 그대로 상속. */
+.report-comparable-value-badge-calc {
+    margin: 3px 0 0;
+    padding-top: 7px;
+    border-top: 0.5px solid var(--border);
+    font-size: 12px;
+}
+
+.report-comparable-value-badge-calc + .report-comparable-value-badge-calc {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+}
+
+/* 2026-08-17 신규 — 민감도 분석 가운데 셀(기준 공사비×기준 매도가) 확대 강조. 뒤쪽 .report-trade-table td
+   (color:var(--text-h))와 특이도가 같은 (클래스1+태그1) 셀렉터라 로드 순서상 그쪽이 이겨 흰 글씨가 안 먹는
+   버그가 실측 확인됨(BreakEvenTable 라운드에서 겪은 것과 같은 유형) — .report-sensitivity-table을 겹쳐
+   특이도를 (클래스2+태그1)로 올려 순서와 무관하게 항상 이기게 한다. */
+.report-sensitivity-table td.report-sensitivity-cell-center {
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+/* 나머지 8칸 — ROI 값이 아니라 매도가 시나리오 열(보수적/기준/낙관적) 단위로만 구분하는 참고용 톤(값 기준
+   색칠은 "근거 없는 임의 임계값"이라 이 파일 위쪽에서 이미 한 번 폐기된 접근이라 안 씀). 색값은 확정본에
+   명시된 리터럴 그대로(이 표 전용 팔레트라 success/warning 톤과는 별개, 새 토큰 추가 없이 리터럴로 고정).
+   th/td 둘 다에 쓰여(축 헤더+데이터 셀) 위와 같은 이유로 .report-sensitivity-table 겹침 필수. */
+.report-sensitivity-table th.report-sensitivity-col-a,
+.report-sensitivity-table td.report-sensitivity-col-a {
+    border-radius: 6px;
+    background: #f7dcd6;
+    color: #8a3b2f;
+}
+
+.report-sensitivity-table th.report-sensitivity-col-b,
+.report-sensitivity-table td.report-sensitivity-col-b {
+    border-radius: 6px;
+    background: #f3efe4;
+}
+
+.report-sensitivity-table th.report-sensitivity-col-c,
+.report-sensitivity-table td.report-sensitivity-col-c {
+    border-radius: 6px;
+    background: #dfebd3;
+    color: #3d5c2e;
+}
+
+/* 2026-08-17 신규 — "계산 조건 및 제외 항목"(풀폭 3열). */
+.report-calc-conditions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.report-calc-conditions-title {
+    margin: 0 0 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-h);
+}
+
+.report-calc-conditions-list {
+    margin: 0;
+    padding-left: 15px;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.9;
 }
 
 .report-row-label-icon {
@@ -483,6 +702,24 @@
     margin: 6px 0 0;
     text-align: left;
 }
+
+/* 2026-08-17 신규 — "예상 공사비" 카드 헤드라인 칸의 실제 계산 2줄(연면적×기준단가×노후도 보정계수 ≈ 결과).
+   right-panel-field-note 기본값(margin:0)만 쓰면 두 줄이 딱 붙어 보여서, 줄 간격만 살짝 준다(divider 바로
+   아래 첫 줄도 같은 간격 — 위 report-cost-split-headline .right-panel-market-cell-aux(6px)와 같은 값 재사용). */
+.report-cost-calc-line {
+    margin: 6px 0 0;
+}
+
+/* 2026-08-17 신규 — "투자금 흐름" 카드(CashFlowFormula.tsx) SVG 아래 계산식 3줄 중 뒤 2줄(예상 차익/ROI) —
+   위 report-cost-calc-line과 같은 목적(줄 간격만), 이름만 이 카드 맥락에 맞춤(첫 줄은 hr 바로 아래라 자체
+   여백으로 충분해 이 클래스 안 씀). */
+.report-cashflow-calc-line {
+    margin: 6px 0 0;
+}
+
+/* 2026-08-17 삭제(§확정분) — 구 "추정" 배지(.report-cashflow-estimate-flag, 부대비용 계산식 줄 맨 앞) 제거.
+   4.9%(단순화된 고정 요율) Open Item 계산 버그를 표시하려던 용도였는데, 그 버그가 해결되며(calcAcquisitionCost
+   5.5%로 정정) 배지를 달 근거 자체가 사라졌다 — CashFlowFormula.tsx에서 span 제거, 이 클래스도 함께 삭제. */
 
 .report-cost-split-table {
     min-width: 0;
@@ -602,8 +839,13 @@
 /* 2026-08-10 — 표(TradeTable) 안에서는 진한 알약형(위 3개, 흰 글씨)이 행마다 반복되면 너무 무거워 보인다는
    지적 — 가벼운 톤(옅은 배경+진한 글자)으로 교체. 진한 스타일은 "시세 심화" 카드의 단독 배지 전용으로 남긴다.
    --bg-success 등은 이 프로젝트 index.css에 아직 없는 토큰이라(디자인 시스템에 추가되면 자동으로 그 값을
-   따라가게) fallback 리터럴을 항상 같이 쓴다 — neutral만 예외로 이 프로젝트에 이미 있는 --code-bg/--text-muted
-   (다크모드 값 자체 보유)로 폴백해 별도 다크 오버라이드가 필요 없다. */
+   따라가게) fallback 리터럴을 항상 같이 쓴다 — neutral만 예외로 이 프로젝트에 이미 있는 --border/--text-muted
+   (다크모드 값 자체 보유)로 폴백해 별도 다크 오버라이드가 필요 없다.
+   2026-08-17 정정(04 "시세 산정 근거" 범례 사용자 실측 지적) — neutral 배경이 원래 --code-bg(#f4f3ec, 코드
+   블럭용 미색)였는데 warning 배경(#faeeda, 옅은 살구색)과 채도·명도가 너무 가까워 "중간"과 "매우 낮음"
+   배지가 같은 색으로 보인다는 버그 리포트가 들어왔다 — 매핑(CONFIDENCE_TONE) 자체는 스펙대로 맞았고 순수
+   대비 문제였다. --code-bg 대신 이 프로젝트에 이미 있는 --border(#e5e4e7, 라이트/#2e303a, 다크)로 교체 —
+   같은 무채색 계열이면서 --code-bg보다 살짝 더 진해 옅은 살구색 warning과 뚜렷이 갈린다. */
 .report-tone-badge-light-success {
     background: var(--bg-success, #eaf3de);
     color: var(--text-success, #27500a);
@@ -615,7 +857,7 @@
 }
 
 .report-tone-badge-light-neutral {
-    background: var(--surface-1, var(--code-bg));
+    background: var(--border);
     color: var(--text-muted);
 }
 
@@ -692,18 +934,38 @@ dl.right-panel-fact-list.report-fact-grid dd {
     }
 }
 
-/* 2026-08-17 — "시세 산정 근거" 카드 범례. 배지 행 + 압축 문장 2줄로 나뉘어 있던 걸 "배지 옆에 그 배지의
-   정의"로 합쳤다(같은 정보 중복 서술 제거). line-height를 넉넉히 줘서 인라인 배지(display:inline-block)가
-   좁은 카드 폭에서 다음 줄로 넘어갈 때 배지의 padding이 윗줄 텍스트와 겹치지 않게 한다. */
-.market-basis-legend {
-    margin: 8px 0 0;
-    font-size: 12px;
-    line-height: 2.1;
-    color: var(--text-muted);
+/* 2026-08-17 신규 — "현재가"/"공시가격 대비" 행 아래 산출근거 캡션("= 추정 시세 × 연면적 N㎡", "공시가격
+   N억"). right-panel-field-note 기본값(margin:0)에 살짝만 붙여서 바로 위 행과 짝처럼 보이게 한다 —
+   report-basis-caption(8px, "판단 근거" 카드 하단 출처용)보다 훨씬 좁은 간격이 필요해 별도 클래스. */
+.report-price-level-caption {
+    margin: 2px 0 0;
 }
 
-.market-basis-legend .report-tone-badge {
-    margin-right: 2px;
+/* 2026-08-17 — "시세 산정 근거" 카드 첫 줄("이 매물은 ~ 산정됐습니다") — 바로 아래 순수 범례(데이터 무관,
+   참고용 5단계 설명)와 구분되게 진하고 조금 크게. */
+.report-basis-headline {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-h);
+}
+
+/* 2026-08-17 — "시세 산정 근거" 카드 범례. 배지 행 + 압축 문장 2줄로 나뉘어 있던 걸 "배지 옆에 그 배지의
+   정의"로 합쳤다(같은 정보 중복 서술 제거).
+   2026-08-17 같은 날 재정정 — 항목 5개를 한 문단에 쉼표로 흘려 쓰던 걸(줄바꿈이 브라우저 폭에 따라 들쭉날쭉)
+   항목마다 줄바꿈되는 목록으로 변경 — market-basis-legend는 이제 <p> 5개를 감싸는 컨테이너(구 line-height
+   기반 줄바꿈 흡수 방식은 필요 없어져 제거, 각 <p>가 자기 줄을 갖는다). */
+.market-basis-legend {
+    margin: 8px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.market-basis-legend p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-muted);
 }
 
 /* 2026-08-10 — "시장 내 가격 위치" 백분위 게이지(디자인 mockup 참고, pricePosition 배포). 라이브러리 없는
@@ -801,14 +1063,56 @@ dl.right-panel-fact-list.report-fact-grid dd {
     font-size: 12px;
 }
 
-/* 2026-08-17 — "손익분기 및 목표 수익률" 표 전용. report-trade-table 계열 공용 규칙(th/td white-space:nowrap)은
-   SensitivityMatrix.tsx와 공유해서 그대로 두고, 이 표의 긴 헤더("필요 매도가(최소/최대 투자금 기준)")만
-   두 줄로 줄바꿈 허용 — 표 폭이 카드 밖으로 밀려 생기던 가로 스크롤 제거. .report-trade-table th(아래,
-   white-space:nowrap)와 특이도가 같아(클래스 1개+태그 1개) 파일 뒷쪽에 있는 그 규칙이 로드 순서상 이겼다
-   — .report-trade-table.report-breakeven-table th로 특이도를 올려 순서와 무관하게 항상 이기게 한다. */
-.report-trade-table.report-breakeven-table th {
-    white-space: normal;
-    line-height: 1.4;
+/* 2026-08-17 — "민감도 분석" 표(4열: 행 라벨+매도가 3열)가 "한쪽으로 몰려" 보인다는 지적(사용자 스크린샷) —
+   원인은 기본 table auto-layout에서 모서리 헤더가 내용 그대로 폭을 요구해 첫 열이 필요 이상으로 넓어지고
+   나머지 3개 데이터 열이 좁게 눌린 것(실측: 130px vs 50~62px). table-layout:fixed+colgroup(SensitivityMatrix.tsx)
+   으로 4개 열 폭을 직접 고정 — report-sensitivity-matrix는 이 표 전용(BreakEvenTable.tsx가 공유하는
+   report-sensitivity-table 압축 패딩과는 별개 — 그쪽은 열이 3개뿐이라 이 폭 규칙을 적용하면 비율이 깨진다).
+   2026-08-17 같은 날 재정정(planning/rebuild/widgets/2026-08-17_sensitivity_axis_label_fix.html 확정본) —
+   코너 셀에 "공사비"/"미래 매도가" 두 축 이름을 쌓아뒀던 걸 다시 뜯어(열 헤더 행과 뒤섞여 보인다는 지적),
+   "공사비"는 행 라벨 열의 자체 헤더로, "예상 매도가"는 데이터 3열 위 별도 캡션 행(colSpan=3)으로 분리 —
+   표 구조가 헤더 1행(모서리 폭 30%, nowrap 해제)에서 헤더 2행(캡션행+열헤더행) 구조로 바뀌어 열 폭 고정도
+   :first-child가 아니라 colgroup 기반으로 다시 짰다(모든 행이 이제 일관되게 4칸이라 :first-child로도 되긴
+   하지만, 캡션행처럼 colSpan이 섞인 행에서도 폭 매핑이 항상 명확한 colgroup이 더 안전). */
+.report-sensitivity-matrix {
+    table-layout: fixed;
+}
+
+.report-sensitivity-matrix .report-sensitivity-col-label {
+    width: 26%;
+}
+
+.report-sensitivity-matrix .report-sensitivity-col-data {
+    width: 24.67%;
+}
+
+.report-sensitivity-matrix th.report-sensitivity-corner {
+    background: transparent;
+}
+
+/* "예상 매도가" 캡션 행 — 데이터 3열 위에 걸쳐(colSpan=3) 가로축 이름임을 명시. 다른 카드의 "지금 위치를
+   짚어주는" accent 용법(BreakEvenTable "현재 추정 미래가치" 줄)과 같은 결로 accent 사용. */
+.report-sensitivity-matrix th.report-sensitivity-group-header {
+    text-align: center;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+/* "공사비" 행 라벨 열 자체 헤더 — BreakEvenTable의 "목표 ROI" 헤더와 같은 자리(값 없이 열 이름만),
+   아래 열헤더 행의 값+라벨 2줄 텍스트와 바닥선을 맞추도록 vertical-align:bottom. */
+.report-sensitivity-matrix th.report-sensitivity-row-axis-label {
+    font-weight: 700;
+    color: var(--text-muted);
+    vertical-align: bottom;
+}
+
+/* 2026-08-17 신규 — 행·열 헤더 값 옆 기준값 대비 편차 %(기준 칸은 "기준값" 텍스트). 12px 최소 정책 유지
+   (시안 원본은 미리보기용 축소 px라 그대로 안 씀). */
+.report-sensitivity-axis-delta {
+    display: block;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-muted);
 }
 
 /* 축 라벨("최소"/"보수적" 등) 아래 실제 금액(formatManwon) — 라벨만으로는 몰랐던 구간을 보여준다(2026-08-1x). */
@@ -818,120 +1122,12 @@ dl.right-panel-fact-list.report-fact-grid dd {
     color: var(--text-muted);
 }
 
-/* 2026-08-10 — 축값 옆 편차 %(고정 ±10%/±20% 대신 매물의 실제 축값 기준 동적 계산, SensitivityMatrix.tsx
-   variancePercent). opacity로 더 흐리게 하지 않는다(이 세션에서 막은 패턴, stylelint 게이트 대상) — 폰트
-   크기도 12px 최소 정책 그대로, 색만 var(--text-muted)로 금액(위 줄)과 구분. */
-.report-sensitivity-axis-variance {
+/* 2026-08-17 신규 — 축값 아래 구간 라벨("최소"/"기준"/"최대", "보수적"/"기준"/"낙관적") — 위 axis-value
+   보다 한 단계 더 옅게. 구 편차%(report-sensitivity-axis-variance)는 확정본에서 삭제돼 이 클래스가 대체. */
+.report-sensitivity-axis-label {
     font-size: 12px;
     font-weight: 400;
     color: var(--text-muted);
-}
-
-.report-sensitivity-positive {
-    color: #16a34a;
-}
-
-.report-sensitivity-negative {
-    color: #dc2626;
-}
-
-@media (prefers-color-scheme: dark) {
-    .report-sensitivity-positive {
-        color: #4ade80;
-    }
-    .report-sensitivity-negative {
-        color: #f87171;
-    }
-}
-
-/* FEATURE_10_AI_REPORT.md §2.5 "현금흐름" — 매입가+공사비=총투자금, 매도가-총투자금=예상차익 산식을 그대로
-   나열한다(2026-08-1x: 세로 막대 비교 폐기 — 매도가가 다른 항목보다 10배 이상 커서 공유 축에서 작은 막대가
-   묻히고 범위 막대는 시작점 라벨이 없어 해석이 안 됐다는 사용자 피드백, CashFlowFormula.tsx로 교체). */
-.report-cashflow-flow {
-    display: flex;
-    flex-direction: column;
-}
-
-/* 2026-08-10 — 행 gap 확대(§2.5 문서 확정, 3px→8px). */
-.report-cashflow-flow-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    padding: 8px 0;
-}
-
-/* 2026-08-10 — 아이콘(●) 제거됐지만 space-between이 [좌: 라벨] vs [우: 값] 2단을 유지하려면 좌측을 그룹핑하는
-   wrapper는 그대로 필요(CashFlowFormula.tsx FlowRow 참고). */
-.report-cashflow-flow-row-left {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 6px;
-}
-
-.report-cashflow-flow-label {
-    font-size: 12px;
-    color: var(--text-muted);
-}
-
-.report-cashflow-flow-value {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text-h);
-}
-
-.report-cashflow-flow-op {
-    text-align: center;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-muted);
-    line-height: 1.4;
-}
-
-.report-cashflow-flow-row-total {
-    border-top: 1px dashed var(--border);
-    /* 2026-08-10 — "총 투자금" 행 아래에도 구분선 추가(§2.5 문서 확정) — 아이콘이 빠지며 시각적 무게가
-       줄어든 만큼 위아래 테두리로 "산식의 소계"라는 걸 더 분명히 표시. */
-    border-bottom: 1px solid var(--border);
-    margin-top: 2px;
-    padding-top: 6px;
-    padding-bottom: 6px;
-}
-
-.report-cashflow-flow-row-total .report-cashflow-flow-value {
-    color: var(--accent);
-}
-
-.report-cashflow-flow-divider {
-    height: 1px;
-    background: var(--border);
-    margin: 10px 0;
-}
-
-.report-cashflow-flow-row-result {
-    border-top: 1px dashed var(--border);
-    margin-top: 2px;
-    padding-top: 6px;
-}
-
-.report-cashflow-flow-row-result .report-cashflow-flow-value {
-    font-size: 14px;
-}
-
-.report-cashflow-flow-positive .report-cashflow-flow-value {
-    color: #16a34a;
-}
-
-.report-cashflow-flow-negative .report-cashflow-flow-value {
-    color: #dc2626;
-}
-
-@media (prefers-color-scheme: dark) {
-    .report-cashflow-flow-positive .report-cashflow-flow-value {
-        color: #4ade80;
-    }
-    .report-cashflow-flow-negative .report-cashflow-flow-value {
-        color: #f87171;
-    }
 }
 
 /* FEATURE_10_AI_REPORT.md §2.9 "유사 사례" 비교 거래 목록 — 레퍼런스의 "인근 실거래가" 표(planning/rebuild/레포트.png)와
@@ -1026,6 +1222,29 @@ dl.right-panel-fact-list.report-fact-grid dd {
     .report-grid-2-even {
         grid-template-columns: 1fr;
     }
+
+    /* 2026-08-17 — "투자 결과 한눈에 보기" 밴드(5칸+화살표 4개, 가로 1행 고정)도 나머지 report-grid-* 계열과
+       같은 기준으로 좁은 화면에서 1열로 쌓는다 — 지금까지 이 밴드만 빠져 있어서 모바일에서 5칸이 폭 안에
+       욱여넣어져 캡션("부대비용 + 공사비 포함" 등)이 한 글자씩 줄바꿈되는 문제가 있었다(사용자 스크린샷
+       확인). */
+    .report-investment-band {
+        grid-template-columns: 1fr;
+    }
+
+    /* 2026-08-17 재정정 — 화살표(→)를 90도 회전(↓)해 세로 흐름에 맞추려 했는데, rotate()는 글리프만 돌 뿐
+       원래(가로용) 좁은 히트박스는 그대로라 셀 경계 밖으로 삐져나와 보이는 문제가 있었다(사용자 스크린샷).
+       위아래로 쌓인 순서 자체가 이미 흐름을 전달하니 화살표 없이도 의미가 통한다는 판단 — 정확히 맞추려
+       애쓰는 대신 숨긴다. */
+    .report-investment-band-arrow {
+        display: none;
+    }
+
+    /* 2026-08-17 — "계산 조건 및 제외 항목"(풀폭 3열, 계산 조건/제외 항목/주의)도 나머지 report-grid-* 계열과
+       같은 기준으로 빠져 있던 항목 — 좁은 화면에서 3칸을 욱여넣으면 각 목록 항목이 "부대비용:" "개인"
+       "1주택자" 식으로 한두 글자씩 줄바꿈돼 읽기 어려워진다(사용자 스크린샷 확인). 1열로 쌓는다. */
+    .report-calc-conditions {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 768px) {
@@ -1041,4 +1260,16 @@ dl.right-panel-fact-list.report-fact-grid dd {
         position: static;
     }
 
+    /* 2026-08-17 — "손익분기 및 목표 수익률" 표(목표 ROI/필요 매도가 최소·최대 3열)가 좁은 화면에서 카드 폭을
+       넘어 report-trade-table-wrap의 가로 스크롤이 뜨던 문제(사용자 스크린샷 확인) — th/td가 nowrap이라
+       (report-trade-table 공용 규칙, "법정동" 등이 한 글자씩 줄바꿈되는 걸 막으려는 의도적 설계) 폭 자체를
+       줄일 수밖에 없다. .report-grid-3(데스크톱 3열 레이아웃)에서만 쓰던 압축 패딩(.report-grid-3
+       .report-sensitivity-table)을 모바일 폭 기준으로도 적용 — 그리드 맥락과 무관하게 화면이 좁으면 항상
+       이 여백으로. 폰트는 12px 최소 정책 그대로 유지(패딩만 줄임 — "필요 매도가(최소)" 등 헤더 텍스트는 그대로
+       nowrap 한 줄인데도 이 정도로 카드 안에 들어간다, 실측 확인). */
+    .report-sensitivity-table th,
+    .report-sensitivity-table td {
+        padding: 4px 3px;
+        font-size: 12px;
+    }
 }

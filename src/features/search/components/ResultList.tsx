@@ -9,7 +9,7 @@ import {
     sortGradeSummary,
     sortPropertyItems,
 } from "../api/searchApi";
-import { priceConfidenceFromLevel, priceConfidenceTone } from "../../investment/api/analysisApi";
+import { PRICE_DISPLAY_TONE, resolvePriceDisplayLabel } from "../../market/api/marketApi";
 import Pagination from "./Pagination";
 
 // .grade-A 등(layout.css)과 동일한 색상 — 선택된 배지 강조에 재사용(인라인 CSS 변수로 전달).
@@ -125,7 +125,6 @@ const ResultList = ({ onOpenDetail }: ResultListProps) => {
                         {items.map((item) => {
                             const { main: areaMain, aux: areaAux } = formatAreaDisplay(item);
                             const householdCountText = formatHouseholdCount(item.householdCount);
-                            const auxLine = [areaAux, householdCountText].filter(Boolean).join(" · ");
                             const buildYearText = formatBuildYear(item.buildYear);
                             const gradeClass = item.grade ? (GRADE_CLASS[item.grade] ?? "") : "";
                             const gradeText = item.grade ?? "-";
@@ -134,8 +133,19 @@ const ResultList = ({ onOpenDetail }: ResultListProps) => {
                             // 교체. recentTrade는 건물 전체 대비 작은 호실 하나 거래가 "건물 전체가 이 가격"처럼
                             // 보이는 착시가 있었는데(그래서 "건물 일부 거래" 경고를 따로 달아야 했다), estimatedPrice는
                             // 전 유형 공통으로 스케일이 맞아 이 착시 자체가 없다 — 경고 문구도 함께 제거(카드에서만,
-                            // RightPanel.tsx "최근 실거래가" 행은 유지). "추정치" 고정 문구 대신 신뢰도 등급(A~D)
-                            // 표시(priceConfidenceFromLevel), 배지 톤도 success/warning으로 구분(priceConfidenceTone).
+                            // RightPanel.tsx "최근 실거래가" 행은 유지). "추정치" 고정 문구 대신 신뢰도 표시.
+                            // 2026-08-17 — A/B/C/D 등급 폐지, marketApi.ts resolvePriceDisplayLabel 라벨 체계로
+                            // 통일. PropertyItem(이 목록 응답)엔 recentTrade 필드 자체가 없어(백엔드가 제거,
+                            // 위 주석) hasRecentTrade는 항상 false — "실거래" 라벨은 이 화면에서 나올 일이 없다.
+                            // priceLabel을 밖으로 뽑아 배지(priceNode)와 아래 압축 캡션(auxLine)이 같은 계산을 공유.
+                            const priceLabel =
+                                item.price == null && item.estimatedPrice.value != null
+                                    ? resolvePriceDisplayLabel(item.estimatedPrice.confidenceLevel, false)
+                                    : null;
+                            // 2026-08-17 삭제(§확정분) — "비교 범위 확장 기반" 등 신뢰도 근거 압축 캡션(구
+                            // PRICE_CONFIDENCE_CAPTION_COMPACT)이 카드 밀도만 높이고 불필요하다는 지적 — auxLine은
+                            // 다시 면적·세대수만.
+                            const auxLine = [areaAux, householdCountText].filter(Boolean).join(" · ");
                             // 데스크톱 2줄·모바일 3줄 레이아웃(아래)이 이 노드를 그대로 공유 — 계산은 한 번만.
                             const priceNode =
                                 item.price != null ? (
@@ -143,18 +153,11 @@ const ResultList = ({ onOpenDetail }: ResultListProps) => {
                                 ) : item.estimatedPrice.value != null ? (
                                     <span className="right-panel-estimate-anchor">
                                         시세 {formatManwon(item.estimatedPrice.value)}
-                                        {(() => {
-                                            const c = priceConfidenceFromLevel(item.estimatedPrice.confidenceLevel);
-                                            return (
-                                                c && (
-                                                    <span
-                                                        className={`right-panel-estimate-tag right-panel-estimate-tag-${priceConfidenceTone(c)}`}
-                                                    >
-                                                        신뢰도 {c}
-                                                    </span>
-                                                )
-                                            );
-                                        })()}
+                                        {priceLabel != null && (
+                                            <span className={`right-panel-estimate-tag right-panel-estimate-tag-${PRICE_DISPLAY_TONE[priceLabel]}`}>
+                                                신뢰도 {priceLabel}
+                                            </span>
+                                        )}
                                     </span>
                                 ) : (
                                     <span>가격 정보 준비 중</span>

@@ -129,7 +129,10 @@ export const CONFIDENCE_LABEL: Record<ConfidenceLevel, string> = {
 // "시세 심화" 카드도 이제 이 짧은 라벨만 쓰고, 괄호 설명은 "04 시장 분석" 섹션에 범례 한 번으로 대체한다
 // (반복되는 배지마다 긴 문구를 안 붙여도 되게). 긴 라벨(CONFIDENCE_LABEL) 자체는 다른 소비처가 생길 수 있어
 // 남겨두되, 지금은 이 페이지들에서 안 쓴다.
-export const CONFIDENCE_LABEL_SHORT: Record<ConfidenceLevel, string> = {
+// 2026-08-17 — 이 Record의 실제 값 5종(높음/중간/낮음/매우 낮음/산출 불가)을 타입으로 못박은 것이
+// ConfidenceLabel(아래쪽 A/B/C/D 폐지 섹션에서 정의) — 타입 선언 순서상 이 상수보다 먼저 있어야 해서 여기서
+// 타입만 미리 참조. DONG_TYPE_AVERAGE/GU_TYPE_AVERAGE가 같은 문자열로 겹쳐 6개 키가 5개 값으로 압축된다.
+export const CONFIDENCE_LABEL_SHORT: Record<ConfidenceLevel, ConfidenceLabel> = {
     SAME_DONG: "높음",
     SAME_GU: "중간",
     WIDENED_RANGE: "낮음",
@@ -159,6 +162,60 @@ export const CONFIDENCE_TONE: Record<Exclude<ConfidenceLevel, "UNAVAILABLE">, "s
     DONG_TYPE_AVERAGE: "neutral",
     GU_TYPE_AVERAGE: "neutral",
 };
+
+// 2026-08-17 추가, 같은 날 재정정 — "06 사업성 분석" 신뢰도 칩(pill) 전용 톤 매핑. 최초엔 확정본 mockup의
+// 리터럴 색(중간=중립 회색, 매우낮음=warning 주황)을 그대로 옮겼으나, 사용자가 "매우낮음도 낮음과 완전히
+// 같은 회색"으로 정정 — 최종 규칙은 높음=success·중간=warning·낮음=neutral·매우낮음=neutral(낮음과 동일)·
+// 산출불가=배지 자체 없음(호출부에서 UNAVAILABLE을 걸러내는 걸로 처리, 이 Record엔 없음). 결과적으로 아래
+// 값이 바로 위 CONFIDENCE_TONE(04 "시세 심화" 배지 등)과 완전히 같아졌다 — 그래도 상수는 분리 유지한다.
+// CONFIDENCE_TONE을 직접 재사용하면 나중에 06만 다시 바뀔 때(이번처럼) 04까지 같이 바뀌어버리는 결합이
+// 생긴다 — 지금은 값이 같아도 "06 전용" 개념 자체는 유효해서 중복을 감수하고 분리해 둔다.
+export const CONFIDENCE_PILL_TONE: Record<Exclude<ConfidenceLevel, "UNAVAILABLE">, "success" | "warning" | "neutral"> = {
+    SAME_DONG: "success",
+    SAME_GU: "warning",
+    WIDENED_RANGE: "neutral",
+    DONG_TYPE_AVERAGE: "neutral",
+    GU_TYPE_AVERAGE: "neutral",
+};
+
+// 2026-08-17 — A/B/C/D 등급 체계 전면 폐지(analysisApi.ts의 구 PriceConfidenceGrade/priceConfidenceFromLevel/
+// priceConfidenceTone 삭제), CONFIDENCE_LABEL_SHORT 라벨(높음/중간/낮음/매우 낮음/산출 불가) 5단계로 리포트
+// 전체 통일 — 04 "시세 산정 근거" 카드가 이미 쓰던 이 어휘가 유일한 신뢰도 범례가 된다. CONFIDENCE_LABEL_SHORT의
+// 실제 값은 6개 ConfidenceLevel 키가 5개 문자열로 압축된 결과(DONG_TYPE_AVERAGE/GU_TYPE_AVERAGE가 같은
+// "매우 낮음")라, 그 문자열 자체를 타입으로 못박아 F-09 매트릭스(analysisApi.ts)처럼 라벨을 키로 쓰는 곳에서
+// 재사용한다.
+export type ConfidenceLabel = "높음" | "중간" | "낮음" | "매우 낮음" | "산출 불가";
+
+// "01 요약정보 현재가"/"F-04·F-05 시세" 배지 전용 — recentTrade(실제 성사된 거래)가 있으면 confidenceLevel과
+// 무관하게 최우선으로 "실거래"(가장 강한 신뢰도 신호). "리모델링 후 추정"/F-09처럼 미래 추정값에는 애초에
+// recentTrade 개념이 없어(아직 일어나지 않은 거래) 이 값이 나올 일이 없다 — hasRecentTrade 인자를 그런
+// 소비처에서는 항상 false로 넘기면 된다(별도 타입 분기 불필요).
+export type PriceDisplayLabel = ConfidenceLabel | "실거래";
+
+export const resolvePriceDisplayLabel = (confidenceLevel: ConfidenceLevel, hasRecentTrade: boolean): PriceDisplayLabel =>
+    hasRecentTrade ? "실거래" : CONFIDENCE_LABEL_SHORT[confidenceLevel];
+
+// 색 — 실거래·높음=success · 중간=warning · 낮음·매우 낮음·산출 불가=neutral(같은 회색). 04/06이 이미 쓰던
+// CONFIDENCE_TONE/CONFIDENCE_PILL_TONE과 같은 규칙 재사용(새 색 없음) — 다만 그 두 Record는 UNAVAILABLE 키가
+// 없어(호출부에서 배지 자체를 숨기는 방식) 여기서는 별도로 neutral을 채워 둔다. "산출 불가"도 값 자체는
+// 갖고 있지만, 아래 hasPriceConfidenceBadge가 UNAVAILABLE(& !hasRecentTrade)이면 배지 렌더링 자체를 막으므로
+// 이 톤 값이 실제로 쓰이는 일은 없다(타입 완전성만 목적).
+export const PRICE_DISPLAY_TONE: Record<PriceDisplayLabel, "success" | "warning" | "neutral"> = {
+    실거래: "success",
+    높음: "success",
+    중간: "warning",
+    낮음: "neutral",
+    "매우 낮음": "neutral",
+    "산출 불가": "neutral",
+};
+
+// 2026-08-17 재정정(planning/rebuild/widgets/2026-08-17_confidence_unified_legend.html 확정본) — "산출 불가"도
+// 실제 표시 상태로 취급해 neutral 배지를 노출했던 이전 판단을 되돌린다. 확정본이 "추정불가: 배지 없이 텍스트만"
+// 이라고 명시 — recentTrade가 있으면(그래서 "실거래"로 뜨면) 여전히 배지를 보여주고, 그 경우가 아니면서
+// confidenceLevel이 UNAVAILABLE일 때만 배지 자체를 숨긴다(호출부는 이 값이 false면 <span className="report-chip
+// ...">가 아니라 배지 없는 plain text로 "신뢰도 산출 불가"를 보여줘야 한다 — 완전히 숨기는 게 아니라 "텍스트만").
+export const hasPriceConfidenceBadge = (confidenceLevel: ConfidenceLevel, hasRecentTrade: boolean): boolean =>
+    hasRecentTrade || confidenceLevel !== "UNAVAILABLE";
 
 // "거래 활성도" 카드(FEATURE_10_AI_REPORT.md §2.3 item 5) — "시장 유동성" 판정은 백엔드가 안 내려주는 프론트
 // V1 잠정치. 최근 1년 거래건수(TradeActivity.recent1yCount)만 기준으로 삼고, 3/5년은 참고용 raw 숫자로만

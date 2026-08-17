@@ -2,15 +2,8 @@ import { useEffect, useState } from "react";
 import { useSearch } from "../../search/context/SearchContext";
 import { formatCurrency, formatManwon, formatRecentTrade, GRADE_CLASS } from "../../search/api/searchApi";
 import { formatUseApprovalDate, getBuildingDetail, type BuildingDetail } from "../api/buildingApi";
-import {
-    formatUpdatedAt,
-    getPropertyAnalysis,
-    getRecommendation,
-    GRADE_LABEL,
-    priceConfidenceFromLevel,
-    priceConfidenceTone,
-    type PropertyAnalysis,
-} from "../../investment/api/analysisApi";
+import { formatUpdatedAt, getPropertyAnalysis, getRecommendation, GRADE_LABEL, type PropertyAnalysis } from "../../investment/api/analysisApi";
+import { PRICE_DISPLAY_TONE, resolvePriceDisplayLabel } from "../../market/api/marketApi";
 import SitePolygonDiagram, { parseRing, SitePolygonMeta } from "./SitePolygonDiagram";
 
 const formatContractMonth = (dateStr: string | null): string | null => {
@@ -120,22 +113,25 @@ const PropertyDetailContent = ({ onOpenReport }: PropertyDetailContentProps) => 
             ? Math.round(analysis.market.estimatedPrice.value / selected.area)
             : null;
     // 추천여부(2026-08-09 재편) — grade 단독 매핑에서 grade×시세 신뢰도 매트릭스로 확장(analysisApi.ts
-    // getRecommendation). 같은 priceConfidence를 ROI 옆 "추정치" 고정 문구 자리에도 재사용(신뢰도 등급이
+    // getRecommendation). postRemodelConfidenceLevel을 ROI 옆 "추정치" 고정 문구 자리에도 재사용(신뢰도 등급이
     // 이미 정확히 있으니 근사 불필요, 2026-08-09 배지 정정 — postRemodelEstimatedPrice 자체가 null일 수 있어
     // (§3.7 "F-06 불가 판정" 등) analysis?. 뒤에 ?.를 하나 더 거친다(전달받은 diff의
     // analysis?.market.postRemodelEstimatedPrice.confidenceLevel은 이 케이스에서 TS가 "possibly null" 에러를
     // 낸다 — 동작은 동일하게 유지하고 안전하게만 수정).
-    const priceConfidence =
-        analysis?.market.postRemodelEstimatedPrice?.confidenceLevel != null
-            ? priceConfidenceFromLevel(analysis.market.postRemodelEstimatedPrice.confidenceLevel)
-            : null;
-    const recommendation = analysis?.grade != null ? getRecommendation(analysis.grade, priceConfidence) : "-";
+    // 2026-08-17 — A/B/C/D 등급 폐지, marketApi.ts resolvePriceDisplayLabel 라벨 체계로 통일. postRemodel은
+    // 미래 추정값이라 recentTrade 개념이 없어 hasRecentTrade는 항상 false.
+    const postRemodelConfidenceLevel = analysis?.market.postRemodelEstimatedPrice?.confidenceLevel ?? null;
+    const priceConfidenceLabel = postRemodelConfidenceLevel != null ? resolvePriceDisplayLabel(postRemodelConfidenceLevel, false) : null;
+    const recommendation = analysis?.grade != null ? getRecommendation(analysis.grade, postRemodelConfidenceLevel) : "-";
     // "시세" 옆 배지는 다른 소스(estimatedPrice, postRemodel 아님) — ROI 배지와 같은 이유로 "추정치" 고정 문구
-    // 대신 신뢰도 등급 표시(2026-08-09).
-    const estimatedPriceConfidence =
-        analysis?.market.estimatedPrice.confidenceLevel != null
-            ? priceConfidenceFromLevel(analysis.market.estimatedPrice.confidenceLevel)
-            : null;
+    // 대신 신뢰도 라벨 표시(2026-08-09, 2026-08-17 A/B/C/D→라벨). recentTrade(buildingDetail.recentTrade) 있으면
+    // confidenceLevel과 무관하게 "실거래"가 최우선(신뢰도 체계 정리 §확정분) — buildingDetail이 F-05 전용
+    // 별도 소스(BuildingDetail.recentTrade, analysis.market.recentTrade와 다른 호출, 상단 recentTradeFlags
+    // 계산부와 같은 근거 재사용).
+    const estimatedPriceHasRecentTrade = buildingDetail?.recentTrade?.price != null;
+    const estimatedPriceConfidence = analysis
+        ? resolvePriceDisplayLabel(analysis.market.estimatedPrice.confidenceLevel, estimatedPriceHasRecentTrade)
+        : null;
     // "사용승인일" 옆에도 경과년수 병기(2026-08-1x, 개요의 buildYearText와 같은 이유) — formatUseApprovalDate
     // 자체는 안 바꾼다(F-10 BasicInfoPage.tsx도 같은 함수를 쓰는데 그쪽엔 요청 없었음).
     const useApprovalDateText = (() => {
@@ -167,18 +163,19 @@ const PropertyDetailContent = ({ onOpenReport }: PropertyDetailContentProps) => 
                                 맞았지만 NA→"정보부족"은 GRADE_CLASS에 그 키가 없어 배지 색이 안 떴다(실측 확인) —
                                 GRADE_CLASS[analysis.grade]로 직접 조회.
                                 2026-08-09 — 등급 박스 전면 폐지(ResultList.tsx와 공통 grade-text 재사용) + 바로
-                                오른쪽에 신뢰도 스티커(기존 right-panel-estimate-tag 크기 그대로) 병기. priceConfidence는
-                                위에서 이미 계산해 둔 값(추천여부 매트릭스와 같은 출처, 재계산 안 함). */}
+                                오른쪽에 신뢰도 스티커(기존 right-panel-estimate-tag 크기 그대로) 병기.
+                                priceConfidenceLabel은 위에서 이미 계산해 둔 값(추천여부 매트릭스와 같은 출처,
+                                재계산 안 함). 2026-08-17 — A/B/C/D→라벨, PRICE_DISPLAY_TONE으로 톤 결정. */}
                             {analysis?.grade ? (
                                 <span className="right-panel-estimate-anchor">
                                     <span className={`grade-text ${GRADE_CLASS[analysis.grade] ?? ""}`}>
                                         {GRADE_LABEL[analysis.grade]}
                                     </span>
-                                    {priceConfidence != null && (
+                                    {priceConfidenceLabel != null && (
                                         <span
-                                            className={`right-panel-estimate-tag right-panel-estimate-tag-${priceConfidenceTone(priceConfidence)}`}
+                                            className={`right-panel-estimate-tag right-panel-estimate-tag-${PRICE_DISPLAY_TONE[priceConfidenceLabel]}`}
                                         >
-                                            신뢰도 {priceConfidence}
+                                            신뢰도 {priceConfidenceLabel}
                                         </span>
                                     )}
                                 </span>
@@ -333,8 +330,8 @@ const PropertyDetailContent = ({ onOpenReport }: PropertyDetailContentProps) => 
                             <div>
                                 {/* "추정 시세" → "시세"로 축약 + ROI와 같은 인라인 스티커 배지(2026-08-1x, 라벨 자체에
                                     이미 "추정"이 안 보이니 값 옆 배지로 그 의미를 옮긴다). 2026-08-09: "추정치" 고정
-                                    문구 대신 estimatedPriceConfidence 신뢰도 등급 표시로 교체(postRemodel과 다른
-                                    소스 — estimatedPrice 자체의 confidenceLevel). */}
+                                    문구 대신 estimatedPriceConfidence 신뢰도 표시로 교체(postRemodel과 다른 소스 —
+                                    estimatedPrice 자체의 confidenceLevel). 2026-08-17: A/B/C/D→라벨. */}
                                 <dt>시세</dt>
                                 <dd>
                                     <span className="right-panel-estimate-anchor">
@@ -343,7 +340,7 @@ const PropertyDetailContent = ({ onOpenReport }: PropertyDetailContentProps) => 
                                             : "추정 불가"}
                                         {analysis?.market.estimatedPrice.value != null && estimatedPriceConfidence != null && (
                                             <span
-                                                className={`right-panel-estimate-tag right-panel-estimate-tag-${priceConfidenceTone(estimatedPriceConfidence)}`}
+                                                className={`right-panel-estimate-tag right-panel-estimate-tag-${PRICE_DISPLAY_TONE[estimatedPriceConfidence]}`}
                                             >
                                                 신뢰도 {estimatedPriceConfidence}
                                             </span>
@@ -354,6 +351,9 @@ const PropertyDetailContent = ({ onOpenReport }: PropertyDetailContentProps) => 
                                             연면적당 가격 {estimatedPricePerSqm.toLocaleString()}만원/㎡
                                         </p>
                                     )}
+                                    {/* 2026-08-17 삭제(§확정분) — "비교 범위를 넓힌 유사거래 기반 추정 시세입니다(...)"
+                                        등 신뢰도 배지 설명 캡션(구 PRICE_CONFIDENCE_CAPTION_FULL) 제거 — 불필요하다는
+                                        지적. */}
                                 </dd>
                             </div>
                             <div>
