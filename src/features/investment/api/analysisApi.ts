@@ -37,36 +37,62 @@ export interface PropertyAnalysis {
 // "2026-08-03T17:36:26" → "2026-08-03" — "최근 갱신" 라벨용(배치 결과, 실시간 값 아님을 알리는 목적).
 export const formatUpdatedAt = (updatedAt: string): string => updatedAt.split("T")[0];
 
+// 2026-08-17 — A/B/C/D 등급 체계(PriceConfidenceGrade/priceConfidenceFromLevel/priceConfidenceTone) 전면
+// 폐지, marketApi.ts의 CONFIDENCE_LABEL_SHORT 라벨(높음/중간/낮음/매우 낮음/산출 불가, 04 "시세 산정 근거"가
+// 이미 쓰던 체계) 5단계로 리포트 전체 통일 — resolvePriceDisplayLabel/PRICE_DISPLAY_TONE(marketApi.ts)이 새
+// 단일 출처. 이 파일의 소비처(F-09 "검토 우선순위" 매트릭스)는 recentTrade 개념이 없는 postRemodel 기준이라
+// "실거래" 라벨은 나올 일이 없다 — ConfidenceLevel(6종, UNAVAILABLE 포함) 자체를 그대로 매트릭스 키로 쓴다.
+
 // FEATURE_10_AI_REPORT.md §2.2(2026-08-09 재편) — 추천여부를 grade 단독 매핑에서 grade×시세 신뢰도 매트릭스로
-// 확장. postRemodelEstimatedPrice(F-08 §2.3 "미래 가치")의 confidenceLevel을 4단계로 압축한 게 PriceConfidenceGrade —
-// SAME_DONG만 최고 B인 이유는 recentTrade는 F-05 "시세" 카드 개념일 뿐, 이 매트릭스가 참조하는
-// postRemodelEstimatedPrice엔 실거래 개념 자체가 없다(FEATURE_08_MARKET.md §2.3).
-export type PriceConfidenceGrade = "A" | "B" | "C" | "D";
-
-export const priceConfidenceFromLevel = (confidenceLevel: ConfidenceLevel): PriceConfidenceGrade | null => {
-    switch (confidenceLevel) {
-        case "SAME_DONG":
-            return "B";
-        case "SAME_GU":
-        case "WIDENED_RANGE":
-            return "C";
-        case "DONG_TYPE_AVERAGE":
-        case "GU_TYPE_AVERAGE":
-            return "D";
-        case "UNAVAILABLE":
-            return null;
-    }
+// 확장. 구 PriceConfidenceGrade는 SAME_GU/WIDENED_RANGE를 C 하나로, DONG_TYPE_AVERAGE/GU_TYPE_AVERAGE를 D
+// 하나로 묶었었다 — 매트릭스 "구조·판정 경계는 바꾸지 않는다"는 이번 요청 원칙대로, 새 ConfidenceLevel 키도
+// 같은 두 쌍을 여전히 동일한 행 값으로 채워 그 경계를 그대로 보존한다(SAME_GU/WIDENED_RANGE 값 동일,
+// DONG_TYPE_AVERAGE/GU_TYPE_AVERAGE 값 동일). 구 A열(어떤 confidenceLevel도 매핑되지 않아 실제로 한 번도
+// 안 쓰였던 죽은 열)은 폐기 — SAME_DONG("높음")이 이제 실제로 도달 가능한 최고 등급이라 그 자리(구 B열
+// 값)를 물려받는다. 구 NONE(postRemodel 자체가 없음)과 UNAVAILABLE(있지만 산출 실패)은 구 시스템에서도
+// 항상 같은 "판단 불가" 결과였으므로 이번에도 하나로 합쳐 처리(getRecommendation에서 ?? "UNAVAILABLE"로 통일).
+const RECOMMENDATION_MATRIX: Record<InvestmentGrade, Record<ConfidenceLevel, string>> = {
+    A: {
+        SAME_DONG: "적극 추천",
+        SAME_GU: "추천",
+        WIDENED_RANGE: "추천",
+        DONG_TYPE_AVERAGE: "검토",
+        GU_TYPE_AVERAGE: "검토",
+        UNAVAILABLE: "판단 불가",
+    },
+    B: {
+        SAME_DONG: "추천",
+        SAME_GU: "검토",
+        WIDENED_RANGE: "검토",
+        DONG_TYPE_AVERAGE: "검토",
+        GU_TYPE_AVERAGE: "검토",
+        UNAVAILABLE: "판단 불가",
+    },
+    C: {
+        SAME_DONG: "검토",
+        SAME_GU: "비추천",
+        WIDENED_RANGE: "비추천",
+        DONG_TYPE_AVERAGE: "비추천",
+        GU_TYPE_AVERAGE: "비추천",
+        UNAVAILABLE: "판단 불가",
+    },
+    D: {
+        SAME_DONG: "비추천",
+        SAME_GU: "비추천",
+        WIDENED_RANGE: "비추천",
+        DONG_TYPE_AVERAGE: "비추천",
+        GU_TYPE_AVERAGE: "비추천",
+        UNAVAILABLE: "판단 불가",
+    },
+    NA: {
+        SAME_DONG: "판단 불가",
+        SAME_GU: "판단 불가",
+        WIDENED_RANGE: "판단 불가",
+        DONG_TYPE_AVERAGE: "판단 불가",
+        GU_TYPE_AVERAGE: "판단 불가",
+        UNAVAILABLE: "판단 불가",
+    },
 };
-
-// 신뢰도 배지 색 톤(2026-08-09) — report-tone-badge/MarketAnalysisPage.tsx TradeTable과 같은 규칙(A/B=success,
-// C/D=warning). right-panel-estimate-tag가 이제 등급 의미를 담으니 고정 파란색 대신 이 톤을 따른다.
-export const priceConfidenceTone = (grade: PriceConfidenceGrade): "success" | "warning" =>
-    grade === "A" || grade === "B" ? "success" : "warning";
-
-// 2026-08-17 삭제(§확정분) — 구 핵심 요약 "확인이 필요한 사항" item(리모델링 후 추정 시세 신뢰도 주의 문구)이
-// 목록에서 빠지고 "리모델링 후 추정" 카드 캡션(ReportPage.tsx의 postRemodelPriceMatchCaption,
-// CONFIDENCE_MATCH_STAGE_LABEL 기반)으로 대체되며 이 상수의 유일한 소비처가 사라졌다. PRICE_CONFIDENCE_CAUTION
-// 자체는 삭제 — 필요해지면 git 이력에서 복구 가능.
 
 // 2026-08-12 확정 — "추천여부"→"검토 우선순위"로 칸 자체가 개명되면서 값도 "추천/비추천" 계열(투자 확정 뉘앙스)
 // 대신 "검토 우선순위" 뉘앙스(적극 검토/검토/추가 확인/보류)로 전면 교체. 매트릭스 구조(등급×신뢰도)와 각 셀이
@@ -79,17 +105,17 @@ const LABEL_MAP: Record<string, string> = {
     "판단 불가": "판단 불가",
 };
 
-const RECOMMENDATION_MATRIX: Record<InvestmentGrade, Record<PriceConfidenceGrade | "NONE", string>> = {
-    A: { A: "적극 추천", B: "적극 추천", C: "추천", D: "검토", NONE: "판단 불가" },
-    B: { A: "추천", B: "추천", C: "검토", D: "검토", NONE: "판단 불가" },
-    C: { A: "검토", B: "검토", C: "비추천", D: "비추천", NONE: "판단 불가" },
-    D: { A: "비추천", B: "비추천", C: "비추천", D: "비추천", NONE: "판단 불가" },
-    NA: { A: "판단 불가", B: "판단 불가", C: "판단 불가", D: "판단 불가", NONE: "판단 불가" },
-};
-
-export const getRecommendation = (grade: InvestmentGrade, priceConfidence: PriceConfidenceGrade | null): string =>
-    LABEL_MAP[RECOMMENDATION_MATRIX[grade][priceConfidence ?? "NONE"]];
+// confidenceLevel이 null이면(postRemodel 자체가 없음) UNAVAILABLE과 동일하게 취급(위 주석 참고, 구 시스템도
+// 항상 같은 결과였음).
+export const getRecommendation = (grade: InvestmentGrade, confidenceLevel: ConfidenceLevel | null): string =>
+    LABEL_MAP[RECOMMENDATION_MATRIX[grade][confidenceLevel ?? "UNAVAILABLE"]];
 // 기존 RECOMMENDATION_LABEL(grade 단독 매핑)은 삭제 — 위 매트릭스로 완전히 대체.
+
+// 2026-08-17 삭제(§확정분) — F-04/F-05 "시세" 신뢰도 배지 설명 캡션(구 PRICE_CONFIDENCE_CAPTION_FULL/COMPACT,
+// "비교 범위를 넓힌 유사거래 기반 추정 시세입니다(...)" 등) 전면 제거 — 불필요하다는 지적으로 두 소비처
+// (ResultList.tsx/PropertyDetailContent.tsx) 모두 캡션 렌더링을 없애며 이 Record 자체도 삭제. 신뢰도 배지
+// (right-panel-estimate-tag, 라벨만 표시)와 04 "시세 산정 근거" 카드의 공용 범례는 그대로 유지 — 이번 삭제
+// 대상은 F-04/F-05 개별 값 옆 설명 문구뿐.
 
 // 2026-08-10 — "총 투자금 = 매입가+공사비+부대비용"으로 공식 변경(LAW-003_취득세_중개보수_요율.md). isHousing
 // 분류는 취득세법상 "주택" 특례세율 대상(아파트/연립다세대/단독다가구) 기준 — ESTIMATED_AREA_TYPES(세대 기반
@@ -102,6 +128,12 @@ const HOUSING_TYPES_FOR_ACQUISITION_TAX = ["아파트", "연립다세대", "단�
 // 주택 취득세율은 6억 이하 1%/9억 초과 3%/6~9억 구간 선형 근사, 중개보수는 구간별 고정요율(한도액은 5천만원/
 // 2억 구간만 별도 적용되지만 이번 V1엔 반영 안 함 — 근사치임을 캡션으로 안내). 주택 외 유형은 취득세 4%+
 // 중개보수 0.9% 고정.
+// 2026-08-17 재정정("부대비용 계산 버그" Open Item 해결, "프론트에 전달할 내용") — 주택 외(isHousing=false)
+// 분기만 수정: 취득세 4%에 지방교육세 0.4%+농특세 0.2%가 누락돼 있었다(4.9%→5.5%). 주택(isHousing=true)
+// 분기는 건드리지 않음 — 지방교육세·농특세 공식이 아직 미확정(LAW-003 §5, 별도 확인 후 진행). 이 값이 바뀌면
+// investMin/investMax·gainMin/gainMax·roiMin/roiMax 등 06 "사업성 분석" 전반이 재계산되고(부수 효과로 총
+// 투자금이 0.6%p 소폭 상승 → 주택 외 매물 ROI 표시값이 소폭 낮아짐, 정상적인 수정 결과), CashFlowFormula.tsx
+// 캡션의 "4.9%"도 "5.5%"로 함께 갱신했다.
 export const calcAcquisitionCost = (baseValue: number, isHousing: boolean): number => {
     if (isHousing) {
         const taxRate =
@@ -124,7 +156,7 @@ export const calcAcquisitionCost = (baseValue: number, isHousing: boolean): numb
                         : 0.007;
         return baseValue * taxRate + baseValue * brokerageRate; // 한도액은 5천만원/2억 구간만 별도 적용(V1 미반영)
     }
-    return baseValue * 0.04 + baseValue * 0.009; // 주택 외
+    return baseValue * 0.04 + baseValue * 0.004 + baseValue * 0.002 + baseValue * 0.009; // 주택 외 — 취득세4%+지방교육세0.4%+농특세0.2%+중개보수0.9%=5.5%
 };
 
 // FEATURE_08_MARKET.md §3.7 "수익분석" — BusinessAnalysisPage.tsx(구 ProfitAnalysisPage.tsx)와 요약 섹션(예상차익/미래가치 통계)이 공유하는

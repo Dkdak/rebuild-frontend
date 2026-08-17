@@ -276,6 +276,21 @@ const RemodelingAnalysisPage = ({ analysis, loading, buildYear, propertyType, ho
                             </p>
                             {/* 2026-08-17 삭제(§확정분) — "개략 추정치이며..." 박스가 카드 제목 옆 "추정치 —
                                 실측 견적 아님" 배지와 같은 말을 중복 전달하고 있었다. */}
+                            {/* 2026-08-17 신규 — 왼쪽 헤드라인 칸 아래 남던 빈 공간(오른쪽 4행 표보다 짧아서)을
+                                실제 계산 과정 2줄로 채운다. 오른쪽 표(연면적/기준단가/노후도 보정계수)와 완전히
+                                같은 값을 그대로 곱해서 보여줄 뿐 — 새 계산 아님(costDetail.minCost/maxCost =
+                                grossFloorArea × baseUnitPricePerSqm × agingFactorMin/Max, F-07 §3.2 산식). */}
+                            <hr className="right-panel-card-divider" />
+                            <p className="right-panel-field-note report-cost-calc-line">
+                                {Math.round(costDetail.basis.grossFloorArea).toLocaleString()}㎡ ×{" "}
+                                {formatWon(costDetail.basis.baseUnitPricePerSqm)}/㎡ × {costDetail.basis.agingFactorMin.toFixed(2)} ≈{" "}
+                                {formatWon(costDetail.minCost)}
+                            </p>
+                            <p className="right-panel-field-note report-cost-calc-line">
+                                {Math.round(costDetail.basis.grossFloorArea).toLocaleString()}㎡ ×{" "}
+                                {formatWon(costDetail.basis.baseUnitPricePerSqm)}/㎡ × {costDetail.basis.agingFactorMax.toFixed(2)} ≈{" "}
+                                {formatWon(costDetail.maxCost)}
+                            </p>
                         </div>
                         <dl className="right-panel-fact-list report-cost-split-table">
                             <div>
@@ -307,6 +322,12 @@ const RemodelingAnalysisPage = ({ analysis, loading, buildYear, propertyType, ho
                             </div>
                         </dl>
                     </div>
+                )}
+                {/* 2026-08-17 신규 — 좌(계산 2줄)/우(근거 표) 아래, 카드 폭 전체를 쓰는 일반 공식 캡션 한 줄.
+                    위 계산 2줄이 "이 매물에 실제로 대입한 값"이라면, 이 줄은 그 값들이 어떤 산식으로 조합되는지
+                    보여주는 일반형 — 우측 표(연면적/기준단가/기준 산정 방식/노후도 보정계수) 자체는 그대로. */}
+                {costDetail != null && (
+                    <p className="right-panel-field-note report-basis-caption">공사비 = 연면적 × 기준단가 × 노후도 보정계수</p>
                 )}
             </section>
 

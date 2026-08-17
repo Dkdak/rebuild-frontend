@@ -967,23 +967,8 @@
     border-bottom: none;
 }
 
-/* 2026-08-10 — "사업성 요약" 카드가 옆 카드(현금흐름/손익분기)보다 짧아 grid stretch로 세로로 늘어나면,
-   각주 목록이 표 바로 밑에 붙어 카드 하단에 빈 공간이 남는다 — 카드를 세로 flex로, dl을 flex:1로 늘려
-   각주 목록을 margin-top:auto로 카드 맨 밑까지 붙인다(report-cost-note에 썼던 것과 같은 기법). 2026-08-17
-   — 각주가 파란 박스(구 report-card-footnotes)에서 01/05와 같은 "·" 목록(report-result-notes)으로
-   바뀌면서 셀렉터만 교체, 밀어내기 기법 자체는 그대로. */
-.report-profit-summary-card {
-    display: flex;
-    flex-direction: column;
-}
-
-.report-profit-summary-card .right-panel-fact-list {
-    flex: 1;
-}
-
-.report-profit-summary-card .report-result-notes {
-    margin-top: auto;
-}
+/* 2026-08-17 — "사업성 요약" 카드 자체가 폐기(report-investment-band 풀폭으로 대체)돼 이 카드 전용
+   세로-flex-밀어내기 기법(구 report-profit-summary-card)이 필요 없어졌다. */
 
 /* 2026-08-1x 사용자 피드백("이거 글자 보여? 난 잘 안보이는데") — color:var(--text)에 opacity:0.7까지 겹쳐서
    라이트 모드 대비비가 약 3:1까지 떨어져 WCAG AA(본문 12px 기준 4.5:1) 미달이었다. opacity를 빼서 var(--text)
@@ -1151,12 +1136,21 @@
     left: 100%;
     margin-left: 4px;
     display: inline-block;
-    padding: 1px 6px;
+    /* 2026-08-17 재정정(사용자 스크린샷 지적 — "시장 가격 수준" 카드의 report-tone-badge 높이로 다른 모든
+       스티커를 맞춰달라, ReportPage.css report-chip과 같은 이유) — line-height를 명시하지 않아 주변 문단의
+       line-height를 그대로 상속해 report-tone-badge(20.4px)보다 크게 렌더링되고 있었다. padding 3px 6px +
+       line-height 1.2(12px 폰트 기준 14.4px) → 높이 20.4px로 report-tone-badge와 일치(가로 폭은 그대로 6px
+       유지, "높이"만 맞추는 지적이라 모양(999px pill)은 이미 report-tone-badge와 같아 그대로 둔다). */
+    padding: 3px 6px;
     border-radius: 999px;
     background: var(--accent-bg);
     color: var(--accent);
-    font-size: 10px;
+    /* 2026-08-17 — A/B/C/D 등급(문자 1개)이 라벨(최대 "매우 낮음"/"산출 불가" 4~5자)로 바뀌며 텍스트가
+       길어졌다 — 12px 최소 가독성 정책을 배지만 빠뜨리고 있었던 것도 같이 정정(10→12px, 이 소비처 전부
+       공유: F-04/F-05 신뢰도 배지·AIOpinionPage/RemodelingAnalysisPage/FutureValuePage의 "추정치" 라벨). */
+    font-size: 12px;
     font-weight: 700;
+    line-height: 1.2;
     white-space: nowrap;
 }
 
@@ -1164,7 +1158,10 @@
    담게 됐다 — 항상 같은 파란색 대신 analysisApi.ts priceConfidenceTone(A/B=success, C/D=warning)에 맞춰 톤을
    바꾼다. 다크모드 값은 --accent/--accent-bg 다크 오버라이드와 같은 패턴(밝은 텍스트 + 같은 색상의 옅은 투명
    배경) — 이 프로젝트에서 이미 success/warning에 쓰던 색(report-sensitivity-positive/partial-trade-warning
-   dark값 #4ade80/#fbbf24)을 그대로 재사용, 새 색상값 발명 안 함(DOMAIN.md §4). */
+   dark값 #4ade80/#fbbf24)을 그대로 재사용, 새 색상값 발명 안 함(DOMAIN.md §4).
+   2026-08-17 — A/B/C/D 등급 체계 전면 폐지, marketApi.ts PRICE_DISPLAY_TONE(실거래·높음=success/중간=warning/
+   낮음·매우낮음·산출불가=neutral) 라벨 체계로 교체 — neutral 톤 신규 추가(다크값은 report-tone-badge-
+   light-neutral과 같은 이유로 var(--border) 재사용, 이미 다크 오버라이드를 자체적으로 갖고 있어 별도 불필요). */
 .right-panel-estimate-tag-success {
     background: #e6f4ea;
     color: #1e7e34;
@@ -1173,6 +1170,11 @@
 .right-panel-estimate-tag-warning {
     background: #fdf0e0;
     color: #a05a00;
+}
+
+.right-panel-estimate-tag-neutral {
+    background: var(--border);
+    color: var(--text-muted);
 }
 
 @media (prefers-color-scheme: dark) {
