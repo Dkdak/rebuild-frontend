@@ -11,6 +11,7 @@ import { ESTIMATED_AREA_TYPES, formatCurrency } from "../../search/api/searchApi
 import type { PropertyAnalysis } from "../../investment/api/analysisApi";
 import { formatCostSourceShort } from "../../cost/api/costApi";
 import GaugeBar from "../../../shared/components/common/GaugeBar";
+import CardSubHeading from "../../../shared/components/CardSubHeading";
 
 interface RemodelingAnalysisPageProps {
     analysis: PropertyAnalysis | null;
@@ -72,7 +73,7 @@ const RemodelingAnalysisPage = ({ analysis, loading, buildYear, propertyType, ho
                 않고 더 구체적인 라벨을 쓴다. */}
             <div className="report-verdict-row">
                 <section className="right-panel-card report-verdict-card">
-                    <h5 className="right-panel-card-title">리모델링 추진 요건 판정</h5>
+                    <CardSubHeading number={1} title="리모델링 추진 요건 판정" />
                     {/* 2026-08-10 추가 — 제목 아래 판정 기준 캡션(F-06 문구 확정분). */}
                     <p className="right-panel-field-note">노후연한과 진행 중 개발행위 두 가지를 기준으로 판정합니다.</p>
                     {/* 2026-08-17 재구성(§확정분) — 판정 카드는 헤드라인+짧은 부연 한 줄만 남긴다. 기존
@@ -102,7 +103,7 @@ const RemodelingAnalysisPage = ({ analysis, loading, buildYear, propertyType, ho
                     </div>
                 </section>
                 <section className="right-panel-card report-verdict-summary-card">
-                    <h5 className="right-panel-card-title">판정 사유 요약</h5>
+                    <CardSubHeading number={2} title="판정 사유 요약" />
                     <dl className="right-panel-fact-list">
                         <div>
                             <dt>노후도</dt>
@@ -142,14 +143,13 @@ const RemodelingAnalysisPage = ({ analysis, loading, buildYear, propertyType, ho
             {/* 2. 판단 근거 — 게이지 2개(상대적으로 작은 카드) + 세부 근거 표, report-grid-3(기본정보와 같은 클래스 재사용).
                 2026-08-10 — 예상 공사비보다 위로 순서 변경(판정 → 판단 근거 → 공사비). */}
             <p className="report-subsection-title">판단 근거</p>
-            {/* 2026-08-10 추가 — 소제목 아래 캡션: 판정에 실제로 반영된 값 vs 참고용 지표를 구분(F-06 문구 확정분). */}
-            <p className="right-panel-field-note">
-                노후도 달성률은 위 판정에 직접 반영된 값입니다. 용적률·증축 여력·용도지역·지구/구역 지정은 판정에
-                반영되지 않은 사업 검토용 참고 지표입니다.
-            </p>
+            {/* 2026-08-10 추가 — 소제목 아래 캡션: 판정에 실제로 반영된 값 vs 참고용 지표를 구분(F-06 문구 확정분).
+                2026-08-18 product 전달 — 2문장 버전을 한 문장 압축본으로 최종 교체(뜻은 동일: 노후도만 판정에
+                반영, 나머지 용적률·증축여력·용도지역·지구/구역 지정은 참고용). */}
+            <p className="right-panel-field-note">노후도는 판정에 반영되는 값이고, 나머지는 참고 지표입니다.</p>
             <div className="report-grid-3">
                 <section className="right-panel-card">
-                    <h5 className="right-panel-card-title">노후도 달성률</h5>
+                    <CardSubHeading number={3} title="노후도 달성률" />
                     {/* 2026-08-10 목업 반영 — "달성률 97% · 용도지역 기준 필요연수 충족/미달" 한 줄 텍스트는 폐기.
                         "OO지역 기준 필요연수 미달"이라는 문구는 API 필드가 아니라 프론트가 임의로 붙인
                         설명이었다는 지적 확인 — checklist.aging.text(실제 계산값, "노후·불량 기준까지 N년
@@ -171,7 +171,7 @@ const RemodelingAnalysisPage = ({ analysis, loading, buildYear, propertyType, ho
                 </section>
 
                 <section className="right-panel-card">
-                    <h5 className="right-panel-card-title">용적률 활용도</h5>
+                    <CardSubHeading number={4} title="용적률 활용도" />
                     {/* "법정상한 기준(완화 전)"도 위와 같은 이유로 제거 — additionalBuildableAreaSqm은 실측값 그대로,
                         "이론상 여유면적... 추가 검토 필요"는 목업 원문 그대로(창작 아님, 확정 지시분). */}
                     {/* 2026-08-12 표기 정정 — toFixed(2)/comma 없는 raw 숫자 전부 정리(analysisApi.ts·
@@ -202,7 +202,7 @@ const RemodelingAnalysisPage = ({ analysis, loading, buildYear, propertyType, ho
                 </section>
 
                 <section className="right-panel-card">
-                    <h5 className="right-panel-card-title">세부 근거</h5>
+                    <CardSubHeading number={5} title="세부 근거" />
                     <dl className="right-panel-fact-list">
                         <div>
                             <dt>용도지역</dt>
@@ -251,10 +251,13 @@ const RemodelingAnalysisPage = ({ analysis, loading, buildYear, propertyType, ho
                     <span className="right-panel-estimate-anchor">
                         {/* 2026-08-17 표기 정정 — docs/CONTENT_TAXONOMY.md §2 "A. 값 보조"(2~8자) 예산 초과였다
                             ("추정치 — 실측 견적 아님" 11자). "추정치"만으로도 실측 견적이 아니라는 뜻은 이미
-                            전달되고, 상세 한계는 아래 "결과" 카드 문단에서 다룬다(중복 아님, layout.css의
+                            전달되고, 상세 한계는 아래 "종합 결과" 카드 문단에서 다룬다(중복 아님, layout.css의
                             right-panel-estimate-tag 주석이 이미 "추정치"(2자) 짧은 형태를 소비처 예시로 들고
-                            있었음). */}
-                        예상 공사비<span className="right-panel-estimate-tag">추정치</span>
+                            있었음). 2026-08-18 product 전달 — 번호 부여 대상이지만 right-panel-estimate-anchor가
+                            제목+배지를 통째로 감싸는 구조라 CardSubHeading(number+title+children)으로 못 담아,
+                            이 카드만 기존 마크업 그대로 두고 "6. "만 텍스트로 추가(다른 5개 카드와 형식은
+                            다르지만 결과는 동일 — 번호 매겨진 소제목). */}
+                        6. 예상 공사비<span className="right-panel-estimate-tag">추정치</span>
                     </span>
                 </h5>
                 {costDetail == null ? (
@@ -338,7 +341,9 @@ const RemodelingAnalysisPage = ({ analysis, loading, buildYear, propertyType, ho
                 제한)로 옮겨가고, 5번째(면책)는 그만큼 간결해짐 — 내용 삭제가 아니라 재배치. 1문단·카드
                 위치·구조는 변경 없음. */}
             <section className="right-panel-card">
-                <h5 className="right-panel-card-title">결과</h5>
+                {/* 2026-08-18 product 전달(docs/FEATURE.md §8.24) — "결과"→"종합 결과"로 개명(모호해서 구체화),
+                    CardSubHeading으로 번호 부여. */}
+                <CardSubHeading number={7} title="종합 결과" />
                 {/* 판정 결과 자체는 아래 부가 정보 목록(옅은 회색)과 위계가 달라야 하는데 right-panel-field-note
                     (12px 회색)를 그대로 써서 구분이 안 됐다 — 진한 본문색(text-primary급)·13px 전용 클래스로. */}
                 <p className="report-result-headline">{VERDICT_REASON_PARAGRAPH[remodeling.verdict]}</p>

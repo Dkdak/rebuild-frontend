@@ -5,6 +5,7 @@ import CashFlowFormula from "../../cost/components/CashFlowFormula";
 import SensitivityMatrix from "../../investment/components/SensitivityMatrix";
 import BreakEvenTable from "../../investment/components/BreakEvenTable";
 import ComparableTradesCard from "../../investment/components/ComparableTradesCard";
+import CardSubHeading from "../../../shared/components/CardSubHeading";
 
 interface BusinessAnalysisPageProps {
     analysis: PropertyAnalysis | null;
@@ -26,7 +27,7 @@ interface BusinessAnalysisPageProps {
 //   3~6. 2×2 그리드(report-grid-2-even 두 줄) — 투자금 흐름(SVG 워터폴)/손익분기 및 목표 수익률(강조 박스+
 //      표+현재 미래가치 강조줄)/미래가치 산정 근거(3열 표+강조 배지)/민감도 분석(3×3, 열 3색+중앙 강조).
 //   7. 계산 조건 및 제외 항목(신규, 풀폭 3열) — 확정본 문구 그대로.
-// 06 전체 공통 신뢰도 표기 규칙: confidenceLevel 원본 라벨(CONFIDENCE_LABEL_SHORT — 높음/중간/낮음/매우 낮음)
+// 06 전체 공통 신뢰도 표기 규칙: confidenceLevel 원본 라벨(CONFIDENCE_LABEL_SHORT — 높음/중간/낮음/매우낮음)
 // 만 사용, A/B/C/D 등급 금지 — 2026-08-17(신뢰도 체계 정리 §확정분)에 01/F-04/F-05까지 전부 이 라벨 체계로
 // 통일되며 A/B/C/D(구 analysisApi.ts PriceConfidenceGrade) 자체가 전면 폐지됐다(더 이상 "01만 예외"가 아님).
 // 신뢰도 칩 톤은 CONFIDENCE_PILL_TONE(marketApi.ts, 04가 쓰는 CONFIDENCE_TONE과는 별도 매핑이지만 2026-08-17
@@ -124,7 +125,7 @@ const BusinessAnalysisPage = ({ analysis, loading, householdCount, propertyType,
                 <p className="right-panel-field-note">산출 불가</p>
             ) : (
                 <section className="right-panel-card">
-                    <h5 className="right-panel-card-title">투자 결과 한눈에 보기</h5>
+                    <CardSubHeading number={1} title="투자 결과 한눈에 보기" />
                     <div className="report-investment-band">
                         <div className="report-investment-band-cell">
                             <p className="report-stat-label">예상 매입가</p>
@@ -192,7 +193,7 @@ const BusinessAnalysisPage = ({ analysis, loading, householdCount, propertyType,
             <div className="report-grid-2-even">
                 {/* 3. 투자금 흐름(← 현금흐름) — SVG 워터폴(CashFlowFormula.tsx). */}
                 <section className="right-panel-card">
-                    <h5 className="right-panel-card-title">투자금 흐름</h5>
+                    <CardSubHeading number={2} title="투자금 흐름" />
                     {profitAnalysis == null || remodelCostBase == null || cost.minCost == null || cost.maxCost == null ? (
                         <p className="right-panel-field-note">산출 불가</p>
                     ) : (
@@ -213,7 +214,7 @@ const BusinessAnalysisPage = ({ analysis, loading, householdCount, propertyType,
 
                 {/* 4. 손익분기 및 목표 수익률 — 기존 표 유지 + "현재 추정 미래가치" 강조줄(BreakEvenTable.tsx). */}
                 <section className="right-panel-card">
-                    <h5 className="right-panel-card-title">손익분기 및 목표 수익률</h5>
+                    <CardSubHeading number={3} title="손익분기 및 목표 수익률" />
                     {profitAnalysis == null ? (
                         <p className="right-panel-field-note">산출 불가</p>
                     ) : (
@@ -230,7 +231,7 @@ const BusinessAnalysisPage = ({ analysis, loading, householdCount, propertyType,
             <div className="report-grid-2-even">
                 {/* 5. 미래가치 산정 근거(← 비교 거래) — 5건 표(법정동/거래가/면적) + 하단 강조 배지(ComparableTradesCard.tsx). */}
                 <section className="right-panel-card">
-                    <h5 className="right-panel-card-title">미래가치 산정 근거</h5>
+                    <CardSubHeading number={4} title="미래가치 산정 근거" />
                     {postRemodel == null || profitAnalysis == null ? (
                         <p className="right-panel-field-note">산출 불가</p>
                     ) : (
@@ -247,7 +248,7 @@ const BusinessAnalysisPage = ({ analysis, loading, householdCount, propertyType,
 
                 {/* 6. 민감도 분석(ROI 변화) — 공사비×매도가 3×3, 가운데 셀만 강조(SensitivityMatrix.tsx). */}
                 <section className="right-panel-card">
-                    <h5 className="right-panel-card-title">민감도 분석(ROI 변화)</h5>
+                    <CardSubHeading number={5} title="민감도 분석(ROI 변화)" />
                     {sensitivity == null ? (
                         <p className="right-panel-field-note">산출 불가</p>
                     ) : (
@@ -263,7 +264,7 @@ const BusinessAnalysisPage = ({ analysis, loading, householdCount, propertyType,
 
             {/* 7. 계산 조건 및 제외 항목(신규, 풀폭 3열) — 확정본 문구 그대로. */}
             <section className="right-panel-card">
-                <h5 className="right-panel-card-title">계산 조건 및 제외 항목</h5>
+                <CardSubHeading number={6} title="계산 조건 및 제외 항목" />
                 <div className="report-calc-conditions">
                     <div>
                         <p className="report-calc-conditions-title">계산 조건</p>
