@@ -26,16 +26,20 @@ import LocationPage from "./LocationPage";
 import MarketAnalysisPage from "../../market/components/MarketAnalysisPage";
 import RemodelingAnalysisPage from "./RemodelingAnalysisPage";
 import BusinessAnalysisPage from "./BusinessAnalysisPage";
-import FutureValuePage from "./FutureValuePage";
 import AIOpinionPage from "./AIOpinionPage";
 import ReferencePage from "./ReferencePage";
+import SectionHeading from "../../../shared/components/SectionHeading";
+import CardSubHeading from "../../../shared/components/CardSubHeading";
 import "./ReportPage.css";
 
 // FEATURE_10_AI_REPORT.md §2.1(2026-08-1x 카테고리 재편, planning/rebuild/레포트.png 재대조): F-05 RightPanel과
-// 같은 원칙 — 9개 섹션을 한 페이지에 전부 스크롤로 쌓고, 좌측 네비는 탭 전환이 아니라 그 섹션으로 스크롤
-// 이동하는 앵커다. 번호는 각 섹션 본문의 report-section-heading-number(01~09)와 동일한 값.
+// 같은 원칙 — 8개 섹션을 한 페이지에 전부 스크롤로 쌓고, 좌측 네비는 탭 전환이 아니라 그 섹션으로 스크롤
+// 이동하는 앵커다. 번호는 각 섹션 본문의 report-section-heading-number(01~08)와 동일한 값.
 // 구 "종합 평가"(데이터 완성도)는 레퍼런스에 대응 개념이 없어 폐지, 구 "리스크 분석"은 요약 섹션 주의사항으로,
 // 구 "유사 사례"는 시장 분석의 비교 거래 표로 흡수 — 10개→9개.
+// 2026-08-18 — 구 "07 미래 가치 예측"(FutureValuePage.tsx) 삭제, 9개→8개로 재편(FEATURE_10_OPINION.md/
+// FEATURE_10_REFERENCE.md 전면 재설계 착수와 함께). "참고 자료"→"근거 및 참고자료" 명칭 변경(레퍼런스 명칭
+// 채택 — 법규·인허가 "준비 중" 카드에서 04/05/06 산정식·데이터출처를 모으는 방법론 섹션으로 재정의됨).
 const NAV_ITEMS: { label: string; number: string; sectionId: string }[] = [
     { label: "요약 정보", number: "01", sectionId: "report-section-summary" },
     { label: "기본 정보", number: "02", sectionId: "report-section-basic-info" },
@@ -43,9 +47,8 @@ const NAV_ITEMS: { label: string; number: string; sectionId: string }[] = [
     { label: "시장 분석", number: "04", sectionId: "report-section-market" },
     { label: "리모델링 분석", number: "05", sectionId: "report-section-remodeling" },
     { label: "사업성 분석", number: "06", sectionId: "report-section-viability" },
-    { label: "미래 가치 예측", number: "07", sectionId: "report-section-future-value" },
-    { label: "투자 종합 의견", number: "08", sectionId: "report-section-ai-opinion" },
-    { label: "참고 자료", number: "09", sectionId: "report-section-reference" },
+    { label: "투자 종합 의견", number: "07", sectionId: "report-section-ai-opinion" },
+    { label: "근거 및 참고자료", number: "08", sectionId: "report-section-reference" },
 ];
 
 const scrollToSection = (sectionId: string) => {
@@ -101,7 +104,8 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
     const postRemodelConfidenceLevel = analysis?.market.postRemodelEstimatedPrice?.confidenceLevel ?? null;
     const priceConfidenceLabel = postRemodelConfidenceLevel != null ? resolvePriceDisplayLabel(postRemodelConfidenceLevel, false) : null;
     const recommendation = analysis?.grade != null ? getRecommendation(analysis.grade, postRemodelConfidenceLevel) : "-";
-    const isLowConfidence = priceConfidenceLabel === "매우 낮음";
+    // 2026-08-18 — product 전달, "매우 낮음"(공백)→"매우낮음"(무공백) 최종 확정(marketApi.ts ConfidenceLabel과 동일).
+    const isLowConfidence = priceConfidenceLabel === "매우낮음";
     // "리모델링 후 추정" 헤더 배지 노출 여부만 별도 — priceConfidenceLabel 자체(isLowConfidence/recommendation이
     // 쓰는 값)는 그대로 두고, UNAVAILABLE이면 배지만 숨긴다(hasPriceConfidenceBadge, 신뢰도 스티커 통일 §확정분).
     const postRemodelHasBadge = postRemodelConfidenceLevel != null && hasPriceConfidenceBadge(postRemodelConfidenceLevel, false);
@@ -240,10 +244,7 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
 
                             {/* 1. 요약 섹션 — 등급/예상차익/미래가치/ROI/추천여부 통계 5칸(레퍼런스 상단 밴드 참고) */}
                             <div id="report-section-summary">
-                                <div className="report-section-heading">
-                                    <span className="report-section-heading-number">01</span>
-                                    <h4 className="report-section-heading-title">요약 정보</h4>
-                                </div>
+                                <SectionHeading number="01" title="요약 정보" />
                                 {/* 2026-08-17 — 밴드(report-summary-band, head/band/foot 3단) 구현 폐기, 카드 2개로
                                     최종 확정(§확정분). "평가"(투자등급→검토 우선순위→현재가) / "리모델링 후 추정"
                                     (미래가치→예상차익→ROI, report-card-emphasis로 accent 강조) 각각 독립 right-panel-
@@ -254,7 +255,9 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                     같은 줄에서 시작한다. */}
                                 <div className="report-summary-cards">
                                     <section className="right-panel-card">
-                                        <p className="card-title">평가</p>
+                                        {/* 2026-08-18 product 전달(docs/FEATURE.md §8.24) — "평가"→"현재 평가"로 개명(모호해서
+                                            구체화), CardSubHeading으로 번호 부여. */}
+                                        <CardSubHeading number={1} title="현재 평가" />
                                         <div className="grid-3">
                                             <div>
                                                 {/* report-stat-value가 이미 자체 font-size/weight(18~20px/800)를 쓰고
@@ -307,23 +310,24 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                     </section>
 
                                     <section className="right-panel-card report-card-emphasis">
-                                        <p className="card-title">
-                                            리모델링 후 추정
-                                            {/* postRemodel은 미래 추정값이라 "실거래" 라벨이 나올 일이 없다(위 §확정분).
-                                                2026-08-17 재정정(신뢰도 스티커 통일) — 톤 무관 고정 accent(구 tag-note)
-                                                였던 걸 04/06과 같은 톤 기반 칩(report-chip-{tone})으로 교체하고,
-                                                postRemodelConfidenceLevel이 UNAVAILABLE이면(hasPriceConfidenceBadge)
-                                                배지 자체를 숨긴다 — priceConfidenceLabel은 isLowConfidence 계산에도
-                                                쓰여 그대로 두고, 배지 노출 여부만 별도로 판단(postRemodelHasBadge). */}
-                                            {/* 2026-08-17 재정정 — "시세 신뢰도 {라벨}"에서 "시세" 삭제. 카드
-                                                제목이 이미 "리모델링 후 추정"이라 이 배지가 그 시세에 대한
-                                                신뢰도라는 건 문맥상 분명함(중복). */}
+                                        {/* postRemodel은 미래 추정값이라 "실거래" 라벨이 나올 일이 없다(위 §확정분).
+                                            2026-08-17 재정정(신뢰도 스티커 통일) — 톤 무관 고정 accent(구 tag-note)
+                                            였던 걸 04/06과 같은 톤 기반 칩(report-chip-{tone})으로 교체하고,
+                                            postRemodelConfidenceLevel이 UNAVAILABLE이면(hasPriceConfidenceBadge)
+                                            배지 자체를 숨긴다 — priceConfidenceLabel은 isLowConfidence 계산에도
+                                            쓰여 그대로 두고, 배지 노출 여부만 별도로 판단(postRemodelHasBadge).
+                                            2026-08-17 재정정 — "시세 신뢰도 {라벨}"에서 "시세" 삭제. 카드
+                                            제목이 이미 "리모델링 후 추정"이라 이 배지가 그 시세에 대한
+                                            신뢰도라는 건 문맥상 분명함(중복).
+                                            2026-08-18 product 전달 — CardSubHeading으로 번호 부여(children으로
+                                            배지 그대로 전달, 마크업·판정 로직 변경 없음). */}
+                                        <CardSubHeading number={2} title="리모델링 후 추정">
                                             {postRemodelHasBadge && priceConfidenceLabel != null && (
                                                 <span className={`report-chip report-chip-${PRICE_DISPLAY_TONE[priceConfidenceLabel]}`}>
                                                     신뢰도 {priceConfidenceLabel}
                                                 </span>
                                             )}
-                                        </p>
+                                        </CardSubHeading>
                                         <div className="grid-3">
                                             <div>
                                                 <p className="report-stat-label">미래가치</p>
@@ -383,7 +387,10 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                 ) : (
                                     <div className="report-summary-grid">
                                         <div className="report-summary-col">
-                                            <p className="right-panel-ai-summary-label">유리한 조건</p>
+                                            {/* 2026-08-18 product 전달(§8.24) — 번호 부여. 카드가 아니라 요약 그리드
+                                                안 열 라벨(right-panel-ai-summary-label)이라 CardSubHeading 대신
+                                                번호만 텍스트로 앞에 붙인다(스타일 그대로 유지). */}
+                                            <p className="right-panel-ai-summary-label">3. 유리한 조건</p>
                                             <ul className="right-panel-checklist">
                                                 {strengths.length > 0 ? (
                                                     strengths.map((item, index) => (
@@ -407,7 +414,7 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                             </p>
                                         </div>
                                         <div className="report-summary-col">
-                                            <p className="right-panel-ai-summary-label">확인이 필요한 사항</p>
+                                            <p className="right-panel-ai-summary-label">4. 확인이 필요한 사항</p>
                                             <ul className="right-panel-checklist">
                                                 {cautions.length > 0 ? (
                                                     cautions.map((item, index) => (
@@ -425,7 +432,7 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                             추가(2026-08-17 재확정). 헤더 캡션과 값·포매터가 같아 중복이라는 사실
                                             자체는 맞지만, 이 카드 단독으로도 확인 가능해야 한다는 우선순위로 결론. */}
                                         <div className="report-summary-col">
-                                            <p className="right-panel-ai-summary-label">리포트 정보</p>
+                                            <p className="right-panel-ai-summary-label">5. 리포트 정보</p>
                                             <dl className="right-panel-fact-list">
                                                 <div>
                                                     <dt>분석일자</dt>
@@ -452,10 +459,7 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
 
                             {/* 2. 기본 정보 */}
                             <div id="report-section-basic-info" className="report-section">
-                                <div className="report-section-heading">
-                                    <span className="report-section-heading-number">02</span>
-                                    <h4 className="report-section-heading-title">기본 정보</h4>
-                                </div>
+                                <SectionHeading number="02" title="기본 정보" />
                                 <BasicInfoPage
                                     buildingId={selected.id}
                                     zoneName={analysis?.remodeling.basis.zoneName ?? null}
@@ -466,19 +470,13 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
 
                             {/* 3. 입지 분석 */}
                             <div id="report-section-location" className="report-section">
-                                <div className="report-section-heading">
-                                    <span className="report-section-heading-number">03</span>
-                                    <h4 className="report-section-heading-title">입지 분석</h4>
-                                </div>
+                                <SectionHeading number="03" title="입지 분석" />
                                 <LocationPage />
                             </div>
 
                             {/* 4. 시장 분석 — 구 "유사 사례"의 비교 거래 표 흡수(2026-08-1x) */}
                             <div id="report-section-market" className="report-section">
-                                <div className="report-section-heading">
-                                    <span className="report-section-heading-number">04</span>
-                                    <h4 className="report-section-heading-title">시장 분석</h4>
-                                </div>
+                                <SectionHeading number="04" title="시장 분석" />
                                 <MarketAnalysisPage analysis={analysis} loading={analysisLoading} area={selected.area} />
                             </div>
 
@@ -486,10 +484,7 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                 2026-08-10 재개명: 파일명이 화면명과 안 맞아 BusinessAnalysisPage.tsx → RemodelingAnalysisPage.tsx로
                                 정정(guide/DIRECTORY_RESTRUCTURE.md §1.4). */}
                             <div id="report-section-remodeling" className="report-section">
-                                <div className="report-section-heading">
-                                    <span className="report-section-heading-number">05</span>
-                                    <h4 className="report-section-heading-title">리모델링 분석</h4>
-                                </div>
+                                <SectionHeading number="05" title="리모델링 분석" />
                                 <RemodelingAnalysisPage
                                     analysis={analysis}
                                     loading={analysisLoading}
@@ -503,10 +498,7 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                 2026-08-10 재개명: ProfitAnalysisPage.tsx → BusinessAnalysisPage.tsx(위 05가 그 이름을 내주고
                                 떠나 재사용 가능해짐, guide/DIRECTORY_RESTRUCTURE.md §1.4). */}
                             <div id="report-section-viability" className="report-section">
-                                <div className="report-section-heading">
-                                    <span className="report-section-heading-number">06</span>
-                                    <h4 className="report-section-heading-title">사업성 분석</h4>
-                                </div>
+                                <SectionHeading number="06" title="사업성 분석" />
                                 <BusinessAnalysisPage
                                     analysis={analysis}
                                     loading={analysisLoading}
@@ -516,34 +508,28 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                 />
                             </div>
 
-                            {/* 7~9. 미래 가치 예측 / 투자 종합 의견 / 참고 자료 — 각 섹션 내용이 짧아 세로로 쌓으면
-                                빈 공간이 많이 남는다(사용자 피드백, planning/rebuild/레포트.png 레퍼런스처럼 3열
-                                가로 배치로 정정, 2026-08-1x). 앵커 스크롤 대상 id는 각자 그대로 유지 — 좌측 네비
-                                클릭 시 이 3개 중 하나로만 스크롤돼도 report-section-row 전체가 눈에 들어온다. */}
-                            <div className="report-section-row">
-                                <div id="report-section-future-value" className="report-section">
-                                    <div className="report-section-heading">
-                                        <span className="report-section-heading-number">07</span>
-                                        <h4 className="report-section-heading-title">미래 가치 예측</h4>
-                                    </div>
-                                    <FutureValuePage analysis={analysis} loading={analysisLoading} />
-                                </div>
+                            {/* 7. 투자 종합 의견 — 2026-08-18 재정정: 07/08을 report-section-row(가로 2열)로 나란히
+                                배치했던 걸 되돌린다(사용자 지적 — 08은 07 "아래"에 와야지 옆이 아니다). 나머지
+                                01~06과 같은 세로 스택 방식으로 복귀, 섹션 내부 카드 배치(종합판단 1줄+확인사항·
+                                종합의견 1줄)는 AIOpinionPage.tsx 안에서 자체 grid로 처리. */}
+                            <div id="report-section-ai-opinion" className="report-section">
+                                <SectionHeading number="07" title="투자 종합 의견" />
+                                <AIOpinionPage
+                                    analysis={analysis}
+                                    loading={analysisLoading}
+                                    recommendation={recommendation}
+                                    priceConfidenceLabel={priceConfidenceLabel}
+                                    hasStrengths={strengths.length > 0}
+                                    riskChecklist={riskChecklist}
+                                />
+                            </div>
 
-                                <div id="report-section-ai-opinion" className="report-section">
-                                    <div className="report-section-heading">
-                                        <span className="report-section-heading-number">08</span>
-                                        <h4 className="report-section-heading-title">투자 종합 의견</h4>
-                                    </div>
-                                    <AIOpinionPage />
-                                </div>
-
-                                <div id="report-section-reference" className="report-section">
-                                    <div className="report-section-heading">
-                                        <span className="report-section-heading-number">09</span>
-                                        <h4 className="report-section-heading-title">참고 자료</h4>
-                                    </div>
-                                    <ReferencePage />
-                                </div>
+                            {/* 8. 근거 및 참고자료 — 07 바로 아래(가로 배치 아님, 위 주석 참고). 카드 6개는 내용
+                                크기에 맞춰 배치(표 있는 카드는 풀폭, 짧은 텍스트 카드 3개는 한 줄) — ReferencePage.tsx
+                                자체 grid로 처리. */}
+                            <div id="report-section-reference" className="report-section">
+                                <SectionHeading number="08" title="근거 및 참고자료" />
+                                <ReferencePage />
                             </div>
                         </>
                     )}

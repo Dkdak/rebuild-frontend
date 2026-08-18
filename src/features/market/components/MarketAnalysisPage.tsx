@@ -10,6 +10,7 @@ import {
 import { formatManwon } from "../../search/api/searchApi";
 import type { PropertyAnalysis } from "../../investment/api/analysisApi";
 import PriceTrendChart from "./PriceTrendChart";
+import CardSubHeading from "../../../shared/components/CardSubHeading";
 
 interface MarketAnalysisPageProps {
     analysis: PropertyAnalysis | null;
@@ -170,6 +171,7 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
 
     // 2026-08-10 — "시장 가격 수준" 카드(디자인 mockup 참고, 기존 "시세 심화"를 큰 숫자 비교 위주로 리디자인) —
     // 위 두 ㎡당가격을 그대로 재사용해 차이를 문장으로 표현. 둘 다 있고 분모(추정시세)가 0보다 클 때만 계산.
+    // 2026-08-18 — product 전달로 카드 제목만 "시세 심화"로 재개명(계산 로직·구성 요소는 변경 없음, 이름만 원복).
     const priceLevelDelta =
         recentTradePerSqm != null && estimatedPricePerSqm != null && estimatedPricePerSqm > 0
             ? ((recentTradePerSqm - estimatedPricePerSqm) / estimatedPricePerSqm) * 100
@@ -177,12 +179,12 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
 
     return (
         <>
-            {/* 1~3. 시장 가격 수준 / 시장 내 가격 위치 / 거래 활성도 — 한 줄 3열(report-grid-3, BasicInfoPage.tsx
+            {/* 1~3. 시세 심화 / 시장 내 가격 위치 / 거래 활성도 — 한 줄 3열(report-grid-3, BasicInfoPage.tsx
                 "02 기본정보"와 같은 클래스 재사용). 2026-08-10 tradeActivity/pricePosition 필드 배포로 세 카드가
                 한 행에 나란히 — 시세 추이(4)는 그 아래 별도 전체 폭 줄. */}
             <div className="report-grid-3">
                 <section className="right-panel-card">
-                    <h5 className="right-panel-card-title">시장 가격 수준</h5>
+                    <CardSubHeading number={1} title="시세 심화" />
                     <div className="report-price-level-grid">
                         <div className="report-price-level-item">
                             {/* 2026-08-10 — 단위를 라벨로 옮겼다가("최근 실거래(만원/㎡)") 어색하다는 지적으로
@@ -224,7 +226,7 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
                     {market.estimatedPrice.value != null && (
                         <p className="right-panel-field-note">추정가 {formatManwon(market.estimatedPrice.value)}</p>
                     )}
-                    {/* 2026-08-10 — "구분선 → 결론 줄" 구조로 세 카드(시장 가격 수준/시장 내 가격 위치/거래 활성도)
+                    {/* 2026-08-10 — "구분선 → 결론 줄" 구조로 세 카드(시세 심화/시장 내 가격 위치/거래 활성도)
                         통일. right-panel-market-cell-aux는 F-05 좁은 사이드바 dd 정렬 기준으로 text-align:right가
                         붙어 있어(layout.css) 이 카드처럼 넓은 report-grid-2 칼럼에서 결론 줄이 오른쪽으로 붕 떠
                         보였다 — right-panel-field-note(왼쪽 정렬)로 교체. */}
@@ -267,7 +269,7 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
                     thisPropertyPercentile(0~100)을 트랙 left%로 직접 사용 — p25/p75도 정의상 각각 25/75
                     percentile이라 눈금 자리(25%/50%/75%)와 값이 서로 어긋나지 않는다. */}
                 <section className="right-panel-card">
-                    <h5 className="right-panel-card-title">시장 내 가격 위치</h5>
+                    <CardSubHeading number={2} title="시장 내 가격 위치" />
                     {/* 2026-08-17 정정(docs/CONTENT_TAXONOMY.md 금지규칙 5 "계산되지 않은 값에 결론을 붙이지
                         않는다") — thisPropertyPercentile===50을 "이례적 값"으로 취급해 게이지+결론을 그대로
                         그리고 그 아래에 뒤늦게 "사실 중앙값 대체였다"고 해명하던 것이 바로 이 금지 규칙이 지목한
@@ -311,7 +313,7 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
                     안 내려주는 프론트 V1 판정(getLiquidity, marketApi.ts) — 최근 1년 건수만 기준, 3/5년은
                     참고용 raw 숫자. 0건도 유효한 값이라 null(모집단 자체 없음)과 명확히 구분해서 처리. */}
                 <section className="right-panel-card">
-                    <h5 className="right-panel-card-title">거래 활성도</h5>
+                    <CardSubHeading number={3} title="거래 활성도" />
                     {market.tradeActivity == null ? (
                         <p className="right-panel-field-note">산출 불가</p>
                     ) : (
@@ -339,11 +341,19 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
                 </section>
             </div>
 
-            {/* 4. 시세 추이 — priceTrend(2026-08-1x 신규 필드) */}
+            {/* 4. 시세 추이 — priceTrend(2026-08-1x 신규 필드). 2026-08-18 product 전달 — 빈 상태 문구를 고정
+                "산출 불가"에서 estimatedPrice.confidenceLevel 기준 2단계로 세분화(원인이 다르면 안내도 다르게):
+                SAME_DONG/SAME_GU인데도 추이가 없으면 "거래 자체가 적어서"(비교 기준은 좁고 정확한데 표본 부족),
+                WIDENED_RANGE 이하는 "비교 기준 자체가 넓어서"(추이를 보여줄 만큼 좁혀진 비교군이 아예 없음) —
+                둘 다 "산출 불가"보다 사용자가 왜 안 보이는지 알 수 있다. */}
             <section className="right-panel-card">
-                <h5 className="right-panel-card-title">시세 추이</h5>
+                <CardSubHeading number={4} title="시세 추이" />
                 {market.priceTrend == null || market.priceTrend.points.length === 0 ? (
-                    <p className="right-panel-field-note">산출 불가</p>
+                    <p className="right-panel-field-note">
+                        {market.estimatedPrice.confidenceLevel === "SAME_DONG" || market.estimatedPrice.confidenceLevel === "SAME_GU"
+                            ? "최근 거래가 적어 추세 산정 어려움"
+                            : "비교 가능한 거래가 적어 시세 추이 제공 안 함"}
+                    </p>
                 ) : (
                     <PriceTrendChart points={market.priceTrend.points} />
                 )}
@@ -358,13 +368,16 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
                 "두 표가 같은 거래로 나올 수 있습니다"(현상 설명뿐)에서 "이 값이 이어지는 예상차익·ROI 결과에
                 어떤 영향을 주는지"까지 명시하는 문장으로 교체. (b) 카드마다 반복하지 않고 두 표를 감싸는
                 report-grid-2 위에 한 번만(문서 "행마다 반복하지 않고 두 표를 감싸는 자리에 한 번만") —
-                estimatedPrice/postRemodelEstimatedPrice 둘 중 하나라도 해당 단계면 노출. */}
+                estimatedPrice/postRemodelEstimatedPrice 둘 중 하나라도 해당 단계면 노출.
+                2026-08-18 product 전달 — 문구 재교체("두 표가 같은 거래 데이터로 계산됩니다" 식으로 06을
+                구체적으로 지목, "예상차익·ROI 해석 시 유의" 행동 지침까지 명시). 조건 로직은 변경 없음. */}
             {(market.estimatedPrice.confidenceLevel === "DONG_TYPE_AVERAGE" ||
                 market.estimatedPrice.confidenceLevel === "GU_TYPE_AVERAGE" ||
                 market.postRemodelEstimatedPrice?.confidenceLevel === "DONG_TYPE_AVERAGE" ||
                 market.postRemodelEstimatedPrice?.confidenceLevel === "GU_TYPE_AVERAGE") && (
                 <p className="report-warning-note">
-                    이 단계는 면적을 반영하지 않아 현재 시세와 리모델링 후 시세의 차이가 실제와 다를 수 있습니다.
+                    이 단계는 면적을 반영하지 않아, 현재 시세와 06 "미래가치 산정 근거"가 같은 거래 데이터로
+                    계산됩니다 — 예상차익·ROI 해석 시 유의하세요.
                 </p>
             )}
             {/* 2026-08-17 삭제(§확정분, planning/rebuild/widgets/2026-08-17_market_04_fix_before_after.html
@@ -374,7 +387,7 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
                 바로 아래 "시세 산정 근거" 카드로 채운다(그리드 밖 풀폭 단독 카드였던 걸 이 자리로 이동). */}
             <div className="report-grid-2">
                 <section className="right-panel-card">
-                    <h5 className="right-panel-card-title">현재 추정 시세 근거</h5>
+                    <CardSubHeading number={5} title="현재 추정 시세 근거" />
                     <p className="right-panel-card-subtitle">추정 시세 계산에 사용된 비교 거래</p>
                     <TradeTable
                         trades={market.estimatedPrice.comparableTrades}
@@ -393,7 +406,7 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
                     MATCH_STAGE_TEXT로 문장화하고, 아래 배지 4개는 데이터에 안 묶인 순수 범례(단계 표). 개별 배지 옆
                     report-tone-badge-light-*는 그대로, 괄호 설명만 여기 한 곳으로 흡수. */}
                 <section className="right-panel-card">
-                    <h5 className="right-panel-card-title">시세 산정 근거</h5>
+                    <CardSubHeading number={6} title="시세 산정 근거" />
                     {/* 2026-08-17 — 첫 줄(이 매물의 실제 기준)을 아래 순수 범례(데이터 무관, 참고용 5단계 설명)와
                         시각적으로 구분되게 진하고 조금 크게(report-basis-headline) — 카드 안에서 "이 매물"에
                         해당하는 문장이 먼저 눈에 들어와야 한다는 지적. */}
@@ -403,7 +416,8 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
                     {/* 2026-08-17 재구성 — 배지 행 + 압축 문장 2줄이 같은 정보(단계별 기준)를 중복 설명하고 있어서
                         하나로 합친다: 배지 바로 옆에 그 배지의 정의를 붙여 한 줄씩(docs/CONTENT_TAXONOMY.md §2
                         "E. 범례" — "배지와 글자가 완전히 같아야 함" 원칙 그대로, 배지 텍스트는 CONFIDENCE_LABEL_SHORT와
-                        동일 문자열 "매우 낮음"(공백 포함) 유지).
+                        동일 문자열 유지 — 2026-08-18 product 전달로 "매우 낮음"(공백)→"매우낮음"(무공백) 최종 확정,
+                        marketApi.ts CONFIDENCE_LABEL_SHORT/ConfidenceLabel과 함께 이 배지도 같이 정정).
                         2026-08-17 재정정(신뢰도 스티커 통일, planning/rebuild/widgets/2026-08-17_report_full_confidence_context.html·
                         2026-08-17_confidence_unified_legend.html 확정본) — 이 범례가 "리포트 전체의 유일한 5단계
                         범례가 실제로 노출되는 곳"이라 맨 앞에 "실거래"(success 톤) 항목을 추가하고, 배지 모양을
@@ -428,7 +442,7 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
                             <span className="report-chip report-chip-neutral">낮음</span> 범위 확대(면적±20%·연식±10년)
                         </p>
                         <p>
-                            <span className="report-chip report-chip-neutral">매우 낮음</span> 법정동·구 유형 평균(면적·연식 무관)
+                            <span className="report-chip report-chip-neutral">매우낮음</span> 법정동·구 유형 평균(면적·연식 무관)
                         </p>
                     </div>
                 </section>

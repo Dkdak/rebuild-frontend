@@ -38,7 +38,7 @@ export interface PropertyAnalysis {
 export const formatUpdatedAt = (updatedAt: string): string => updatedAt.split("T")[0];
 
 // 2026-08-17 — A/B/C/D 등급 체계(PriceConfidenceGrade/priceConfidenceFromLevel/priceConfidenceTone) 전면
-// 폐지, marketApi.ts의 CONFIDENCE_LABEL_SHORT 라벨(높음/중간/낮음/매우 낮음/산출 불가, 04 "시세 산정 근거"가
+// 폐지, marketApi.ts의 CONFIDENCE_LABEL_SHORT 라벨(높음/중간/낮음/매우낮음/산출 불가, 04 "시세 산정 근거"가
 // 이미 쓰던 체계) 5단계로 리포트 전체 통일 — resolvePriceDisplayLabel/PRICE_DISPLAY_TONE(marketApi.ts)이 새
 // 단일 출처. 이 파일의 소비처(F-09 "검토 우선순위" 매트릭스)는 recentTrade 개념이 없는 postRemodel 기준이라
 // "실거래" 라벨은 나올 일이 없다 — ConfidenceLevel(6종, UNAVAILABLE 포함) 자체를 그대로 매트릭스 키로 쓴다.
@@ -110,6 +110,18 @@ const LABEL_MAP: Record<string, string> = {
 export const getRecommendation = (grade: InvestmentGrade, confidenceLevel: ConfidenceLevel | null): string =>
     LABEL_MAP[RECOMMENDATION_MATRIX[grade][confidenceLevel ?? "UNAVAILABLE"]];
 // 기존 RECOMMENDATION_LABEL(grade 단독 매핑)은 삭제 — 위 매트릭스로 완전히 대체.
+
+// 2026-08-18 신규(FEATURE_10_OPINION.md "07 투자 종합 의견" 종합 판단 카드) — getRecommendation 결과값을
+// report-chip 톤으로 매핑. marketApi.ts의 PRICE_DISPLAY_TONE(성공=success·중간=warning·낮음/매우낮음=neutral,
+// "neutral이 최하위" 규칙)과 같은 3톤 체계를 그대로 따른다 — 새 톤 추가 없음(이 앱 전체가 success/warning/
+// neutral 3톤만 씀). LABEL_MAP 출력값(적극 검토/검토/추가 확인/보류/판단 불가) 5종을 키로 쓴다.
+export const RECOMMENDATION_TONE: Record<string, "success" | "warning" | "neutral"> = {
+    "적극 검토": "success",
+    검토: "success",
+    "추가 확인": "warning",
+    보류: "neutral",
+    "판단 불가": "neutral",
+};
 
 // 2026-08-17 삭제(§확정분) — F-04/F-05 "시세" 신뢰도 배지 설명 캡션(구 PRICE_CONFIDENCE_CAPTION_FULL/COMPACT,
 // "비교 범위를 넓힌 유사거래 기반 추정 시세입니다(...)" 등) 전면 제거 — 불필요하다는 지적으로 두 소비처

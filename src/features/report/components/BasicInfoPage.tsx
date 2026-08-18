@@ -3,6 +3,7 @@ import { formatSeismicDesign, formatUseApprovalDate, getBuildingDetail, type Bui
 import { getBuildingSummary, type BuildingSummary } from "../../property/api/buildingSummaryApi";
 import { ESTIMATED_AREA_TYPES } from "../../search/api/searchApi";
 import SitePolygonDiagram, { SitePolygonMeta } from "../../property/components/SitePolygonDiagram";
+import CardSubHeading from "../../../shared/components/CardSubHeading";
 
 interface BasicInfoPageProps {
     buildingId: string;
@@ -88,7 +89,9 @@ const BasicInfoPage = ({ buildingId, zoneName, floorAreaRatioLimit, propertyType
         <div className="report-grid-3">
             {/* 좌측 — 핵심 지표. 2026-08-17: 주소 행 제거(리포트 헤더에 이미 노출돼 중복) — 표제부 지표만. */}
             <section className="right-panel-card">
-                <h5 className="right-panel-card-title">핵심 지표</h5>
+                {/* 2026-08-18 product 전달(docs/FEATURE.md §8.24) — "핵심 지표"→"대지 및 건축 개요"로 개명(모호해서
+                    구체화), CardSubHeading으로 번호 부여. */}
+                <CardSubHeading number={1} title="대지 및 건축 개요" />
                 <dl className="right-panel-fact-list">
                     {/* 2026-08-17 표기 정정 — 원본 값을 그대로 꽂아 "2703㎡"(쉼표 없음)/"23658.32㎡"(소수점 그대로)로
                         나오던 것 → Math.round+toLocaleString(remodelingApi.ts의 buildable.text와 같은 표기 규칙). */}
@@ -150,7 +153,7 @@ const BasicInfoPage = ({ buildingId, zoneName, floorAreaRatioLimit, propertyType
             {/* 중앙 — 대지·건축물 도면(sitePolygon/siteBoundaryPolygon 기반, FEATURE_05_PROPERTY_INFO.md §3.1,
                 2026-08-09 siteBoundaryPolygon 배포로 겹쳐 그리기 확장) */}
             <section className="right-panel-card report-site-polygon-card">
-                <h5 className="right-panel-card-title">대지·건축물 도면</h5>
+                <CardSubHeading number={2} title="건축물 도면" />
                 <div className="report-site-polygon-body">
                     <SitePolygonDiagram
                         buildingGeojson={buildingDetail?.sitePolygon ?? null}
@@ -165,7 +168,7 @@ const BasicInfoPage = ({ buildingId, zoneName, floorAreaRatioLimit, propertyType
 
             {/* 우측 — 건축물대장 요약 */}
             <section className="right-panel-card">
-                <h5 className="right-panel-card-title">건축물대장 요약</h5>
+                <CardSubHeading number={3} title="건축물대장 요약" />
                 <dl className="right-panel-fact-list">
                     <div>
                         <dt>구조</dt>
