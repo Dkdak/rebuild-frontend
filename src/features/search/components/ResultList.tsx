@@ -1,16 +1,8 @@
 import type { CSSProperties } from "react";
 import { useSearch } from "../context/SearchContext";
-import {
-    formatAreaDisplay,
-    formatBuildYear,
-    formatHouseholdCount,
-    formatManwon,
-    GRADE_CLASS,
-    sortGradeSummary,
-    sortPropertyItems,
-} from "../api/searchApi";
-import { PRICE_DISPLAY_TONE, resolvePriceDisplayLabel } from "../../market/api/marketApi";
+import { GRADE_CLASS, sortGradeSummary, sortPropertyItems } from "../api/searchApi";
 import Pagination from "./Pagination";
+import PropertyCard from "./PropertyCard";
 
 // .grade-A 등(layout.css)과 동일한 색상 — 선택된 배지 강조에 재사용(인라인 CSS 변수로 전달).
 // 2026-08-1x: 6단계 → 4단계(A/B/C/D)+NA로 재편, 톤은 유지하며 재배분(FEATURE_09_INVESTMENT.md 확정 값 그대로).
@@ -122,122 +114,15 @@ const ResultList = ({ onOpenDetail }: ResultListProps) => {
                     <p className="center-list-empty">조건에 맞는 매물이 없습니다.</p>
                 ) : (
                     <ul className="center-list-items">
-                        {items.map((item) => {
-                            const { main: areaMain, aux: areaAux } = formatAreaDisplay(item);
-                            const householdCountText = formatHouseholdCount(item.householdCount);
-                            const buildYearText = formatBuildYear(item.buildYear);
-                            const gradeClass = item.grade ? (GRADE_CLASS[item.grade] ?? "") : "";
-                            const gradeText = item.grade ?? "-";
-
-                            // FEATURE_04_SEARCH.md §2.1-h item 5/8(2026-08-09) — recentTrade 대신 estimatedPrice로
-                            // 교체. recentTrade는 건물 전체 대비 작은 호실 하나 거래가 "건물 전체가 이 가격"처럼
-                            // 보이는 착시가 있었는데(그래서 "건물 일부 거래" 경고를 따로 달아야 했다), estimatedPrice는
-                            // 전 유형 공통으로 스케일이 맞아 이 착시 자체가 없다 — 경고 문구도 함께 제거(카드에서만,
-                            // RightPanel.tsx "최근 실거래가" 행은 유지). "추정치" 고정 문구 대신 신뢰도 표시.
-                            // 2026-08-17 — A/B/C/D 등급 폐지, marketApi.ts resolvePriceDisplayLabel 라벨 체계로
-                            // 통일. PropertyItem(이 목록 응답)엔 recentTrade 필드 자체가 없어(백엔드가 제거,
-                            // 위 주석) hasRecentTrade는 항상 false — "실거래" 라벨은 이 화면에서 나올 일이 없다.
-                            // priceLabel을 밖으로 뽑아 배지(priceNode)와 아래 압축 캡션(auxLine)이 같은 계산을 공유.
-                            const priceLabel =
-                                item.price == null && item.estimatedPrice.value != null
-                                    ? resolvePriceDisplayLabel(item.estimatedPrice.confidenceLevel, false)
-                                    : null;
-                            // 2026-08-17 삭제(§확정분) — "비교 범위 확장 기반" 등 신뢰도 근거 압축 캡션(구
-                            // PRICE_CONFIDENCE_CAPTION_COMPACT)이 카드 밀도만 높이고 불필요하다는 지적 — auxLine은
-                            // 다시 면적·세대수만.
-                            const auxLine = [areaAux, householdCountText].filter(Boolean).join(" · ");
-                            // 데스크톱 2줄·모바일 3줄 레이아웃(아래)이 이 노드를 그대로 공유 — 계산은 한 번만.
-                            const priceNode =
-                                item.price != null ? (
-                                    <span>{item.price}만원</span>
-                                ) : item.estimatedPrice.value != null ? (
-                                    <span className="right-panel-estimate-anchor">
-                                        시세 {formatManwon(item.estimatedPrice.value)}
-                                        {priceLabel != null && (
-                                            <span className={`right-panel-estimate-tag right-panel-estimate-tag-${PRICE_DISPLAY_TONE[priceLabel]}`}>
-                                                신뢰도 {priceLabel}
-                                            </span>
-                                        )}
-                                    </span>
-                                ) : (
-                                    <span>가격 정보 준비 중</span>
-                                );
-                            // roi==null이면 backend stage != FULL(F-05/F-10과 동일 근거) — "산정 중"은 곧 채워질
-                            // 것처럼 오해를 줘서 "산출 불가"로 정정(2026-08-1x).
-                            const roiNode = <span>ROI {item.roi != null ? `${Math.round(item.roi)}%` : "산출 불가"}</span>;
-
-                            return (
-                                <li
-                                    key={item.id}
-                                    className={`center-list-item ${
-                                        selectedPropertyId === item.id ? "center-list-item-selected" : ""
-                                    }`}
-                                    onClick={() => selectProperty(item.id)}
-                                >
-                                    {/* 2026-08-09 — 44x44 등급 박스 폐지, 굵고 진하고 조금 큰 등급 "글자"로 전면 교체
-                                        (컬러 박스 없이도 색으로 이미 식별된다는 판단, F-05/F-10 등급 표시와 공통
-                                        grade-text 스타일 재사용). 데스크톱(2줄: 등급+유형+주소 / 면적·연식+시세+ROI)과
-                                        모바일(3줄: 등급+주소 / 유형+면적+년차 / 시세+ROI+상세보기)이 항목 묶음 자체가
-                                        달라(유형이 붙는 줄이 다름) 순수 CSS 순서 트릭만으로는 안 돼서, 두 레이아웃을
-                                        각자 렌더링하고 breakpoint별로 하나만 보이게 전환한다(값 계산은 위에서 한 번만,
-                                        마크업만 두 벌 — center-list-grade-badges/-select와 같은 기존 관례).
-                                        데스크톱 등급 글자는 "위치는 그대로"(옛 44x44 박스 자리, 카드 맨 앞 별도 칸) —
-                                        유형·주소 줄 안에 인라인으로 넣었던 첫 시도는 위치가 달라져 되돌림. 모바일은
-                                        3줄 스펙대로 등급+주소가 같은 줄이라 그대로 유지. */}
-                                    <div className="center-list-item-row">
-                                        <span className={`grade-text center-list-item-grade-leftmost ${gradeClass}`}>
-                                            {gradeText}
-                                        </span>
-                                        <div className="center-list-item-content">
-                                            {/* 데스크톱 전용 2줄 */}
-                                            <div className="center-list-item-main center-list-item-desktop-line">
-                                                <span className="center-list-item-type">{item.propertyType}</span>
-                                                <span className="center-list-item-address">{item.address}</span>
-                                            </div>
-                                            <div className="center-list-item-meta center-list-item-desktop-line">
-                                                <span>
-                                                    {areaMain}
-                                                    {" · "}
-                                                    {buildYearText}
-                                                </span>
-                                                {priceNode}
-                                                {roiNode}
-                                            </div>
-
-                                            {/* 모바일 전용 3줄 */}
-                                            <div className="center-list-item-mobile-line1">
-                                                <span className={`grade-text ${gradeClass}`}>{gradeText}</span>
-                                                <span className="center-list-item-address">{item.address}</span>
-                                            </div>
-                                            <div className="center-list-item-mobile-line2">
-                                                <span>{item.propertyType}</span>
-                                                <span>{areaMain}</span>
-                                                <span>{buildYearText}</span>
-                                            </div>
-                                            <div className="center-list-item-mobile-line3">
-                                                {priceNode}
-                                                {roiNode}
-                                                {/* `FEATURE_01_LAYOUT.md` §2.2(2026-08-04) — 카드 탭은 선택만, 상세
-                                                    시트는 이 버튼으로만 연다(모바일 전용). */}
-                                                <button
-                                                    type="button"
-                                                    className="center-list-item-detail-btn"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        selectProperty(item.id);
-                                                        onOpenDetail();
-                                                    }}
-                                                >
-                                                    상세보기
-                                                </button>
-                                            </div>
-
-                                            {auxLine && <div className="center-list-item-area-aux">{auxLine}</div>}
-                                        </div>
-                                    </div>
-                                </li>
-                            );
-                        })}
+                        {items.map((item) => (
+                            <PropertyCard
+                                key={item.id}
+                                item={item}
+                                selected={selectedPropertyId === item.id}
+                                onSelect={() => selectProperty(item.id)}
+                                onOpenDetail={onOpenDetail}
+                            />
+                        ))}
                     </ul>
                 )}
             </div>

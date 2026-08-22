@@ -1,25 +1,578 @@
+/* planning/rebuild/widgets/2026-08-17_dashboard_v3.html 확정본의 대시보드 레이아웃.
+   등급/유형 색은 이 화면의 도넛·막대에서만 쓰는 차트 색이라 여기에 토큰으로 둔다(라이트/다크 각각 고정값 —
+   opacity로 흐리게 하지 않는다, DOMAIN.md §7.4). */
 .dashboard {
+    --dash-a: #4c8c4a;
+    --dash-b: #7fb069;
+    --dash-c: #e3b23c;
+    --dash-d: #c4746a;
+    --dash-na: #b8b3a8;
+    --dash-u1: #7fa8d4;
+    --dash-u2: #a9c4e0;
+    --dash-u3: #d6b26a;
+    --dash-u4: #c4746a;
+    --dash-u5: #bcb8ae;
+    --dash-bar: #7fa8d4;
+    --dash-bar-neg: #c4746a;
+
     flex: 1;
     padding: 24px;
     overflow-y: auto;
 }
 
-.dashboard-account {
-    max-width: 360px;
-    padding: 20px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--code-bg);
+@media (prefers-color-scheme: dark) {
+    .dashboard {
+        --dash-a: #5e9e5c;
+        --dash-b: #6e9a5c;
+        --dash-c: #a98430;
+        --dash-d: #9b4a40;
+        --dash-na: #57544d;
+        --dash-u1: #4e7ba8;
+        --dash-u2: #3d6285;
+        --dash-u3: #8a6d2e;
+        --dash-u4: #9b4a40;
+        --dash-u5: #57544d;
+        --dash-bar: #4e7ba8;
+        --dash-bar-neg: #9b4a40;
+    }
 }
 
-.dashboard-account-title {
-    margin: 0 0 12px;
-    font-size: 16px;
+.dashboard-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.dashboard-title {
+    margin: 0;
+    font-size: 17px;
     color: var(--text-h);
 }
 
+.dashboard-updated {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 264px;
+    gap: 14px;
+    align-items: start;
+}
+
+.dashboard-main {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.dashboard-side {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.dashboard-card {
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg);
+}
+
+.dashboard-card-note {
+    margin: 0 0 12px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-muted);
+}
+
+.dashboard-note {
+    margin: 12px 0 0;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--text-muted);
+}
+
+.dashboard-note b {
+    color: var(--text);
+}
+
+.dashboard-personal .dashboard-card-note {
+    margin: 0;
+}
+
+/* 1. 후보 필터 기준 */
+.dashboard-filter-group {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin: 16px 0 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.dashboard-filter-group em {
+    font-size: 11.5px;
+    font-style: normal;
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+.dashboard-filter-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.dashboard-filter {
+    display: block;
+    padding: 10px 12px;
+    border: 1px solid var(--accent-border);
+    border-radius: 8px;
+    background: var(--accent-bg);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.dashboard-filter-fixed {
+    border-width: 2px;
+}
+
+.dashboard-filter-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 3px;
+}
+
+.dashboard-filter-head b {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12.5px;
+    color: var(--accent);
+}
+
+.dashboard-filter-lock {
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--bg);
+    font-size: 10.5px;
+    font-weight: 700;
+}
+
+.dashboard-filter-count {
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
+    color: var(--accent);
+}
+
+.dashboard-filter-desc {
+    font-size: 11.5px;
+    color: var(--text-muted);
+}
+
+.dashboard-filter-desc.is-dependent {
+    color: #8a5a00;
+}
+
+@media (prefers-color-scheme: dark) {
+    .dashboard-filter-desc.is-dependent {
+        color: #e0a83c;
+    }
+}
+
+/* 2. 적용 결과 */
+.dashboard-funnel {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.dashboard-funnel-item {
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.dashboard-funnel-item.is-main {
+    border: 2px solid var(--accent-border);
+    background: var(--accent-bg);
+}
+
+.dashboard-funnel-item.is-narrowed {
+    border-style: dashed;
+}
+
+.dashboard-funnel-label {
+    margin: 0 0 6px;
+    font-size: 12px;
+    color: var(--text);
+}
+
+.dashboard-funnel-value {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    color: var(--text-h);
+}
+
+.dashboard-funnel-item.is-main .dashboard-funnel-value {
+    color: var(--accent);
+}
+
+.dashboard-funnel-value small {
+    margin-left: 3px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.dashboard-funnel-desc {
+    margin: 6px 0 0;
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--text-muted);
+}
+
+/* 3. 후보 지역 TOP 5 */
+.dashboard-hood {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.dashboard-hood-row {
+    display: grid;
+    grid-template-columns: 22px 72px minmax(0, 1fr) 128px;
+    align-items: center;
+    gap: 10px;
+    font-size: 12.5px;
+}
+
+.dashboard-hood-rank {
+    display: flex;
+    width: 20px;
+    height: 20px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--code-bg);
+    font-size: 10.5px;
+    font-weight: 800;
+    color: var(--text-muted);
+}
+
+.dashboard-hood-name {
+    font-weight: 600;
+    color: var(--text-h);
+}
+
+.dashboard-hood-track {
+    display: block;
+    max-width: 260px;
+    height: 9px;
+    overflow: hidden;
+    border-radius: 5px;
+    background: var(--code-bg);
+}
+
+.dashboard-hood-track i {
+    display: block;
+    height: 100%;
+    border-radius: 5px;
+    background: var(--dash-bar);
+}
+
+.dashboard-hood-value {
+    text-align: right;
+    font-weight: 700;
+    white-space: nowrap;
+    color: var(--text-h);
+}
+
+.dashboard-hood-value em {
+    margin-left: 4px;
+    font-style: normal;
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+/* 4~7. 분포 카드 */
+.dashboard-dist-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.dashboard-donut {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    align-items: center;
+    gap: 14px;
+}
+
+.dashboard-donut-total {
+    font-size: 15px;
+    font-weight: 800;
+    fill: var(--text-h);
+}
+
+.dashboard-donut-unit {
+    font-size: 9px;
+    fill: var(--text-muted);
+}
+
+.dashboard-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    font-size: 12px;
+    list-style: none;
+}
+
+.dashboard-legend li {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.dashboard-legend-swatch {
+    width: 9px;
+    height: 9px;
+    flex-shrink: 0;
+    border-radius: 2px;
+}
+
+.dashboard-legend-label {
+    flex: 1;
+    color: var(--text);
+}
+
+.dashboard-legend-count {
+    font-weight: 700;
+    color: var(--text-h);
+}
+
+.dashboard-legend-ratio {
+    width: 48px;
+    text-align: right;
+    color: var(--text-muted);
+}
+
+.dashboard-bars {
+    display: flex;
+    height: 124px;
+    align-items: flex-end;
+    gap: 8px;
+    padding-top: 16px;
+}
+
+.dashboard-bar-col {
+    display: flex;
+    height: 100%;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.dashboard-bar-count {
+    margin-bottom: 3px;
+    font-size: 10.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    color: var(--text-h);
+}
+
+.dashboard-bar-fill {
+    width: 100%;
+    border-radius: 3px 3px 0 0;
+    background: var(--dash-bar);
+}
+
+.dashboard-bar-fill.is-negative {
+    background: var(--dash-bar-neg);
+}
+
+.dashboard-bar-label {
+    margin-top: 6px;
+    font-size: 10px;
+    line-height: 1.35;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.dashboard-statline {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 11px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.dashboard-statline b {
+    color: var(--text-h);
+}
+
+.dashboard-statline b.is-negative {
+    color: #a8331a;
+}
+
+@media (prefers-color-scheme: dark) {
+    .dashboard-statline b.is-negative {
+        color: #f2a08a;
+    }
+}
+
+/* 차트 색 토큰 — 도넛 arc는 stroke, 범례 스와치는 background로 같은 클래스를 쓴다. */
+.dashboard-tone-a {
+    background: var(--dash-a);
+    stroke: var(--dash-a);
+}
+
+.dashboard-tone-b {
+    background: var(--dash-b);
+    stroke: var(--dash-b);
+}
+
+.dashboard-tone-c {
+    background: var(--dash-c);
+    stroke: var(--dash-c);
+}
+
+.dashboard-tone-d {
+    background: var(--dash-d);
+    stroke: var(--dash-d);
+}
+
+.dashboard-tone-na {
+    background: var(--dash-na);
+    stroke: var(--dash-na);
+}
+
+.dashboard-tone-u1 {
+    background: var(--dash-u1);
+    stroke: var(--dash-u1);
+}
+
+.dashboard-tone-u2 {
+    background: var(--dash-u2);
+    stroke: var(--dash-u2);
+}
+
+.dashboard-tone-u3 {
+    background: var(--dash-u3);
+    stroke: var(--dash-u3);
+}
+
+.dashboard-tone-u4 {
+    background: var(--dash-u4);
+    stroke: var(--dash-u4);
+}
+
+.dashboard-tone-u5 {
+    background: var(--dash-u5);
+    stroke: var(--dash-u5);
+}
+
+.dashboard-donut-arc {
+    background: none;
+}
+
+/* 사이드 */
+.dashboard-side-card {
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg);
+}
+
+.dashboard-side-title {
+    margin: 0 0 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-h);
+}
+
+.dashboard-side-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+}
+
+.dashboard-side-row:last-of-type {
+    border-bottom: none;
+}
+
+.dashboard-side-key {
+    color: var(--text-muted);
+}
+
+.dashboard-side-value {
+    font-weight: 600;
+    color: var(--text-h);
+}
+
+.dashboard-side-value em {
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+.dashboard-warnbox {
+    margin-bottom: 9px;
+    padding: 10px 12px;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    background: var(--code-bg);
+    font-size: 11.5px;
+    line-height: 1.7;
+    color: var(--text-muted);
+}
+
+.dashboard-warnbox b {
+    color: var(--text);
+}
+
+.dashboard-foot {
+    margin: 0;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: var(--accent-bg);
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--accent);
+}
+
+/* 계정 정보 */
+.dashboard-account-guest {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text-muted);
+}
+
 .dashboard-account-nickname {
-    margin: 0 0 16px;
+    margin: 0 0 14px;
     font-size: 15px;
     font-weight: 600;
     color: var(--text-h);
@@ -31,23 +584,193 @@
 }
 
 .dashboard-edit-nickname-btn {
-    background: none;
+    padding: 8px 14px;
     border: 1px solid var(--border);
-    color: var(--text);
     border-radius: 6px;
-    padding: 8px 16px;
-    font-size: 13px;
+    background: none;
+    font-size: 12.5px;
     font-weight: 600;
+    color: var(--text);
     cursor: pointer;
 }
 
 .dashboard-delete-account-btn {
-    background: none;
+    padding: 8px 14px;
     border: 1px solid #d33;
-    color: #d33;
     border-radius: 6px;
-    padding: 8px 16px;
+    background: none;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #d33;
+    cursor: pointer;
+}
+
+@media (max-width: 1100px) {
+    .dashboard-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .dashboard-dist-grid,
+    .dashboard-funnel,
+    .dashboard-filter-list {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* 지도 탭 진입점 — 클릭 가능한 행만 hover/포커스 표시를 준다. ROI·노후도 막대는 이동할 필터가 없어
+   클릭 대상이 아니고, hover 효과도 주지 않는다. */
+button.dashboard-hood-row,
+.dashboard-legend-row {
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+}
+
+button.dashboard-hood-row.is-clickable,
+.dashboard-legend-row.is-clickable {
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+button.dashboard-hood-row.is-clickable:hover,
+.dashboard-legend-row.is-clickable:hover {
+    background: var(--accent-bg);
+}
+
+button.dashboard-hood-row.is-clickable:focus-visible,
+.dashboard-legend-row.is-clickable:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+button.dashboard-hood-row.is-clickable:hover .dashboard-hood-name,
+.dashboard-legend-row.is-clickable:hover .dashboard-legend-label {
+    color: var(--accent);
+}
+
+.dashboard-legend-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 2px 4px;
+}
+
+.dashboard-donut-arc.is-clickable {
+    cursor: pointer;
+}
+
+.dashboard-login-prompt {
+    padding: 0;
+    border: none;
+    background: none;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--accent);
+    text-align: left;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* 집계 API 상태 — 숫자를 0으로 채우지 않는다(0은 "없다"는 뜻이 된다). 개인 영역(계정 정보)은 다른 소스라
+   집계가 실패해도 함께 막지 않는다. */
+.dashboard-state {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.dashboard-state-text {
+    margin: 0;
     font-size: 13px;
     font-weight: 600;
+    color: var(--text-h);
+}
+
+.dashboard-retry-btn {
+    padding: 7px 14px;
+    border: 1px solid var(--accent-border);
+    border-radius: 6px;
+    background: var(--accent-bg);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--accent);
     cursor: pointer;
+}
+
+/* "기타 지역"을 펼쳤을 때 나오는 6위 이하 자치구 — 상위 5개와 같은 클릭 대상이되 한 단계 안쪽으로 보인다. */
+button.dashboard-hood-row.is-rest .dashboard-hood-rank {
+    background: none;
+    font-weight: 600;
+}
+
+button.dashboard-hood-row.is-rest .dashboard-hood-name {
+    color: var(--text);
+}
+
+
+/* 오늘의 한눈에 요약 — 관심목록 기준 KPI(구성안 §2). 서비스 전체 통계가 아니라 내 파이프라인 현황이다. */
+.dashboard-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.dashboard-kpi {
+    padding: 12px 13px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.dashboard-kpi-label {
+    margin: 0 0 8px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.dashboard-kpi-value {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.6px;
+    color: var(--text-h);
+}
+
+.dashboard-kpi-value small {
+    margin-left: 2px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.dashboard-kpi-pending {
+    color: var(--text-muted);
+}
+
+.dashboard-kpi-desc {
+    margin: 6px 0 0;
+    font-size: 10.5px;
+    color: var(--text-muted);
+}
+
+@media (max-width: 1100px) {
+    .dashboard-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* ROI 산출 가능 — 예상/실측을 한 카드 안에 나란히. 근거가 다른 값이라 합치지 않는다. */
+.dashboard-kpi-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.dashboard-kpi-pair .dashboard-kpi-value {
+    font-size: 19px;
 }

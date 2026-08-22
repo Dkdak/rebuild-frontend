@@ -1,0 +1,264 @@
+/* FEATURE_11_FAVORITES.md §2.0 — 등록 지점 3곳(매물 카드 우측 상단·모바일 상세 시트·리포트 헤더)이
+   같은 버튼을 쓴다. 카드에서는 텍스트 흐름 밖(우측 상단)이라 위치만 호출부가 클래스로 잡는다. */
+.favorite-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 6px;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    font-size: 15px;
+    line-height: 1;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.favorite-button:hover {
+    color: #d33;
+}
+
+.favorite-button.is-active {
+    color: #d33;
+}
+
+.favorite-button-label {
+    font-size: 12.5px;
+    font-weight: 600;
+}
+
+/* 매물 카드 — 3줄 텍스트 흐름 밖 우측 상단 모서리(§2.0). 좌측은 등급 글자 자리라 건드리지 않는다. */
+.center-list-item {
+    position: relative;
+}
+
+.favorite-button-card {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    z-index: 1;
+}
+
+/* 관심목록 섹션 — 카드는 F-04와 같은 것을 쓰고, 이 화면 고유 표시(등급 변화·조회 불가)만 아래에 덧붙인다. */
+.favorite-count {
+    margin-left: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+
+
+
+
+.favorite-grade-change {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--accent-bg);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.favorite-unavailable {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--code-bg);
+    font-size: 11.5px;
+    color: var(--text-muted);
+}
+
+/* 담기·해제 실패 알림(§2.0) — 조용히 실패하지 않고 ♥를 되돌린 뒤 이 토스트로 알린다. */
+.favorite-toast {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    box-shadow: var(--shadow);
+    font-size: 13px;
+    color: var(--text-h);
+}
+
+.favorite-toast button {
+    border: none;
+    background: none;
+    font-size: 15px;
+    line-height: 1;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+
+
+
+
+
+
+
+
+/* 관심목록 — 왼쪽 등급 분포 도넛, 오른쪽 매물 목록. 좁은 화면에서는 한 줄로 쌓는다. */
+.favorite-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: 18px;
+    align-items: start;
+    margin-top: 10px;
+}
+
+.favorite-split-list {
+    min-width: 0;
+}
+
+@media (max-width: 1100px) {
+    .favorite-split {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* 관심 건물·실측 목록 — 한 건당 한 줄, 넘치면 카드 내부 스크롤(높이 고정). 별도 "전체 보기" 화면은 없다. */
+.favorite-table-wrap {
+    max-height: 232px;
+    overflow-y: auto;
+}
+
+.favorite-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+}
+
+.favorite-table th {
+    position: sticky;
+    top: 0;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    font-size: 11px;
+    font-weight: 600;
+    text-align: left;
+    color: var(--text-muted);
+}
+
+.favorite-table td {
+    padding: 9px 8px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.favorite-table tr:last-child td {
+    border-bottom: none;
+}
+
+.favorite-table .is-right {
+    text-align: right;
+}
+
+.favorite-table-address {
+    max-width: 0;
+    width: 55%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-h);
+}
+
+.favorite-table-muted {
+    color: var(--text-muted);
+}
+
+.favorite-grade-mark {
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.favorite-unavailable {
+    color: var(--text-muted);
+}
+
+.measure-progress {
+    display: inline-block;
+    width: 76px;
+    height: 6px;
+    margin-right: 7px;
+    overflow: hidden;
+    border-radius: 3px;
+    background: var(--code-bg);
+    vertical-align: middle;
+}
+
+.measure-progress i {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+}
+
+.measure-progress-count {
+    font-size: 11.5px;
+    color: var(--text-muted);
+}
+
+/* 담기·해제 확인(사용자 지시, 2026-08-23) — 목록이 실수로 바뀌지 않게 한 단계 둔다. */
+.favorite-confirm-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.35);
+}
+
+.favorite-confirm {
+    width: min(320px, calc(100vw - 40px));
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg);
+    box-shadow: var(--shadow);
+}
+
+.favorite-confirm-text {
+    margin: 0 0 8px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-h);
+}
+
+.favorite-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.favorite-confirm-actions button {
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: none;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.favorite-confirm-actions button.is-primary {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+}
+
+.favorite-confirm-note {
+    margin: 0 0 16px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text-muted);
+}

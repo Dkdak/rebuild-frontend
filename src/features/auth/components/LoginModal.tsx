@@ -4,11 +4,16 @@ import "./LoginModal.css";
 
 type Mode = "login" | "signup";
 
+// 개발 서버에서만 채워지는 로컬 테스트 계정 — 로그인 버튼만 눌러도 들어가도록 초기값으로 넣는다.
+// import.meta.env.DEV는 vite build(운영)에서 false라 배포 번들에는 빈 값이 들어간다.
+const DEV_TEST_EMAIL = "test@test.com";
+const DEV_TEST_PASSWORD = "test1234";
+
 const LoginModal = ({ onClose }: { onClose: () => void }) => {
     const { login, signup } = useAuth();
     const [mode, setMode] = useState<Mode>("login");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+    const [email, setEmail] = useState(import.meta.env.DEV ? DEV_TEST_EMAIL : "");
+    const [password, setPassword] = useState(import.meta.env.DEV ? DEV_TEST_PASSWORD : "");
     const [passwordConfirm, setPasswordConfirm] = useState("");
     const [nickname, setNickname] = useState("");
     const [agreedToTerms, setAgreedToTerms] = useState(false);

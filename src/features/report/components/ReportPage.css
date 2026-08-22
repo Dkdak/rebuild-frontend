@@ -1394,3 +1394,26 @@ dl.right-panel-fact-list.report-fact-grid dd {
         font-size: 12px;
     }
 }
+
+/* 관심목록 저장 — 좌측 네비 상단(스크롤을 따라오는 자리). 섹션 앵커들과 구분되게 아래에 경계선을 둔다. */
+.report-nav-favorite {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+}
+
+/* 좌측 네비 상단 액션 — 저장·PDF. 섹션 앵커와 구분되게 아래에 경계선을 둔다. */
+.report-nav-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.report-nav-pdf {
+    width: 100%;
+    text-align: left;
+}

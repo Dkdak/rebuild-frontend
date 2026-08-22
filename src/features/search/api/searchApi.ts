@@ -83,11 +83,23 @@ export interface PropertyTypeFilter {
     expanded: boolean;
 }
 
+// 대시보드 "후보 필터 기준"과 같은 4조건(F-06 §35·§53). 지도에서는 4개 전부 토글 가능하고 기본값은 전부
+// 해제다 — 지도는 후보 전용 화면이 아니라 전체 검색 화면이라서다. 필드명은 검색 API 파라미터명 그대로 쓴다
+// (중간 매핑 층을 두지 않는다). remodelingCandidate는 verdict='POSSIBLE'만 — LIMITED는 노후연한 미도달이라
+// 후보가 아니다(F-06 §47).
+export interface CandidateConditionFilters {
+    remodelingCandidate: boolean;
+    zoneConfirmed: boolean;
+    farSurplusPositive: boolean;
+    districtUnrestricted: boolean;
+}
+
 export interface SearchFilters {
     propertyTypeFilters: PropertyTypeFilter[];
     buildYearMin: number | null;
     buildYearMax: number | null;
     nearSubway: boolean;
+    candidateConditions: CandidateConditionFilters;
 }
 
 interface PropertySearchQuery {
@@ -98,6 +110,11 @@ interface PropertySearchQuery {
     buildYearMax?: number;
     propertyTypeFilters?: { type: string; areaMin?: number; areaMax?: number }[];
     grade?: string;
+    // 후보 조건 4종(§3.1) — 각각 독립 Boolean이고 AND 결합, 생략하면 미적용.
+    remodelingCandidate?: boolean;
+    zoneConfirmed?: boolean;
+    farSurplusPositive?: boolean;
+    districtUnrestricted?: boolean;
     page?: number;
     size?: number;
 }

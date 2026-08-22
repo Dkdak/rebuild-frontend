@@ -24,11 +24,14 @@ const yearsToBuildYear = (years: number) => CURRENT_YEAR - years;
 interface BuildYearFilterProps {
     filters: SearchFilters;
     onApply: (buildYearMin: number | null, buildYearMax: number | null) => void;
+    // "추진 요건 충족"이 노후연한 기준을 이미 포함하므로, 그 조건이 켜져 있는 동안은 잠근다(F-06 §133 —
+    // F-04의 경과 연차는 참고 기준점이지 게이트의 정식 근거가 아니다). 선택값은 그대로 두어 해제하면 복귀한다.
+    disabled?: boolean;
 }
 
 // features/search: 사용승인일(건축연도) 필터 — 경과 연차 슬라이더 + 프리셋 그리드.
 // 슬라이더 드래그/트랙클릭은 §2.1-b(1번째=시작 미확정/2번째=끝 확정)를, 프리셋 버튼 클릭은 §2.1-c(원클릭 즉시 확정+합집합 확장)를 따른다 — 서로 다른 규칙.
-const BuildYearFilter = ({ filters, onApply }: BuildYearFilterProps) => {
+const BuildYearFilter = ({ filters, onApply, disabled }: BuildYearFilterProps) => {
     const [open, setOpen] = useState(false);
     const [pendingStart, setPendingStart] = useState<number | null>(null);
     // 프리셋 전용 클릭 주기 — 0/1: 아직 확정 전(다음 클릭이 1번째 또는 2번째), 2: 이미 2클릭으로 확정됨(다음 클릭은 무조건 리셋).
@@ -115,7 +118,14 @@ const BuildYearFilter = ({ filters, onApply }: BuildYearFilterProps) => {
     const triggerLabel = isFullRange ? "사용승인일" : rangeText;
 
     return (
-        <Popover label={triggerLabel} open={open} onToggle={() => setOpen((v) => !v)} onClose={handleClose} width={260}>
+        <Popover
+            label={triggerLabel}
+            open={open && !disabled}
+            onToggle={() => setOpen((v) => !v)}
+            onClose={handleClose}
+            disabled={disabled}
+            width={260}
+        >
             <div className="filter-popover-title">
                 <h6 className="filter-popover-heading">사용승인일</h6>
                 <button type="button" className="filter-popover-close" onClick={handleClose}>
