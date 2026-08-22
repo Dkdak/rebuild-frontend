@@ -17,6 +17,12 @@ export const DEFAULT_FILTERS: SearchFilters = {
     buildYearMin: null,
     buildYearMax: DEFAULT_BUILD_YEAR_MAX,
     nearSubway: false,
+    candidateConditions: {
+        remodelingCandidate: false,
+        zoneConfirmed: false,
+        farSurplusPositive: false,
+        districtUnrestricted: false,
+    },
 };
 
 // 위치 기본값(§0-C, 2026-08-03) — 백엔드가 더 이상 위치 미지정을 중구로 암묵 보정하지 않아, 프론트가 검색창 초기값으로 GU(구) 후보를 직접 갖는다.
@@ -54,13 +60,18 @@ interface SearchContextValue {
     setSortOption: (sort: string) => void;
     gradeFilter: string | null;
     selectGradeFilter: (grade: string | null) => void;
+    runCandidateSearch: (nextFilters: SearchFilters, grade: string | null) => void;
     page: number;
     totalPages: number;
     hasNextPage: boolean;
     goToPage: (page: number) => void;
     loading: boolean;
     runFilterSearch: () => void;
-    runAddressSearch: (candidate: SearchIndexCandidate) => void;
+    runAddressSearch: (candidate: SearchIndexCandidate, overrideFilters?: SearchFilters) => void;
+    addressInput: string;
+    setAddressInput: (value: string) => void;
+    locationCandidate: SearchIndexCandidate | null;
+    setLocationCandidate: (candidate: SearchIndexCandidate | null) => void;
 }
 
 const SearchContext = createContext<SearchContextValue | undefined>(undefined);
@@ -82,9 +93,12 @@ const computeMapCenter = (items: { lat: number | null; lng: number | null }[]): 
 // buildYearMin/Max·propertyTypeFilters·grade를 쿼리 파라미터로 변환 — null/빈 배열은 axios가 생략하도록 undefined로 바꾼다.
 // propertyTypeFilters 미선택 시 "전체"로 간주(§2.4)하므로 빈 배열은 보내지 않는다. expanded는 UI 전용이라 전송하지 않는다(§2.3).
 // grade(§2.1-g)는 filters와 독립적으로 함께 적용(AND) — filters를 초기화하지 않는다.
+// 후보 조건은 체크된 것만 보낸다(false는 "제외"가 아니라 "미적용"이라 생략).
+// 추진 요건이 켜져 있으면 건축연도는 보내지 않는다 — 후보 집계가 건축연도 필터 없이 낸 숫자라, 기본값
+// (20년 이상 경과)을 계속 실어 보내면 노후연한이 20년인 유형에서 경계가 어긋난다(product 확정).
 const toFilterParams = (filters: SearchFilters, grade: string | null) => ({
-    buildYearMin: filters.buildYearMin ?? undefined,
-    buildYearMax: filters.buildYearMax ?? undefined,
+    buildYearMin: filters.candidateConditions.remodelingCandidate ? undefined : filters.buildYearMin ?? undefined,
+    buildYearMax: filters.candidateConditions.remodelingCandidate ? undefined : filters.buildYearMax ?? undefined,
     propertyTypeFilters:
         filters.propertyTypeFilters.length > 0
             ? filters.propertyTypeFilters.map((f) => ({
@@ -94,6 +108,10 @@ const toFilterParams = (filters: SearchFilters, grade: string | null) => ({
               }))
             : undefined,
     grade: grade ?? undefined,
+    remodelingCandidate: filters.candidateConditions.remodelingCandidate || undefined,
+    zoneConfirmed: filters.candidateConditions.zoneConfirmed || undefined,
+    farSurplusPositive: filters.candidateConditions.farSurplusPositive || undefined,
+    districtUnrestricted: filters.candidateConditions.districtUnrestricted || undefined,
 });
 
 // F-04_SEARCH.md §2.3: filters/searchResults/mapCenter/selectedPropertyId/sortOption/gradeFilter/page를
@@ -105,6 +123,12 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
     const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
     const [sortOption, setSortOption] = useState("grade-desc");
     const [gradeFilter, setGradeFilter] = useState<string | null>(null);
+    // 좌측 검색창의 위치 입력/선택 후보 — 대시보드에서 자치구를 눌러 넘어오면 그 구가 검색창에도 그대로
+    // 보여야 해서 컴포넌트 로컬이 아니라 여기서 관리한다(패널은 탭 전환 때마다 마운트/언마운트된다).
+    const [addressInput, setAddressInput] = useState(DEFAULT_LOCATION_CANDIDATE.displayText);
+    const [locationCandidate, setLocationCandidate] = useState<SearchIndexCandidate | null>(
+        DEFAULT_LOCATION_CANDIDATE,
+    );
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(false);
 
@@ -133,8 +157,13 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
 
     // 주소/지역 검색 — 필터를 초기화하지 않고 위치 조건과 결합해서 같이 적용한다(§2.3, 2026-07-27 계약 변경).
     // LeftPanel 액션(후보 선택)도 새 기준 결과이므로 등급 필터는 "전체"로 리셋된다(§2.3, 2026-08-01).
-    const runAddressSearch = async (candidate: SearchIndexCandidate) => {
-        appliedFiltersRef.current = filters;
+    // overrideFilters — 대시보드처럼 "필터를 바꾸면서 동시에 검색"하는 호출용. updateFilters로 넣은 값은 다음
+    // 렌더에야 filters에 반영되므로, 그 값을 인자로 같이 받아 이번 요청부터 적용한다.
+    const runAddressSearch = async (candidate: SearchIndexCandidate, overrideFilters?: SearchFilters) => {
+        const effectiveFilters = overrideFilters ?? filters;
+        appliedFiltersRef.current = effectiveFilters;
+        setAddressInput(candidate.displayText);
+        setLocationCandidate(candidate);
         setPage(1);
         setGradeFilter(null);
         setLoading(true);
@@ -144,7 +173,7 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
                 activeQueryRef.current = { mode: "building", buildingId: candidate.buildingId };
                 const response = await searchProperties({
                     buildingId: candidate.buildingId,
-                    ...toFilterParams(filters, null),
+                    ...toFilterParams(effectiveFilters, null),
                     page: 1,
                     size: 1,
                 });
@@ -160,7 +189,7 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
                 activeQueryRef.current = { mode: "dong", bjdongCd: candidate.bjdongCd };
                 const response = await searchProperties({
                     bjdongCd: candidate.bjdongCd,
-                    ...toFilterParams(filters, null),
+                    ...toFilterParams(effectiveFilters, null),
                     page: 1,
                     size: PAGE_SIZE,
                 });
@@ -174,7 +203,7 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
                 activeQueryRef.current = { mode: "gu", sigunguCd: candidate.bjdongCd };
                 const response = await searchProperties({
                     sigunguCd: candidate.bjdongCd,
-                    ...toFilterParams(filters, null),
+                    ...toFilterParams(effectiveFilters, null),
                     page: 1,
                     size: PAGE_SIZE,
                 });
@@ -243,6 +272,34 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
         refetch(1, grade);
     };
 
+    // 대시보드 등급·유형 클릭 전용 — 위치 없이 후보 조건(+등급/유형)만으로 서울 전체를 조회한다. 대시보드
+    // 분포가 서울 전체 기준이라 이전 검색의 위치가 남으면 그 구 안에서만 좁혀져 숫자의 의미가 달라진다(§0-C
+    // 400 규칙은 후보 조건·등급·유형도 인정하도록 완화 예정 — 그 전까지 이 호출은 400을 받는다).
+    const runCandidateSearch = async (nextFilters: SearchFilters, grade: string | null) => {
+        activeQueryRef.current = { mode: "filters" };
+        // 위치를 쓰지 않는 조회라 검색창도 비워 둔다 — 위치가 남아 있으면 화면 표시와 실제 조건이 어긋난다.
+        setAddressInput("");
+        setLocationCandidate(null);
+        appliedFiltersRef.current = nextFilters;
+        setPage(1);
+        setGradeFilter(grade);
+        setSelectedPropertyId(null);
+        setLoading(true);
+
+        try {
+            const response = await searchProperties({
+                ...toFilterParams(nextFilters, grade),
+                page: 1,
+                size: PAGE_SIZE,
+            });
+            setSearchResults(response);
+            setSelectedPropertyId(response.items[0]?.id ?? null);
+            setMapCenter(computeMapCenter(response.items));
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const totalPages = searchResults?.totalPages ?? 1;
     const hasNextPage = searchResults != null && page < totalPages;
 
@@ -266,6 +323,11 @@ export const SearchProvider = ({ children }: { children: ReactNode }) => {
                 loading,
                 runFilterSearch,
                 runAddressSearch,
+                runCandidateSearch,
+                addressInput,
+                setAddressInput,
+                locationCandidate,
+                setLocationCandidate,
             }}
         >
             {children}

@@ -8,6 +8,8 @@ import FilterDrawer from "../../../features/search/components/FilterDrawer";
 import DetailBottomSheet from "../../../features/property/components/DetailBottomSheet";
 import HangulGame from "../../../features/game/HangulGame";
 import Dashboard from "../../../features/board/components/Dashboard";
+import { ALL_NARROWING_ON, type NarrowingSelection } from "../../../features/board/api/dashboardApi";
+import { FavoritesProvider } from "../../../features/favorites/context/FavoritesContext";
 import ComingSoon from "./ComingSoon";
 import ReportPage from "../../../features/report/components/ReportPage";
 import { SearchProvider } from "../../../features/search/context/SearchContext";
@@ -20,8 +22,8 @@ import "./layout.css";
 // "단어 기차 놀이터"는 정식 메뉴에서 제외한다.
 const TABS = ["지도", "대시보드", "분석", "리포트"];
 const DEFAULT_TAB = "지도";
-// F-01_LAYOUT.md §4: 비로그인 상태에서 접근 시 로그인 모달로 유도해야 하는 탭. 분석/리포트는 게이트 없음(§2.3-a).
-const LOGIN_REQUIRED_TABS = ["대시보드"];
+// F-01_LAYOUT.md §4: 비로그인 상태에서 접근 시 로그인 모달로 유도해야 하는 탭. 지도만 비로그인 진입 가능하다.
+const LOGIN_REQUIRED_TABS = ["대시보드", "리포트", "분석"];
 const PLACEHOLDER_TABS = ["분석"];
 
 type OverlayType = "filter" | "detail" | "nav" | null;
@@ -31,6 +33,8 @@ const MainLayout = () => {
     const [activeTab, setActiveTab] = useState(DEFAULT_TAB);
     const [activeOverlay, setActiveOverlay] = useState<OverlayType>(null);
     const [showLoginModal, setShowLoginModal] = useState(false);
+    // 대시보드 좁히기 선택 — 탭을 옮기면 Dashboard가 언마운트되므로 선택 상태는 여기서 들고 있는다.
+    const [dashboardNarrowing, setDashboardNarrowing] = useState<NarrowingSelection>(ALL_NARROWING_ON);
 
     // 로그아웃/회원탈퇴로 비로그인 상태가 되면, 로그인 필요 탭에 남아있지 않도록 기본 탭으로 되돌린다 (F-02_AUTH.md §4).
     useEffect(() => {
@@ -39,20 +43,20 @@ const MainLayout = () => {
         }
     }, [email, activeTab]);
 
-    const handleTabSelect = (tab: string) => {
+    // 로그인 필요 탭은 어떤 경로로 열든 같은 게이트를 지난다 — 탭 클릭이든 RightPanel 버튼이든 비로그인이면 로그인 모달.
+    const openTab = (tab: string) => {
+        setActiveOverlay(null);
         if (LOGIN_REQUIRED_TABS.includes(tab) && !email) {
-            setActiveOverlay(null);
             setShowLoginModal(true);
             return;
         }
         setActiveTab(tab);
     };
 
+    const handleTabSelect = (tab: string) => openTab(tab);
+
     // FEATURE_01_LAYOUT.md §2.3-b: "AI 투자 리포트 보기" 버튼 → 탭 전환(SearchContext가 위에서 감싸고 있어 selectedPropertyId는 그대로 유지).
-    const handleOpenReport = () => {
-        setActiveOverlay(null);
-        setActiveTab("리포트");
-    };
+    const handleOpenReport = () => openTab("리포트");
 
     if (activeTab === "단어 기차 놀이터") {
         return <HangulGame onBack={() => setActiveTab(DEFAULT_TAB)} />;
@@ -60,6 +64,7 @@ const MainLayout = () => {
 
     return (
         <SearchProvider>
+        <FavoritesProvider onRequireLogin={() => setShowLoginModal(true)}>
         <div className="app-layout">
             <TopBar
                 tabs={TABS}
@@ -74,7 +79,12 @@ const MainLayout = () => {
                 onOpenFilter={() => setActiveOverlay("filter")}
             />
             {activeTab === "대시보드" ? (
-                <Dashboard />
+                <Dashboard
+                    onNavigateToMap={() => setActiveTab(DEFAULT_TAB)}
+                    onRequestLogin={() => setShowLoginModal(true)}
+                    narrowing={dashboardNarrowing}
+                    onNarrowingChange={setDashboardNarrowing}
+                />
             ) : activeTab === "리포트" ? (
                 <ReportPage onBackToMap={() => setActiveTab(DEFAULT_TAB)} />
             ) : PLACEHOLDER_TABS.includes(activeTab) ? (
@@ -94,6 +104,7 @@ const MainLayout = () => {
                 onOpenReport={handleOpenReport}
             />
         </div>
+        </FavoritesProvider>
         </SearchProvider>
     );
 };

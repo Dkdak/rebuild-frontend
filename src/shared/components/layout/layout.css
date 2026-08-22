@@ -1809,3 +1809,44 @@
         cursor: pointer;
     }
 }
+
+/* 후보 조건 필터(F-06 §35·§53) — 대시보드 "후보 필터 기준"과 같은 4조건. 용적률 여유는 용도지역 확인에
+   의존해 종속 표시(⚠)를 함께 둔다. */
+.left-panel-candidate-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.left-panel-candidate {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+}
+
+.left-panel-candidate-label {
+    font-size: 13px;
+    color: var(--text-h);
+}
+
+.left-panel-candidate-desc {
+    display: block;
+    padding-left: 22px;
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.left-panel-candidate-desc.is-dependent {
+    color: #8a5a00;
+}
+
+@media (prefers-color-scheme: dark) {
+    .left-panel-candidate-desc.is-dependent {
+        color: #e0a83c;
+    }
+}

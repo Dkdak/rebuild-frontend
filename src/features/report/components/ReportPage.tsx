@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearch } from "../../search/context/SearchContext";
-import { formatManwon, GRADE_CLASS } from "../../search/api/searchApi";
+import { formatManwon } from "../../search/api/searchApi";
 import { buildRemodelingChecklist, remodelingChecklistItems } from "../../remodeling/api/remodelingApi";
 import {
     CONFIDENCE_MATCH_STAGE_LABEL,
@@ -28,6 +28,7 @@ import RemodelingAnalysisPage from "./RemodelingAnalysisPage";
 import BusinessAnalysisPage from "./BusinessAnalysisPage";
 import AIOpinionPage from "./AIOpinionPage";
 import ReferencePage from "./ReferencePage";
+import FavoriteButton from "../../favorites/components/FavoriteButton";
 import SectionHeading from "../../../shared/components/SectionHeading";
 import CardSubHeading from "../../../shared/components/CardSubHeading";
 import "./ReportPage.css";
@@ -194,6 +195,25 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
         <div className="report-page">
             <div className="report-layout">
                 <nav className="report-nav">
+                    {/* FEATURE_11_FAVORITES.md §2.0의 리포트 저장 지점 — 헤더(맨 위)에 두면 스크롤을 올려야
+                        눌러서, 스크롤을 따라오는 좌측 네비 상단으로 옮겼다(사용자 지시, 2026-08-23). */}
+                    {selected && (
+                        <div className="report-nav-actions">
+                            <FavoriteButton
+                                buildingId={selected.id}
+                                className="report-nav-favorite"
+                                label="관심목록에 저장"
+                            />
+                            <button
+                                type="button"
+                                className="report-pdf-button report-nav-pdf"
+                                disabled
+                                title="F-09 완료 후 제공"
+                            >
+                                PDF 다운로드
+                            </button>
+                        </div>
+                    )}
                     {NAV_ITEMS.map(({ label, number, sectionId }) => (
                         <button key={label} type="button" className="report-nav-item" onClick={() => scrollToSection(sectionId)}>
                             <span className="report-nav-item-number" aria-hidden="true">
@@ -215,25 +235,10 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                         </div>
                     ) : (
                         <>
-                            {/* 헤더 — 스크롤 최상단 공통(주소+등급배지+최근 갱신). PDF 다운로드는 콘텐츠 흐름이 아니라
-                                상단 고정 위치의 작은 버튼(F-09 완료 후 제공될 기능이라 지금은 눈에 덜 띄는 자리). */}
+                            {/* 헤더 — 주소만 남긴다. 등급은 01 요약 섹션에 이미 있어 중복이고, 저장·PDF는
+                                스크롤을 따라오는 좌측 네비로 옮겼다(사용자 지시, 2026-08-23). */}
                             <div className="report-header">
-                                <div>
-                                    <h3 className="report-header-address">{selected.address}</h3>
-                                </div>
-                                <div className="report-header-actions">
-                                    {/* 2026-08-1x 버그 수정(RightPanel.tsx와 동일) — GRADE_CLASS는 이제 grade
-                                        코드로 직접 키잉되므로 GRADE_LABEL 경유 없이 바로 조회.
-                                        2026-08-09 — 등급 박스 전면 폐지, ResultList/RightPanel과 공통 grade-text로. */}
-                                    {analysis?.grade && (
-                                        <span className={`grade-text ${GRADE_CLASS[analysis.grade] ?? ""}`}>
-                                            {GRADE_LABEL[analysis.grade]}
-                                        </span>
-                                    )}
-                                    <button type="button" className="report-pdf-button" disabled title="F-09 완료 후 제공">
-                                        PDF 다운로드
-                                    </button>
-                                </div>
+                                <h3 className="report-header-address">{selected.address}</h3>
                             </div>
                             {/* 배치(주기적 재실행) 결과라 실시간 값이 아님을 알린다 — RightPanel과 동일 문구/기준. */}
                             {analysis?.updatedAt && (
