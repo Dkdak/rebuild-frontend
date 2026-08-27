@@ -4,6 +4,7 @@ import { getBuildingSummary, type BuildingSummary } from "../../property/api/bui
 import { ESTIMATED_AREA_TYPES } from "../../search/api/searchApi";
 import SitePolygonDiagram, { SitePolygonMeta } from "../../property/components/SitePolygonDiagram";
 import CardSubHeading from "../../../shared/components/CardSubHeading";
+import { formatArea } from "../../analysis/api/analysisMock";
 
 interface BasicInfoPageProps {
     buildingId: string;
@@ -21,7 +22,12 @@ interface BasicInfoPageProps {
 // buildingApi.ts auxiliaryBuildingCount)은 둘 다 "N동"으로 표시되지만 다른 값 — 혼동 주의(2026-08-10, 구
 // "단지 정보" 섹션이 MarketAnalysisPage.tsx에서 삭제되며 "동수" 필드가 이 카드로 이동, 같은 카드 안에 나란히
 // 있어 라벨 구분이 더 중요해짐).
-const BasicInfoPage = ({ buildingId, zoneName, floorAreaRatioLimit, propertyType }: BasicInfoPageProps) => {
+const BasicInfoPage = ({
+    buildingId,
+    zoneName,
+    floorAreaRatioLimit,
+    propertyType,
+}: BasicInfoPageProps) => {
     const [buildingDetail, setBuildingDetail] = useState<BuildingDetail | null>(null);
     const [loading, setLoading] = useState(false);
     // 2026-08-10 — F-17 building-summary 호출이 MarketAnalysisPage.tsx "단지 정보"에서 여기로 이동(그 섹션
@@ -97,13 +103,16 @@ const BasicInfoPage = ({ buildingId, zoneName, floorAreaRatioLimit, propertyType
                         나오던 것 → Math.round+toLocaleString(remodelingApi.ts의 buildable.text와 같은 표기 규칙). */}
                     <div>
                         <dt>대지면적</dt>
-                        <dd>{buildingDetail?.siteArea ? `${Math.round(buildingDetail.siteArea).toLocaleString()}㎡` : "확인되지 않음"}</dd>
+                        <dd>{buildingDetail?.siteArea ? `${formatArea(buildingDetail.siteArea)}㎡` : "확인되지 않음"}</dd>
                     </div>
                     <div>
                         <dt>연면적</dt>
                         <dd>
                             {buildingDetail?.grossFloorArea != null
-                                ? `${Math.round(buildingDetail.grossFloorArea).toLocaleString()}㎡`
+                                ? `${formatArea(buildingDetail.grossFloorArea)}㎡` +
+                                  (buildingDetail.farComputationGfa != null
+                                      ? ` (용적률 산정 ${formatArea(buildingDetail.farComputationGfa)}㎡)`
+                                      : "")
                                 : "확인되지 않음"}
                         </dd>
                     </div>

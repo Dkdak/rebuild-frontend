@@ -262,3 +262,48 @@
     line-height: 1.6;
     color: var(--text-muted);
 }
+
+/* F-03 §2.5-a — 행 전체는 리포트로, "실측 상태" 셀은 분석탭으로. 누를 수 있다는 것은 hover로만 알린다. */
+.favorite-table-row {
+    cursor: pointer;
+}
+
+.favorite-table-row:hover {
+    background: var(--accent-bg);
+}
+
+.favorite-measure-state {
+    padding: 2px 8px;
+    border: none;
+    border-radius: 4px;
+    background: none;
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+/* 이 셀은 그 매물의 분석탭으로 가는 지름길이다 — 누를 수 있다는 것은 밑줄·hover로만 알린다. */
+.favorite-measure-state.is-clickable {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+
+.favorite-measure-state.is-clickable:hover {
+    background: var(--code-bg);
+}
+
+.favorite-measure-state.is-none {
+    color: var(--text-muted);
+}
+
+.favorite-measure-state.is-progress {
+    color: var(--accent);
+}
+
+.favorite-measure-state.is-done {
+    color: #15803d;
+}
+
+.favorite-measure-state.is-recheck {
+    color: #b45309;
+}

@@ -4,6 +4,7 @@ import FavoriteButton from "./FavoriteButton";
 import { GRADE_CLASS } from "../../search/api/searchApi";
 import type { FavoriteRow } from "../api/favoritesApi";
 import { useFavorites } from "../context/FavoritesContext";
+import { useMeasurementRows } from "../../analysis/hooks/useMeasurementRows";
 import "./favorites.css";
 
 // planning/rebuild/ReValue_대시보드_콘텐츠_구성안.md §3 — 좌 1/3 등급 분포, 우 2/3 관심 건물 목록.
@@ -42,15 +43,29 @@ const gradeChangeMark = (gradeAtSave: string | null, grade: string | null) => {
     return to > from ? "↓" : "↑";
 };
 
+// F-03 §2.5-a — 한 행의 동작은 셋이다: 행 전체는 리포트(담아둔 매물은 대개 아직 판단 전이라 리포트를 먼저
+// 본다), "실측 상태" 셀은 그 매물의 분석탭(사용자 지시, 2026-08-23 — 목록을 훑다 바로 이어서 작업하는 경로),
+// ♥는 해제. 셀 단위로 클릭 영역을 나눈다.
+// 상태 칸에는 상태만 쓴다 — "분석 시작"·"이어하기" 같은 동작 문구를 넣으면 컬럼 이름과 내용이 어긋난다.
 interface FavoriteListSectionProps {
     rows: FavoriteRow[] | null;
     failed: boolean;
     onReload: () => void;
     onGoToMap: () => void;
+    onGoToReport: (buildingId: string, address: string) => void;
+    onGoToAnalysis: (buildingId: string, address: string) => void;
 }
 
-const FavoriteListSection = ({ rows, failed, onReload, onGoToMap }: FavoriteListSectionProps) => {
+const FavoriteListSection = ({
+    rows,
+    failed,
+    onReload,
+    onGoToMap,
+    onGoToReport,
+    onGoToAnalysis,
+}: FavoriteListSectionProps) => {
     const { favoriteCount } = useFavorites();
+    const { byBuildingId } = useMeasurementRows();
 
     if (favoriteCount === 0) {
         return (
@@ -107,8 +122,29 @@ const FavoriteListSection = ({ rows, failed, onReload, onGoToMap }: FavoriteList
                                     const grade = row.property?.grade ?? null;
                                     const mark = gradeChangeMark(row.gradeAtSave, grade);
 
+                                    const measurement = byBuildingId.get(row.buildingId);
+                                    // 재확인이 우선이다 — 완료·진행중이라도 낡은 항목이 있으면 "재확인 n"으로
+                                    // 보여야 한다("완료"는 할 일 없음으로 읽히는데 확인할 값이 남아 있다).
+                                    // 건수는 진행중·재확인에만 붙인다(미시작 0/4·완료 4/4는 자명하다).
+                                    const measureState = !measurement
+                                        ? { label: "미시작", tone: "is-none" }
+                                        : measurement.recheckCount > 0
+                                          ? { label: `재확인 ${measurement.recheckCount}`, tone: "is-recheck" }
+                                          : measurement.status === "COMPLETED"
+                                            ? { label: "완료", tone: "is-done" }
+                                            : {
+                                                  label: `진행중 ${measurement.progress.measured}/${measurement.progress.total}`,
+                                                  tone: "is-progress",
+                                              };
+
                                     return (
-                                        <tr key={row.buildingId}>
+                                        <tr
+                                            key={row.buildingId}
+                                            className="favorite-table-row"
+                                            onClick={() =>
+                                                onGoToReport(row.buildingId, row.property?.address ?? "")
+                                            }
+                                        >
                                             <td className="favorite-table-address">
                                                 {row.property ? (
                                                     row.property.address
@@ -133,9 +169,29 @@ const FavoriteListSection = ({ rows, failed, onReload, onGoToMap }: FavoriteList
                                                 나란히 비교할 대상이 못 되고, 아래 실측 진행 현황 카드가 그 값을
                                                 "입력 기준 ROI"로 따로 보여준다. 변화 방향(↑↓)은 이 칸 안에서
                                                 표시한다. F-19 목록 API 연동 후 채운다. */}
-                                            <td className="is-right favorite-table-muted">—</td>
-                                            {/* 완료 / 진행중 / 미시작 — F-19 목록 API 연동 후 채운다. */}
-                                            <td className="favorite-table-muted">—</td>
+                                            {/* 실측 ROI는 완료건에만 — 진행중 값은 미입력분을 추정치로 채운
+                                                반쪽이라 예상 ROI와 나란히 놓을 수 없다(§3.2-a). */}
+                                            <td className="is-right">
+                                                {measurement?.status === "COMPLETED" && measurement.measuredRoi != null
+                                                    ? `${Math.round(measurement.measuredRoi)}%`
+                                                    : "—"}
+                                            </td>
+                                            <td>
+                                                <button
+                                                    type="button"
+                                                    className={`favorite-measure-state is-clickable ${measureState.tone}`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onGoToAnalysis(
+                                                            row.buildingId,
+                                                            row.property?.address ?? "",
+                                                        );
+                                                    }}
+                                                    title="분석탭에서 열기"
+                                                >
+                                                    {measureState.label}
+                                                </button>
+                                            </td>
                                             <td className="is-right">
                                                 <FavoriteButton buildingId={row.buildingId} />
                                             </td>

@@ -20,7 +20,7 @@ export const useFavoriteRows = (): FavoriteRowsState => {
     const [failed, setFailed] = useState(false);
 
     const reload = useCallback(() => {
-        if (!token) return;
+        if (!token && !import.meta.env.DEV) return;
 
         fetchFavorites(token, 1, FETCH_SIZE)
             .then((response) => {

@@ -392,3 +392,46 @@
     background: var(--accent-bg);
     color: var(--accent);
 }
+
+/* DOMAIN.md §7.5 값 상태 배지 — 추정(공공데이터 계산값) / 실측(현장 확인 입력) / 재확인(실측인데 낡음). */
+.value-badge {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.value-badge em {
+    font-size: 10.5px;
+    font-style: normal;
+    font-weight: 400;
+}
+
+.value-badge.is-estimated {
+    background: var(--code-bg);
+    color: var(--text-muted);
+}
+
+.value-badge.is-measured {
+    background: rgba(22, 163, 74, 0.12);
+    color: #15803d;
+}
+
+.value-badge.is-recheck {
+    background: rgba(217, 119, 6, 0.14);
+    color: #b45309;
+}
+
+@media (prefers-color-scheme: dark) {
+    .value-badge.is-measured {
+        color: #6ee7a8;
+    }
+
+    .value-badge.is-recheck {
+        color: #fbbf24;
+    }
+}

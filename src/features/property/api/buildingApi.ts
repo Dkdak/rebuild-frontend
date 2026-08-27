@@ -11,6 +11,9 @@ export interface BuildingDetail {
     buildingCoverageRatio: number | null;
     coverageRatioLimit: number | null; // 건폐율 법정상한(%) — F-05·F-10 둘 다 "값% / 법정상한 값%"로 병기(2026-08-1x, §2.1)
     floorAreaRatio: number | null;
+    // 용적률 산정 연면적 — 대장 연면적(grossFloorArea)에는 지하·주차처럼 산정에서 빠지는 면적이 섞여 있어
+    // 연면적÷대지면적이 화면의 용적률과 안 맞는다. 두 값을 병기해 그 차이를 설명한다(2026-08-27 추가).
+    farComputationGfa: number | null;
     householdCount: number | null;
     useApprovalDate: string | null;
     structureNm: string | null;

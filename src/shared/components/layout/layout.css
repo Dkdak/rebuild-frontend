@@ -1850,3 +1850,12 @@
         color: #e0a83c;
     }
 }
+
+/* fact-list 값 아래 한 줄 — 값 자체가 아니라 그 값을 어떻게 읽어야 하는지(대장 연면적 vs 용적률 산정 면적). */
+.right-panel-fact-sub {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-muted);
+}
