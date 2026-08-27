@@ -11,11 +11,15 @@ import { formatManwon } from "../../search/api/searchApi";
 import type { PropertyAnalysis } from "../../investment/api/analysisApi";
 import PriceTrendChart from "./PriceTrendChart";
 import CardSubHeading from "../../../shared/components/CardSubHeading";
+import ValueBadge from "../../../shared/components/ValueBadge";
+import type { PricePositionField } from "../../report/api/reportApi";
 
 interface MarketAnalysisPageProps {
     analysis: PropertyAnalysis | null;
     loading: boolean;
     area: number | null; // 건물 자체 면적(F-04 §2.1-e 기준) — 추정 시세 ㎡당가격 분모
+    // CASE2 — 실측 매입가가 있으면 "이 매물의 위치"만 그 값 기준으로 바뀐다(분포 막대·기준선은 그대로).
+    pricePosition?: PricePositionField | null;
 }
 
 const formatContractMonth = (dateStr: string): string => {
@@ -135,7 +139,7 @@ const TradeTable = ({
 // FEATURE_10_AI_REPORT.md §2.4: analysis.market(F-08) 파생값 + 시세 추이 그래프(priceTrend) + 비교 거래 표 2개
 // (구 "유사 사례" 페이지 흡수, 2026-08-1x 카테고리 재편). 2026-08-10: "단지 정보" 섹션 삭제 — F-17
 // building-summary 호출은 BasicInfoPage.tsx(02 기본정보)로 이동, 이 페이지는 더 이상 그 데이터를 안 씀.
-const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps) => {
+const MarketAnalysisPage = ({ analysis, loading, area, pricePosition }: MarketAnalysisPageProps) => {
     if (loading) {
         return <p className="right-panel-field-note">조회 중...</p>;
     }
@@ -146,6 +150,10 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
     }
 
     const { market } = analysis;
+
+    // 분포(p25/median/p75)는 두 소스가 같은 값이라 그대로 두고, "이 매물의 위치"만 실측 응답이 있으면 그것을
+    // 쓴다(§1.1 04 카드). 실측이 없으면 measured=false로 공공데이터 기준과 같은 값이 온다.
+    const position = pricePosition?.value ?? market.pricePosition;
 
     // 2026-08-17(신뢰도 스티커 통일) — recentTrade 있으면 confidenceLevel과 무관하게 "실거래"가 최우선(01/06/
     // F-04/F-05와 같은 규칙). postRemodel(리모델링 후)은 미래 추정값이라 recentTrade 개념이 없어 항상 false.
@@ -269,7 +277,9 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
                     thisPropertyPercentile(0~100)을 트랙 left%로 직접 사용 — p25/p75도 정의상 각각 25/75
                     percentile이라 눈금 자리(25%/50%/75%)와 값이 서로 어긋나지 않는다. */}
                 <section className="right-panel-card">
-                    <CardSubHeading number={2} title="시장 내 가격 위치" />
+                    <CardSubHeading number={2} title="시장 내 가격 위치">
+                        {pricePosition && <ValueBadge status={pricePosition.measured ? "MEASURED" : "ESTIMATED"} />}
+                    </CardSubHeading>
                     {/* 2026-08-17 정정(docs/CONTENT_TAXONOMY.md 금지규칙 5 "계산되지 않은 값에 결론을 붙이지
                         않는다") — thisPropertyPercentile===50을 "이례적 값"으로 취급해 게이지+결론을 그대로
                         그리고 그 아래에 뒤늦게 "사실 중앙값 대체였다"고 해명하던 것이 바로 이 금지 규칙이 지목한
@@ -277,7 +287,7 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
                         중앙값 대체로 resolve된 단계)면 percentile 자체가 "계산되지 않은 값"이라 게이지를 아예
                         그리지 않고 "산출 불가"만 표시 — 50 여부로 판단하지 않는다(진짜 SAME_DONG 단계에서
                         중앙값에 위치한 매물은 50이 정상값이라 걸러지면 안 됨). */}
-                    {market.pricePosition == null ||
+                    {position == null ||
                     market.estimatedPrice.confidenceLevel === "DONG_TYPE_AVERAGE" ||
                     market.estimatedPrice.confidenceLevel === "GU_TYPE_AVERAGE" ? (
                         <p className="right-panel-field-note">산출 불가</p>
@@ -287,23 +297,23 @@ const MarketAnalysisPage = ({ analysis, loading, area }: MarketAnalysisPageProps
                                 <div className="report-price-position-track" />
                                 <div
                                     className="report-price-position-marker"
-                                    style={{ left: `${market.pricePosition.thisPropertyPercentile}%` }}
+                                    style={{ left: `${position.thisPropertyPercentile}%` }}
                                 >
                                     {estimatedPricePerSqm != null ? estimatedPricePerSqm.toLocaleString() : "-"}
                                 </div>
                             </div>
                             <div className="report-price-position-ticks">
-                                <span>하위25% {Math.round(market.pricePosition.p25).toLocaleString()}</span>
-                                <span>중앙값 {Math.round(market.pricePosition.median).toLocaleString()}</span>
-                                <span>상위25% {Math.round(market.pricePosition.p75).toLocaleString()}</span>
+                                <span>하위25% {Math.round(position.p25).toLocaleString()}</span>
+                                <span>중앙값 {Math.round(position.median).toLocaleString()}</span>
+                                <span>상위25% {Math.round(position.p75).toLocaleString()}</span>
                             </div>
                             <hr className="right-panel-card-divider" />
                             {/* 2026-08-17 정정(금지규칙 3 "방향을 결론에 명시한다") — "상위 20%"만 있으면 "좋다"는
                                 뜻으로 오독될 수 있어(비싼 쪽이라는 뜻) 방향을 문장으로 먼저 말한다. */}
                             <p className="right-panel-field-note">
-                                {market.pricePosition.thisPropertyPercentile >= 50
-                                    ? `가격이 높은 편입니다(상위 ${(100 - market.pricePosition.thisPropertyPercentile).toFixed(0)}% 수준)`
-                                    : `가격이 낮은 편입니다(하위 ${market.pricePosition.thisPropertyPercentile.toFixed(0)}% 수준)`}
+                                {position.thisPropertyPercentile >= 50
+                                    ? `가격이 높은 편입니다(상위 ${(100 - position.thisPropertyPercentile).toFixed(0)}% 수준)`
+                                    : `가격이 낮은 편입니다(하위 ${position.thisPropertyPercentile.toFixed(0)}% 수준)`}
                             </p>
                         </>
                     )}

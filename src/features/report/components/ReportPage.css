@@ -1417,3 +1417,120 @@ dl.right-panel-fact-list.report-fact-grid dd {
     width: 100%;
     text-align: left;
 }
+
+.report-nav-analysis {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--accent-border);
+    border-radius: 8px;
+    background: var(--accent-bg);
+    font-size: 12.5px;
+    font-weight: 600;
+    text-align: left;
+    color: var(--accent);
+    cursor: pointer;
+}
+
+/* 08 분석의 한계 — CASE2 해소 현황(§2.3-d). "미해소"(입력하면 풀림)와 "분석 범위 아님"(서비스가 안 다룸)은
+   사용자가 할 일이 있느냐가 다르므로 톤을 나눈다 — 후자는 숙제처럼 보이면 안 된다. */
+.report-limitation-status {
+    margin-left: 7px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.report-limitation-status.is-resolved {
+    background: rgba(22, 163, 74, 0.12);
+    color: #15803d;
+}
+
+.report-limitation-status.is-partial,
+.report-limitation-status.is-recorded {
+    background: var(--accent-bg);
+    color: var(--accent);
+}
+
+.report-limitation-status.is-unresolved {
+    background: rgba(217, 119, 6, 0.14);
+    color: #b45309;
+}
+
+.report-limitation-status.is-out_of_scope {
+    background: var(--code-bg);
+    color: var(--text-muted);
+}
+
+/* 실측 근거 밴드(§2.1-a) — 본문 최상단. 인쇄물에도 남아야 하므로 네비가 아니라 본문에 둔다.
+   개별 값 배지만으로는 전체 신뢰도가 안 잡혀서 상단에 카운트를 상시 표시한다(DOMAIN.md §7.5). */
+.report-evidence-band {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--code-bg);
+}
+
+.report-evidence-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.report-evidence-case {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.report-evidence-updated {
+    font-size: 11.5px;
+    color: var(--text-muted);
+}
+
+.report-evidence-cta {
+    margin-left: auto;
+    padding: 6px 12px;
+    border: 1px solid var(--accent-border);
+    border-radius: 6px;
+    background: var(--accent-bg);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    cursor: pointer;
+}
+
+.report-evidence-items {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 18px;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.report-evidence-items li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.report-evidence-label {
+    min-width: 62px;
+    font-weight: 600;
+    color: var(--text-h);
+}
+
+.report-evidence-note {
+    color: var(--text-muted);
+}
+
+@media (max-width: 1100px) {
+    .report-evidence-items {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

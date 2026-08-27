@@ -13,6 +13,7 @@
 // 2026-08-18 — CardSubHeading으로 카드 번호 부여(docs/FEATURE.md §8.24, product 전달).
 
 import CardSubHeading from "../../../shared/components/CardSubHeading";
+import { LIMITATION_STATUS_LABEL, type LimitationResolution } from "../api/reportApi";
 
 const DATA_SOURCES = [
     { item: "건축물 정보", source: "건축물대장", loadedAt: "2026-07-23" },
@@ -81,7 +82,13 @@ const LAW_LINKS = [
     { label: "실거래가 공개시스템", org: "국토교통부", url: "https://rt.molit.go.kr" },
 ];
 
-const ReferencePage = () => (
+// CASE2에서는 5문장 각각에 해소 현황이 붙는다(§2.3-d). "미해소"는 입력하면 풀리는 것이고
+// "분석 범위 아님"은 서비스가 다루지 않기로 한 것이라, 후자를 숙제처럼 보이게 하면 안 된다 — 톤을 나눈다.
+interface ReferencePageProps {
+    limitations: LimitationResolution[] | null;
+}
+
+const ReferencePage = ({ limitations }: ReferencePageProps) => (
     <>
         <p className="report-opinion-subtitle">
             리포트 전체가 쓴 계산식·데이터 출처·신뢰도 기준을 한곳에 모아 투명하게 보여줍니다.
@@ -197,9 +204,22 @@ const ReferencePage = () => (
             <section className="right-panel-card">
                 <CardSubHeading number={5} title="분석의 한계" />
                 <ul className="report-opinion-checklist report-opinion-checklist-unordered">
-                    {LIMITATIONS.map((text) => (
-                        <li key={text}>{text}</li>
-                    ))}
+                    {LIMITATIONS.map((text, index) => {
+                        const resolution = limitations?.find((row) => row.number === index + 1);
+
+                        return (
+                            <li key={text}>
+                                {text}
+                                {resolution && (
+                                    <span
+                                        className={`report-limitation-status is-${resolution.status.toLowerCase()}`}
+                                    >
+                                        {LIMITATION_STATUS_LABEL[resolution.status] ?? resolution.status}
+                                    </span>
+                                )}
+                            </li>
+                        );
+                    })}
                 </ul>
                 <p className="right-panel-field-note report-opinion-disclaimer">
                     중요한 투자 결정을 내리기 전에는 건축사·세무사·법무사·중개사 등 관련 전문가의 별도 확인이

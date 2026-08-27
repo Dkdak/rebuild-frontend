@@ -774,3 +774,9 @@ button.dashboard-hood-row.is-rest .dashboard-hood-name {
 .dashboard-kpi-pair .dashboard-kpi-value {
     font-size: 19px;
 }
+
+.dashboard-goto-analysis {
+    margin-left: 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+}

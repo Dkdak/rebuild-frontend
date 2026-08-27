@@ -23,14 +23,15 @@ export interface FavoriteListResponse {
     totalPages: number;
 }
 
-const authHeader = (token: string) => ({ headers: { Authorization: `Bearer ${token}` } });
+const authHeader = (token: string | null) =>
+    token ? { headers: { Authorization: `Bearer ${token}` } } : {};
 
-export const fetchFavoriteIds = async (token: string): Promise<string[]> => {
+export const fetchFavoriteIds = async (token: string | null): Promise<string[]> => {
     const response = await api.get<string[]>("/api/v1/favorites/ids", authHeader(token));
     return response.data;
 };
 
-export const fetchFavorites = async (token: string, page = 1, size = 5): Promise<FavoriteListResponse> => {
+export const fetchFavorites = async (token: string | null, page = 1, size = 5): Promise<FavoriteListResponse> => {
     const response = await api.get<FavoriteListResponse>("/api/v1/favorites", {
         ...authHeader(token),
         params: { page, size },
@@ -38,11 +39,11 @@ export const fetchFavorites = async (token: string, page = 1, size = 5): Promise
     return response.data;
 };
 
-export const addFavorite = async (token: string, buildingId: string): Promise<void> => {
+export const addFavorite = async (token: string | null, buildingId: string): Promise<void> => {
     await api.post("/api/v1/favorites", { buildingId }, authHeader(token));
 };
 
 // 해제는 멱등이라 이미 빠진 건물을 다시 해제해도 에러가 아니다.
-export const removeFavorite = async (token: string, buildingId: string): Promise<void> => {
+export const removeFavorite = async (token: string | null, buildingId: string): Promise<void> => {
     await api.delete(`/api/v1/favorites/${buildingId}`, authHeader(token));
 };

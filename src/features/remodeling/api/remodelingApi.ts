@@ -2,6 +2,13 @@
 export type RemodelingVerdict = "POSSIBLE" | "LIMITED" | "NOT_POSSIBLE";
 
 export interface RemodelingBasis {
+    // 건축물대장 원본값 — landuse 매칭에 의존하는 값들과 달리 항상 채워진다(backend 2026-08-23).
+    landAreaSqm: number | null;
+    grossFloorAreaSqm: number | null;
+    // 대장이 계산해 둔 현재 용적률(%)과 용적률 산정 연면적 — 역산(상한−여유)은 지구단위계획 오버라이드에서
+    // 어긋날 수 있어 이 값을 그대로 쓴다(backend 2026-08-27).
+    currentFloorAreaRatio: number | null;
+    farComputationGfa: number | null;
     buildingAgeYears: number | null;
     gatePassed: boolean | null;
     gateYears: number | null;

@@ -51,7 +51,7 @@ export const FavoritesProvider = ({ children, onRequireLogin }: FavoritesProvide
     };
 
     const commit = useCallback(
-        (authToken: string, buildingId: string, next: boolean) => {
+        (authToken: string | null, buildingId: string, next: boolean) => {
             applyLocal(buildingId, next);
             const request = next ? addFavorite(authToken, buildingId) : removeFavorite(authToken, buildingId);
             request.catch(() => {
@@ -65,7 +65,7 @@ export const FavoritesProvider = ({ children, onRequireLogin }: FavoritesProvide
     // 로그인 시점에 ID 목록을 한 번 받아 Set으로 들고 있는다. 로그아웃 상태에서는 아래 effectiveIds가 빈
     // Set을 내보내므로 여기서 상태를 지우지 않는다(다음 로그인 때 조회 결과로 통째로 교체된다).
     useEffect(() => {
-        if (!token) return;
+        if (!token && !import.meta.env.DEV) return;
 
         fetchFavoriteIds(token)
             .then((ids) => {
@@ -80,7 +80,7 @@ export const FavoritesProvider = ({ children, onRequireLogin }: FavoritesProvide
     }, [token, commit]);
 
     // 비로그인 상태에서는 ♥를 전부 빈 상태로 보여준다(§2.3).
-    const effectiveIds = token ? favoriteIds : EMPTY_IDS;
+    const effectiveIds = token || import.meta.env.DEV ? favoriteIds : EMPTY_IDS;
 
     const value: FavoritesContextValue = {
         favoriteIds: effectiveIds,
@@ -88,7 +88,7 @@ export const FavoritesProvider = ({ children, onRequireLogin }: FavoritesProvide
         revision,
         isFavorited: (buildingId: string) => effectiveIds.has(buildingId),
         toggleFavorite: (buildingId: string) => {
-            if (!token) {
+            if (!token && !import.meta.env.DEV) {
                 pendingRef.current = buildingId;
                 onRequireLogin();
                 return;

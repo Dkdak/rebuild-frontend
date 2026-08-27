@@ -35,12 +35,22 @@ type StatsStatus = "loading" | "ready" | "empty" | "error";
 // 선택이 기본값으로 돌아가면 안 되기 때문(검색창 위치를 SearchContext로 올린 것과 같은 이유).
 interface DashboardProps {
     onNavigateToMap: () => void;
+    // F-03 §2.5-a — 관심목록 행은 리포트로, "실측 상태" 셀은 분석탭으로 간다(둘 다 그 매물을 선택한 채로).
+    onOpenReport: () => void;
+    onNavigateToAnalysis: (buildingId?: string, address?: string) => void;
     onRequestLogin: () => void;
     narrowing: NarrowingSelection;
     onNarrowingChange: (selection: NarrowingSelection) => void;
 }
 
-const Dashboard = ({ onNavigateToMap, onRequestLogin, narrowing, onNarrowingChange }: DashboardProps) => {
+const Dashboard = ({
+    onNavigateToMap,
+    onOpenReport,
+    onNavigateToAnalysis,
+    onRequestLogin,
+    narrowing,
+    onNarrowingChange,
+}: DashboardProps) => {
     const { nickname } = useAuth();
     // 관심목록 응답은 KPI 요약과 목록이 함께 쓴다 — 여기서 한 번 받아 내려준다.
     const favorites = useFavoriteRows();
@@ -128,6 +138,20 @@ const Dashboard = ({ onNavigateToMap, onRequestLogin, narrowing, onNarrowingChan
         runCandidateSearch(nextFilters, grade);
     };
 
+    // 리포트는 선택된 매물을 SearchContext에서 읽는다 — 관심목록에서 바로 열려면 그 건물 한 건을 먼저
+    // 조회해 선택 상태로 만든다(지도 검색의 BUILDING 후보와 같은 경로).
+    const handleOpenReport = (buildingId: string, address: string) => {
+        runAddressSearch({
+            type: "BUILDING",
+            buildingId,
+            bjdongCd: null,
+            displayText: address,
+            lat: null,
+            lng: null,
+        });
+        onOpenReport();
+    };
+
     const handleSelectBuildingType = (propertyTypes: string[]) => {
         const nextFilters = withCandidateConditions({
             propertyTypeFilters: propertyTypes.map((type) => ({
@@ -164,8 +188,12 @@ const Dashboard = ({ onNavigateToMap, onRequestLogin, narrowing, onNarrowingChan
                                 failed={favorites.failed}
                                 onReload={favorites.reload}
                                 onGoToMap={onNavigateToMap}
+                                onGoToReport={handleOpenReport}
+                                onGoToAnalysis={(buildingId, address) =>
+                                    onNavigateToAnalysis(buildingId, address)
+                                }
                             />
-                            <MeasurementProgressSection />
+                            <MeasurementProgressSection onGoToAnalysis={onNavigateToAnalysis} />
                         </>
                     ) : (
                         <section className="dashboard-card dashboard-personal">

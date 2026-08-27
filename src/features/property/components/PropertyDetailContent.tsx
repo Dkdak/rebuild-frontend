@@ -105,6 +105,12 @@ const PropertyDetailContent = ({ onOpenReport }: PropertyDetailContentProps) => 
         selected.buildYear != null ? `${selected.buildYear}년(${new Date().getFullYear() - selected.buildYear}년차)` : "준공년도 미확인";
     // ㎡→평 환산(1평=3.305785㎡, AreaRangeControl.tsx와 동일 상수) — 대지면적·연면적 옆에 괄호로 병기(2026-08-1x).
     const sqmToPyeong = (sqm: number): number => Math.round(sqm / 3.305785);
+    // 대장 연면적과 용적률 산정 연면적이 같으면 지하·주차 제외분이 없다는 뜻이라 병기하지 않는다
+    // — 같은 값을 두 번 쓰면 왜 두 번 썼는지 되묻게 된다(리포트 02·분석탭과 같은 규칙).
+    const showFarComputationGfa =
+        buildingDetail?.grossFloorArea != null &&
+        buildingDetail.farComputationGfa != null &&
+        Math.abs(buildingDetail.farComputationGfa - buildingDetail.grossFloorArea) >= 0.01;
     // 시세 카드 "연면적당 가격" 캡션(2026-08-09 최종 확정) — estimatedPrice.value(만원) ÷ 연면적(selected.area, ㎡).
     // "토지당 가격"(만원/㎡)과 단위를 맞추기 위해 평 환산 없이 ㎡ 그대로 노출(이전엔 평 환산 후 "연면적 평당"으로
     // 표시했으나, 옆의 "토지당 가격"과 단위 기준이 달라 비교가 안 된다는 지적으로 정정).
@@ -242,10 +248,17 @@ const PropertyDetailContent = ({ onOpenReport }: PropertyDetailContentProps) => 
                         </div>
                         <div>
                             <dt>연면적</dt>
+                            {/* 대장 연면적에는 지하·주차처럼 용적률 산정에서 빠지는 면적이 섞여 있다 — 두 값이
+                                다를 때만 산정 면적을 함께 적는다(DOMAIN.md §7.6, 리포트 02·분석탭과 같은 표기). */}
                             <dd>
                                 {buildingDetail?.grossFloorArea != null
                                     ? `${buildingDetail.grossFloorArea}㎡ (${sqmToPyeong(buildingDetail.grossFloorArea)}평)`
                                     : "정보 준비 중"}
+                                {showFarComputationGfa && (
+                                    <span className="right-panel-fact-sub">
+                                        용적률 산정 {buildingDetail?.farComputationGfa}㎡
+                                    </span>
+                                )}
                             </dd>
                         </div>
                         <div>
@@ -281,6 +294,9 @@ const PropertyDetailContent = ({ onOpenReport }: PropertyDetailContentProps) => 
                             <dd>{buildingDetail?.mainUsageNm ?? "정보 준비 중"}</dd>
                         </div>
                     </dl>
+                )}
+                {showFarComputationGfa && (
+                    <p className="right-panel-field-note">지하·주차 등은 용적률 산정에서 제외됩니다</p>
                 )}
             </section>
 

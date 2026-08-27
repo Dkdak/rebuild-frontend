@@ -29,6 +29,11 @@ import BusinessAnalysisPage from "./BusinessAnalysisPage";
 import AIOpinionPage from "./AIOpinionPage";
 import ReferencePage from "./ReferencePage";
 import FavoriteButton from "../../favorites/components/FavoriteButton";
+import ValueBadge from "../../../shared/components/ValueBadge";
+import { fetchBuildingReport, type BuildingReport } from "../api/reportApi";
+import ReportEvidenceBand from "./ReportEvidenceBand";
+import { fetchMeasurementDetail, type MeasurementDetail } from "../../analysis/api/measurementApi";
+import { useAuth } from "../../../shared/context/AuthContext";
 import SectionHeading from "../../../shared/components/SectionHeading";
 import CardSubHeading from "../../../shared/components/CardSubHeading";
 import "./ReportPage.css";
@@ -58,11 +63,21 @@ const scrollToSection = (sectionId: string) => {
 
 interface ReportPageProps {
     onBackToMap: () => void;
+    onGoToAnalysis: (buildingId: string, address: string) => void;
 }
 
 // FEATURE_10_AI_REPORT.md §2.2 "요약 섹션 구성(위→아래 고정 순서)": 헤더 → 통계 5칸 → 핵심 요약(장점/주의사항,
 // 주의사항엔 구 "리스크 분석" 5항목도 흡수).
-const ReportPage = ({ onBackToMap }: ReportPageProps) => {
+// FEATURE_19 §1.1 — CASE1/CASE2 통합 응답. 값별 measured를 그대로 배지로 옮긴다(등급은 실측으로 바뀌지
+// 않으므로 배지를 붙이지 않는다). 실측이 없으면 전부 measured=false라 화면은 분기 없이 같은 코드로 돈다.
+const measuredBadge = (measured: boolean | undefined) =>
+    measured == null ? null : <ValueBadge status={measured ? "MEASURED" : "ESTIMATED"} />;
+
+const ReportPage = ({ onBackToMap, onGoToAnalysis }: ReportPageProps) => {
+    const { token } = useAuth();
+    const [report, setReport] = useState<BuildingReport | null>(null);
+    // 근거 밴드의 항목별 상태·경과일은 실측 상세에서 온다 — 실측이 없으면 404라 CASE 1 밴드로 나온다.
+    const [measurement, setMeasurement] = useState<MeasurementDetail | null>(null);
     const { searchResults, selectedPropertyId } = useSearch();
     const selected = searchResults?.items.find((item) => item.id === selectedPropertyId) ?? null;
 
@@ -72,6 +87,32 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
     // MarketAnalysisPage에서 여기로 이동).
     const [analysis, setAnalysis] = useState<PropertyAnalysis | null>(null);
     const [analysisLoading, setAnalysisLoading] = useState(false);
+
+    // CASE1/2 통합 응답 — 로그인 계정 기준이라 토큰이 있을 때만 부른다. 실패하면 배지 없이 기존 화면 그대로.
+    useEffect(() => {
+        if (!selected || !token) return;
+
+        let cancelled = false;
+        fetchBuildingReport(token, selected.id)
+            .then((result) => {
+                if (!cancelled) setReport(result);
+            })
+            .catch(() => {
+                if (!cancelled) setReport(null);
+            });
+
+        fetchMeasurementDetail(token, selected.id)
+            .then((result) => {
+                if (!cancelled) setMeasurement(result);
+            })
+            .catch(() => {
+                if (!cancelled) setMeasurement(null);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [selected, token]);
 
     useEffect(() => {
         if (!selected) {
@@ -204,6 +245,14 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                 className="report-nav-favorite"
                                 label="관심목록에 저장"
                             />
+                            {/* FEATURE_19_PERSONALIZED_ANALYSIS.md §8 — 리포트에서 분석탭으로 넘어가는 진입점. */}
+                            <button
+                                type="button"
+                                className="report-nav-analysis"
+                                onClick={() => onGoToAnalysis(selected.id, selected.address)}
+                            >
+                                이 매물 직접 분석하기
+                            </button>
                             <button
                                 type="button"
                                 className="report-pdf-button report-nav-pdf"
@@ -240,6 +289,13 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                             <div className="report-header">
                                 <h3 className="report-header-address">{selected.address}</h3>
                             </div>
+
+                            {/* 실측 근거 밴드 — 본문 최상단(§2.1-a). 인쇄물에도 남아야 해서 네비가 아니라 본문에 둔다. */}
+                            <ReportEvidenceBand
+                                report={report}
+                                measurement={measurement}
+                                onGoToAnalysis={() => onGoToAnalysis(selected.id, selected.address)}
+                            />
                             {/* 배치(주기적 재실행) 결과라 실시간 값이 아님을 알린다 — RightPanel과 동일 문구/기준. */}
                             {analysis?.updatedAt && (
                                 <p className="right-panel-market-cell-aux">
@@ -335,7 +391,9 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                         </CardSubHeading>
                                         <div className="grid-3">
                                             <div>
-                                                <p className="report-stat-label">미래가치</p>
+                                                <p className="report-stat-label">
+                                                    미래가치 {measuredBadge(report?.projectedValue.measured)}
+                                                </p>
                                                 <p className="report-stat-value">
                                                     {profitAnalysis
                                                         ? `${isLowConfidence ? "약 " : ""}${formatManwon(profitAnalysis.value)}`
@@ -348,7 +406,10 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                                     보여주면 오히려 정밀해 보이는 착시가 있었다는 지적. 2026-08-17 —
                                                     라벨-부호 어긋남 정정: gainLo/gainHi가 이미 "예상 손실"이면
                                                     절댓값+오름차순으로 정리된 값이라 중앙값도 그대로 재사용. */}
-                                                <p className="report-stat-label">{GAIN_LABEL[gainDisplaySign]}</p>
+                                                <p className="report-stat-label">
+                                                    {GAIN_LABEL[gainDisplaySign]}{" "}
+                                                    {measuredBadge(report?.expectedProfit.measured)}
+                                                </p>
                                                 <p className="report-stat-value">
                                                     {profitAnalysis
                                                         ? isLowConfidence
@@ -361,7 +422,9 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                                 {/* roi==null이면 backend stage != FULL(실측 확인) — "산정 중"은 곧 채워질
                                                     것처럼 오해를 줘서 "산출 불가"로 정정(§2.2). 소수점 제거(ResultList/
                                                     RightPanel과 동일 패턴) + isLowConfidence면 "약 " 접두. */}
-                                                <p className="report-stat-label">ROI</p>
+                                                <p className="report-stat-label">
+                                                    ROI {measuredBadge(report?.roi.measured)}
+                                                </p>
                                                 <p className="report-stat-value">
                                                     {analysisLoading
                                                         ? "분석 중..."
@@ -482,7 +545,9 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                             {/* 4. 시장 분석 — 구 "유사 사례"의 비교 거래 표 흡수(2026-08-1x) */}
                             <div id="report-section-market" className="report-section">
                                 <SectionHeading number="04" title="시장 분석" />
-                                <MarketAnalysisPage analysis={analysis} loading={analysisLoading} area={selected.area} />
+                                <MarketAnalysisPage analysis={analysis} loading={analysisLoading} area={selected.area}
+                                    pricePosition={report?.pricePosition ?? null}
+                                />
                             </div>
 
                             {/* 5. 리모델링 분석 — 구 "사업성 분석"(BusinessAnalysisPage) 개명, 공사비 카드 흡수.
@@ -534,7 +599,7 @@ const ReportPage = ({ onBackToMap }: ReportPageProps) => {
                                 자체 grid로 처리. */}
                             <div id="report-section-reference" className="report-section">
                                 <SectionHeading number="08" title="근거 및 참고자료" />
-                                <ReferencePage />
+                                <ReferencePage limitations={report?.limitations ?? null} />
                             </div>
                         </>
                     )}
